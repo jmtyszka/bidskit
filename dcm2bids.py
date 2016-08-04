@@ -9,7 +9,7 @@ dice.py -h
 
 Example
 ----
->>> dice.py labelsA.nii.gz labelsB.nii.gz
+% dice.py labelsA.nii.gz labelsB.nii.gz
 
 Authors
 ----
