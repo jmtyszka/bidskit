@@ -41,7 +41,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '0.1.0'
+__version__ = '0.2.1'
 
 import os
 import sys
@@ -141,6 +141,7 @@ def main():
                     shutil.move(src_fname, dest_fname)
 
                     # Create template events TSV file
+                    print('  Creating template events file')
                     bids_events_template(dest_fname)
 
                 if acq.startswith('fmap'):
