@@ -79,10 +79,10 @@ def main():
     # Get list of unique subjects by name from file list
     sid_list = get_unique_subjects(dlist)
 
-    # Create participant CSV file in BIDS directory
-    parts_csv = os.path.join(bids_dir, 'participants.csv')
-    parts_fd = open(parts_csv, 'w')
-    parts_fd.write('participant_id, sex, age\n')
+    # Create template participant TSV file in BIDS directory
+    parts_tsv = os.path.join(bids_dir, 'participants.tsv')
+    parts_fd = open(parts_tsv, 'w')
+    parts_fd.write('participant_id\tsex\tage\n')
 
     # Create template JSON dataset description
     datadesc_json = os.path.join(bids_dir, 'dataset_description.json')
@@ -99,8 +99,8 @@ def main():
 
         print('Processing subject ' + sid)
 
-        # Add line to participants CSV file
-        parts_fd.write(sid + ', MF, 0\n')
+        # Add line to template participants CSV file
+        parts_fd.write(sid + '\tMF\t0\n')
 
         # Create subject directory
         sid_prefix = 'sub-' + sid
@@ -129,17 +129,23 @@ def main():
                 seq = bids_get_seq(fstub)
                 acq = bids_get_acq(fstub)
 
+                src_fname = os.path.join(bids_dir, fname)
+
                 if seq.startswith('T1') or seq.startswith('T2') or seq.startswith('FLASH'):
                     print('Moving %s to %s' % (fname, anat_dir))
-                    shutil.move(os.path.join(bids_dir, fname), os.path.join(anat_dir, fname))
+                    shutil.move(src_fname, os.path.join(anat_dir, fname))
 
                 if seq.startswith('bold'):
                     print('Moving %s to %s' % (fname, func_dir))
-                    shutil.move(os.path.join(bids_dir, fname), os.path.join(func_dir, fname))
+                    dest_fname = os.path.join(func_dir, fname)
+                    shutil.move(src_fname, dest_fname)
+
+                    # Create template events TSV file
+                    bids_events_template(dest_fname)
 
                 if acq.startswith('fmap'):
                     print('Moving %s to %s' % (fname, fmap_dir))
-                    shutil.move(os.path.join(bids_dir, fname), os.path.join(fmap_dir, fname))
+                    shutil.move(src_fname, os.path.join(fmap_dir, fname))
 
 
     # Clean up
@@ -196,6 +202,20 @@ def bids_parse_filename(fname):
 
     # Return filled dictionary
     return d
+
+
+def bids_events_template(bold_fname):
+    """
+    Create a template events file for a corresponding BOLD imaging file
+    :param bold_fname: BOLD imaging filename (.nii.gz)
+    :return: Nothing
+    """
+    events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+    fd = open(events_fname, 'w')
+    fd.write('onset\tduration\ttrial_type\tresponse_time\n')
+    fd.write('1.0\t0.5\tgo\t0.555\n')
+    fd.write('2.5\t0.4\tstop\t0.666\n')
+    fd.close()
 
 
 def strip_extensions(fname):
