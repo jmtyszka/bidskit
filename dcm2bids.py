@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Convert flat DICOM file set into a BIDS-compliant Nifti structure
+- Expects protocol names to be in BIDS format (eg task-rest_run-01_bold)
 
 Usage
 ----
@@ -141,8 +142,9 @@ def main():
                     shutil.move(src_fname, dest_fname)
 
                     # Create template events TSV file
-                    print('  Creating template events file')
-                    bids_events_template(dest_fname)
+                    if fname.endswith('.nii.gz') or fname.endswith('.nii'):
+                        print('  Creating template events file')
+                        bids_events_template(dest_fname)
 
                 if acq.startswith('fmap'):
                     print('Moving %s to %s' % (fname, fmap_dir))
