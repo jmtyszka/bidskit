@@ -130,6 +130,8 @@ def main():
                 seq = bids_get_seq(fstub)
                 acq = bids_get_acq(fstub)
 
+                print('Seq : %s  Acq : %s' % (seq, acq))
+
                 src_fname = os.path.join(bids_dir, fname)
 
                 if seq.startswith('T1') or seq.startswith('T2') or seq.startswith('FLASH'):
@@ -141,9 +143,8 @@ def main():
                     dest_fname = os.path.join(func_dir, fname)
                     shutil.move(src_fname, dest_fname)
 
-                    # Create template events TSV file
+                    # Create template events TSV file for each BOLD 4D image
                     if fname.endswith('.nii.gz') or fname.endswith('.nii'):
-                        print('  Creating template events file')
                         bids_events_template(dest_fname)
 
                 if acq.startswith('fmap'):
@@ -214,6 +215,9 @@ def bids_events_template(bold_fname):
     :return: Nothing
     """
     events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+
+    print('  Creating template events file ' + events_fname)
+
     fd = open(events_fname, 'w')
     fd.write('onset\tduration\ttrial_type\tresponse_time\n')
     fd.write('1.0\t0.5\tgo\t0.555\n')
