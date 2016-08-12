@@ -228,8 +228,8 @@ def ndar_create_prot_dict(prot_dict_json, prot_dict):
     print('')
     print('---')
     print('New protocol dictionary created : %s' % prot_dict_json)
-    print('Remember to replace "EXCLUDE" with an appropriate NDAR ImageDescription')
-    print('For example "T1w Structural" or "BOLD MB-EPI Resting-state')
+    print('Remember to replace "EXCLUDE" values in dictionary with an appropriate image description')
+    print('For example "MP-RAGE T1w 3D structural" or "MB-EPI BOLD resting-state')
     print('---')
     print('')
 
@@ -308,29 +308,26 @@ def ndar_init_summary(fname):
     :return:
     '''
 
+    # Write NDAR Image03 preamble and column headers
     ndar_fd = open(fname, 'w')
     ndar_fd.write('"image","03"\n')
-    ndar_fd.write(
-        '"subjectkey","src_subject_id","interview_date","interview_age","gender","comments_misc","image_file","image_thumbnail_file",')
-    ndar_fd.write(
-        '"image_description","experiment_id","scan_type","scan_object","image_file_format","data_file2","data_file2_type",')
-    ndar_fd.write(
-        '"image_modality","scanner_manufacturer_pd","scanner_type_pd","scanner_software_versions_pd","magnetic_field_strength",')
-    ndar_fd.write(
-        '"mri_repetition_time_pd","mri_echo_time_pd","flip_angle","acquisition_matrix","mri_field_of_view_pd","patient_position","photomet_interpret",')
-    ndar_fd.write(
-        '"receive_coil","transmit_coil","transformation_performed","transformation_type","image_history","image_num_dimensions",')
-    ndar_fd.write(
-        '"image_extent1","image_extent2","image_extent3","image_extent4","extent4_type","image_extent5","extent5_type",')
-    ndar_fd.write(
-        '"image_unit1","image_unit2","image_unit3","image_unit4","image_unit5","image_resolution1","image_resolution2",')
-    ndar_fd.write(
-        '"image_resolution3","image_resolution4","image_resolution5","image_slice_thickness","image_orientation",')
-    ndar_fd.write(
-        '"qc_outcome","qc_description","qc_fail_quest_reason","decay_correction","frame_end_times","frame_end_unit","frame_start_times",')
-    ndar_fd.write('"frame_start_unit","pet_isotope","pet_tracer","time_diff_inject_to_image","time_diff_units",')
-    ndar_fd.write('"pulse_seq","slice_acquisition","software_preproc","study","week","experiment_description","visit",')
-    ndar_fd.write('"slice_timing","bvek_bval_files","bvecfile","bvalfile"')
+    ndar_fd.write('"subjectkey","src_subject_id","interview_date","interview_age","gender","comments_misc",')
+    ndar_fd.write('"image_file","image_thumbnail_file","image_description","experiment_id","scan_type","scan_object",')
+    ndar_fd.write('"image_file_format","data_file2","data_file2_type","image_modality","scanner_manufacturer_pd",')
+    ndar_fd.write('"scanner_type_pd","scanner_software_versions_pd","magnetic_field_strength",')
+    ndar_fd.write('"mri_repetition_time_pd","mri_echo_time_pd","flip_angle","acquisition_matrix",')
+    ndar_fd.write('"mri_field_of_view_pd","patient_position","photomet_interpret",')
+    ndar_fd.write('"receive_coil","transmit_coil","transformation_performed","transformation_type","image_history",')
+    ndar_fd.write('"image_num_dimensions","image_extent1","image_extent2","image_extent3",')
+    ndar_fd.write('"image_extent4","extent4_type","image_extent5","extent5_type",')
+    ndar_fd.write('"image_unit1","image_unit2","image_unit3","image_unit4","image_unit5",')
+    ndar_fd.write('"image_resolution1","image_resolution2","image_resolution3","image_resolution4",')
+    ndar_fd.write('"image_resolution5","image_slice_thickness","image_orientation",')
+    ndar_fd.write('"qc_outcome","qc_description","qc_fail_quest_reason","decay_correction","frame_end_times",')
+    ndar_fd.write('"frame_end_unit","frame_start_times","frame_start_unit","pet_isotope","pet_tracer",')
+    ndar_fd.write('"time_diff_inject_to_image","time_diff_units","pulse_seq","slice_acquisition","software_preproc",')
+    ndar_fd.write('"study","week","experiment_description","visit","slice_timing",')
+    ndar_fd.write('"bvek_bval_files","bvecfile","bvalfile"')
 
     # Final newline
     ndar_fd.write('\n')
@@ -371,10 +368,15 @@ def ndar_add_row(fd, info):
     # gender,String,20,Required,Sex of the subject,M;F,M = Male; F = Female,
     fd.write('"%s",' % info.get('Sex','Unknown'))
 
+    # comments_misc
+    fd.write('"",')
+
     # image_file,File,,Required,"Data file (image, behavioral, anatomical, etc)",,,file_source
     fd.write('"%s",' % info.get('ImageFile','Unknown'))
 
-    #
+    # image_thumbnail_file
+    fd.write('"",')
+
     # Image description and scan type overlap strongly (eg fMRI), so we'll use the translated description provided
     # by the user in the protocol dictionary for both NDAR fields. The user description should provide information
     # about both the sequence type used (eg MB-EPI or MP-RAGE) and the purpose of the scan (BOLD resting-state,
@@ -383,6 +385,9 @@ def ndar_add_row(fd, info):
 
     # image_description,String,512,Required,"Image description, i.e. DTI, fMRI, Fast SPGR, phantom, EEG, dynamic PET",,,
     fd.write('"%s",' % info.get('ImageDescription','Unknown'))
+
+    # experiment_id,Integer,,Conditional,ID for the Experiment/settings/run,,,
+    fd.write('"",')
 
     # scan_type,String,50,Required,Type of Scan,
     # "MR diffusion; fMRI; MR structural (MPRAGE); MR structural (T1); MR structural (PD); MR structural (FSPGR);
@@ -400,20 +405,23 @@ def ndar_add_row(fd, info):
     # SIEMENS TEXT; ZVI; JP2; MATLAB; VISTA; ecat6; ecat7;,,
     fd.write('"NIFTI",')
 
+    # data_file2
+    fd.write('"",')
+
+    # data_file2_type
+    fd.write('"",')
+
     # image_modality,String,20,Required,Image modality, MRI;
     fd.write('"MRI",')
-
-    # transformation_performed,String,4,Required,Performed transformation,Yes; No,,
-    fd.write('"No",')
-
-    # experiment_id,Integer,,Conditional,ID for the Experiment/settings/run,,,
-    fd.write('"",')
 
     # scanner_manufacturer_pd,String,30,Conditional,Scanner Manufacturer,,,
     fd.write('"%s",' % info.get('Manufacturer','Unknown'))
 
     # scanner_type_pd,String,50,Conditional,Scanner Type,,,ScannerID
     fd.write('"%s",' % info.get('ManufacturersModelName','Unknown'))
+
+    # scanner_software_versions_pd
+    fd.write('"",')
 
     # magnetic_field_strength,String,50,Conditional,Magnetic field strength,,,
     fd.write('%f,' % info.get('MagneticFieldStrength','Unknown'))
@@ -427,83 +435,59 @@ def ndar_add_row(fd, info):
     # flip_angle,String,30,Conditional,Flip angle,,,
     fd.write('%0.1f,' % info.get('FlipAngle',-1.0))
 
-    # acquisition_matrix,String,30,Conditional,Acquisition matrix,,,
-    fd.write('"",')
-
-    # mri_field_of_view_pd,String,50,Conditional,Field of View,,,
-    fd.write('""')
-
-    # patient_position,String,50,Conditional,Patient position,,,
-    fd.write('"",')
-
-    # photomet_interpret,String,50,Conditional,Photometric interpretation,,,
-    fd.write('"",')
-
-    # transformation_type,String,50,Conditional,Type of transformation,,,
-    fd.write('"",')
-
-    # image_extent2,Integer,,Conditional,Extent [2] Y dimension,1+,,
-    fd.write('"",')
-
-    # image_extent3,Integer,,Conditional,Extent [3] Z dimension,1+,,
-    fd.write('"",')
-
-    # image_extent4,Integer,,Conditional,Extent [4],,,
-    fd.write('"",')
-
-    # extent4_type,String,50,Conditional,Description of extent [4],,,
-    fd.write('"",')
-
-    # image_extent5,Integer,,Conditional,Extent [5],1+,,
-    fd.write('"",')
-
-    # extent5_type,String,50,Conditional,Description of extent [5],,,
-    fd.write('"",')
-
-    # image_unit2,String,20,Conditional,Units [2] Y dimension,
-    # Inches; Centimeters; Angstroms; Nanometers; Micrometers; Millimeters; Meters; Kilometers; Miles;
-    # Nanoseconds; Microseconds; Milliseconds; Seconds; Minutes; Hours; Hertz; frame number,,
-    fd.write('"Millimeters",')
-
-    # image_unit3,String,20,Conditional,Units [3] Z dimension,
-    # Inches; Centimeters; Angstroms; Nanometers; Micrometers; Millimeters; Meters; Kilometers; Miles;
-    # Nanoseconds; Microseconds; Milliseconds; Seconds; Minutes; Hours; Hertz; frame number,,
-    fd.write('"Millimeters",')
-
-    # image_unit4,String,50,Conditional,Units [4],
-    # Inches; Centimeters; Angstroms; Nanometers; Micrometers; Millimeters; Meters; Kilometers; Miles;
-    # Nanoseconds; Microseconds; Milliseconds; Seconds; Minutes; Hours; Hertz; Diffusion gradient;
-    # frame number; number of Volumes (across time),,
-    fd.write('"",')
-
-    # image_unit5,String,20,Conditional,Units [5],
-    # Inches; Centimeters; Angstroms; Nanometers; Micrometers; Millimeters; Meters; Kilometers; Miles;
-    # Nanoseconds; Microseconds; Milliseconds; Seconds; Minutes; Hours; Hertz; Diffusion gradient; frame number,,
-    fd.write('"",')
-
-    # slice_timing,String,800,Conditional,
-    # "The time at which each slice was acquired during the acquisition. Slice timing is not slice order - it describes
-    # the time (sec) of each slice acquisition in relation to the beginning of volume acquisition. It is described
-    # using a list of times (in JSON format) referring to the acquisition time for each slice. The list goes through
-    # slices along the slice axis in the slice encoding dimension
-    fd.write('"",')
-
-    # bvek_bval_files,String,5,Conditional,
-    # bvec and bval files provided as part of image_file for diffusion images only,Yes; No,,
-    fd.write('"",')
-
-    # bvecfile,File,,Conditional,
-    # "Bvec file. The bvec files contain 3 rows with n space-delimited floating-point 5 numbers
-    # (corresponding to the n volumes in the relevant Nifti file). The first row contains the x elements, the second
-    # row contains the y elements and third row contains the z elements of a unit vector in the direction of the applied
-    #  diffusion gradient, where the i-th elements in each row correspond together to the i-th volume with [0,0,0] for
-    # non-diffusion-weighted volumes",,,
-    fd.write('"",')
-
-    # bvalfile,File,,Conditional,
-    # "Bval file. The bval file contains the b-values (in s/mm2) corresponding to the volumes in the relevant Nifti file),
-    # with 0 designating non-diffusion-weighted volumes, space-delimited
-    fd.write('"",')
+    # Other conditional fields - mostly blank
+    fd.write('"",')  # acquisition_matrix
+    fd.write('"",')  # mri_field_of_view_pd
+    fd.write('"",')  # patient_position
+    fd.write('"",')  # photomet_interpret
+    fd.write('"",')  # receive_coil
+    fd.write('"",')  # transmit_coil
+    fd.write('"No",')  # transformation_performed
+    fd.write('"",')  # transformation_type
+    fd.write('"",')  # image_history
+    fd.write('"",')  # image_num_dimensions
+    fd.write('"",')  # image_extent1
+    fd.write('"",')  # image_extent2
+    fd.write('"",')  # image_extent3
+    fd.write('"",')  # image_extent4
+    fd.write('"",')  # extent4_type
+    fd.write('"",')  # image_extent5
+    fd.write('"",')  # extent5_type
+    fd.write('"Millimeters",')  # image_unit1
+    fd.write('"Millimeters",')  # image_unit2
+    fd.write('"Millimeters",')  # image_unit3
+    fd.write('"",')  # image_unit4
+    fd.write('"",')  # image_unit5
+    fd.write('"",')  # image_resolution1
+    fd.write('"",')  # image_resolution2
+    fd.write('"",')  # image_resolution3
+    fd.write('"",')  # image_resolution4
+    fd.write('"",')  # image_resolution5
+    fd.write('"",')  # image_slice_thickness
+    fd.write('"",')  # image_orientation
+    fd.write('"",')  # qc_outcome
+    fd.write('"",')  # qc_description
+    fd.write('"",')  # qc_fail_quest_reason
+    fd.write('"",')  # decay_correction
+    fd.write('"",')  # frame_end_times
+    fd.write('"",')  # frame_end_unit
+    fd.write('"",')  # frame_start_times
+    fd.write('"",')  # frame_start_unit
+    fd.write('"",')  # pet_isotope
+    fd.write('"",')  # pet_tracer
+    fd.write('"",')  # time_diff_inject_to_image
+    fd.write('"",')  # time_diff_units
+    fd.write('"",')  # pulse_seq
+    fd.write('"",')  # slice_acquisition
+    fd.write('"None",')  # software_preproc
+    fd.write('"",')  # study
+    fd.write('"",')  # week
+    fd.write('"",')  # experiment_description
+    fd.write('"",')  # visit
+    fd.write('"",')  # slice_timing
+    fd.write('"",')  # bvek_bval_files
+    fd.write('"",')  # bvecfile
+    fd.write('"",')  # bvalfile
 
     # Final newline
     fd.write('\n')

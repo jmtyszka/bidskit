@@ -1,7 +1,0 @@
-{
-  "Exclude": ["Localizer", "HARDI", "Clinical"],
-  "LOI_1": "Levels of Inference Task 1",
-  "LOI_2": "Levels of Inference Task 2",
-  "rsBOLD_1": "Resting-state BOLD fMRI 1",
-  "rsBOLD_2": "Resting-state BOLD fMRI 1"
-}
