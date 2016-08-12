@@ -114,13 +114,22 @@ def main():
             subprocess.call(['dcm2niix', '-b', 'y', '-o', ndar_sub_dir, dcm_sub_dir])
 
             # Loop over all Nifti files (*.nii, *.nii.gz) for this SID
-            for nii_fname in glob.glob(os.path.join(ndar_sub_dir, '*.nii*')):
+            # glob returns the full relative path from the NDAR root dir
+            for nii_fname_full in glob.glob(os.path.join(ndar_sub_dir, '*.nii*')):
 
-                # Parse filename
+                # Isolate base filename
+                nii_fname = os.path.basename(nii_fname_full)
+
+                # Parse file basename
                 SID, prot, fstub, fext = ndar_parse_filename(nii_fname)
+
+                # Full path for file stub
+                fstub_full = os.path.join(ndar_sub_dir, fstub)
 
                 # Check if we're creating new protocol dictionary
                 if create_prot_dict:
+
+                    print('  Adding protocol %s to dictionary' % prot)
 
                     # Add current protocol to protocol dictionary
                     # The value defaults to "EXCLUDE" which should be replaced with the correct NDAR
@@ -129,43 +138,45 @@ def main():
 
                 else:
 
-                    # # JSON sidecar for this image
-                    # json_fname = fstub + '.json'
-                    # if not os.path.isfile(json_fname):
-                    #     print('* JSON sidecar not found')
-                    #     break
-                    #
-                    # # Skip excluded protocols
-                    # if ndar_include_prot(prot, prot_trans):
-                    #
-                    #     print('  Reading JSON sidecar')
-                    #
-                    #     # Read JSON sidecar contents
-                    #     json_fd = open(json_fname, 'r')
-                    #     info = json.load(json_fd)
-                    #     json_fd.close()
-                    #
-                    #     # Combine JSON and extra DICOM info dictionaries
-                    #     info.update(extra_info)
-                    #
-                    #     # Add remaining fields not in JSON or DICOM metadata
-                    #     info['ImageFile'] = nii_fname
-                    #     info['ImageDescription'] = prot
-                    #     info['ScanType'] = 'MRI'
-                    #
-                    #     # Add row to NDAR summary CSV file
-                    #     ndar_add_row(ndar_csv_fd, info)
-                    #
-                    #     # Delete JSON file
-                    #     print('  Deleting JSON file')
-                    #     os.remove(json_fname)
-                    #
-                    # else:
-                    #
-                    #     print('* Excluding protocol ' + prot)
-                    #     os.remove(nii_fname)
-                    #     os.remove(json_fname)
-                    pass
+                    # JSON sidecar for this image
+                    json_fname = fstub_full + '.json'
+                    if not os.path.isfile(json_fname):
+                        print('* JSON sidecar not found')
+                        break
+
+                    # Skip excluded protocols
+                    if prot_dict[prot] == 'EXCLUDE':
+
+                        print('* Excluding protocol ' + prot)
+
+                        # Remove all files related to this protocol
+                        for f in glob.glob(fstub_full + '.*'):
+                            os.remove(f)
+
+                    else:
+
+                        print('  Converting protocol ' + prot)
+
+                        # Read JSON sidecar contents
+                        json_fd = open(json_fname, 'r')
+                        info = json.load(json_fd)
+                        json_fd.close()
+
+                        # Combine JSON and extra DICOM info dictionaries
+                        info.update(extra_info)
+
+                        # Add remaining fields not in JSON or DICOM metadata
+                        info['SID'] = SID
+                        info['ImageFile'] = os.path.basename(nii_fname)
+                        info['ImageDescription'] = prot_dict[prot]
+                        info['ScanType'] = prot_dict[prot]
+
+                        # Add row to NDAR summary CSV file
+                        ndar_add_row(ndar_csv_fd, info)
+
+                        # Delete JSON file
+                        os.remove(json_fname)
+
 
             # Close NDAR summary file for this subject
             ndar_close_summary(ndar_csv_fd)
@@ -344,33 +355,40 @@ def ndar_add_row(fd, info):
     # ElementName, DataType, Size, Required, ElementDescription, ValueRange, Notes, Aliases
 
     # subjectkey,GUID,,Required,The NDAR Global Unique Identifier (GUID) for research subject,NDAR*,,
-    fd.write('" ",')
+    fd.write('"TBD",')
 
     # src_subject_id,String,20,Required,Subject ID how it's defined in lab/project,,,
-    fd.write('"%s",' % info['SID'])
+    fd.write('"%s",' % info.get('SID','Unknown'))
 
     # interview_date,Date,,Required,Date on which the interview/genetic test/sampling/imaging was completed. MM/DD/YYYY,,Required field,ScanDate
-    fd.write('"%s",' % info['ScanDate'])
+    fd.write('"%s",' % info.get('ScanDate','Unknown'))
 
     # interview_age,Integer,,Required,Age in months at the time of the interview/test/sampling/imaging.,0 :: 1260,
     # "Age is rounded to chronological month. If the research participant is 15-days-old at time of interview,
     # the appropriate value would be 0 months. If the participant is 16-days-old, the value would be 1 month.",
-    fd.write('%d,' % info['AgeMonths'])
+    fd.write('%d,' % info.get('AgeMonths','Unknown'))
 
     # gender,String,20,Required,Sex of the subject,M;F,M = Male; F = Female,
-    fd.write('"%s",' % info['Sex'])
+    fd.write('"%s",' % info.get('Sex','Unknown'))
 
     # image_file,File,,Required,"Data file (image, behavioral, anatomical, etc)",,,file_source
-    fd.write('"%s",' % info['ImageFile'])
+    fd.write('"%s",' % info.get('ImageFile','Unknown'))
+
+    #
+    # Image description and scan type overlap strongly (eg fMRI), so we'll use the translated description provided
+    # by the user in the protocol dictionary for both NDAR fields. The user description should provide information
+    # about both the sequence type used (eg MB-EPI or MP-RAGE) and the purpose of the scan (BOLD resting-state,
+    # T1w structural, B0 fieldmap phase).
+    # Note the 50 character limit for scan type.
 
     # image_description,String,512,Required,"Image description, i.e. DTI, fMRI, Fast SPGR, phantom, EEG, dynamic PET",,,
-    fd.write('"%s",' % info['ImageDescription'])
+    fd.write('"%s",' % info.get('ImageDescription','Unknown'))
 
     # scan_type,String,50,Required,Type of Scan,
     # "MR diffusion; fMRI; MR structural (MPRAGE); MR structural (T1); MR structural (PD); MR structural (FSPGR);
     # MR structural (T2); PET; ASL; microscopy; MR structural (PD, T2); MR structural (B0 map); MR structural (B1 map);
     # single-shell DTI; multi-shell DTI; Field Map; X-Ray",,
-    fd.write('"%s",' % info['ImageDescription'])
+    fd.write('"%s",' % info.get('ImageDescription','Unknown'))
 
     # scan_object,String,50,Required,"The Object of the Scan (e.g. Live, Post-mortem, or Phantom",Live; Post-mortem; Phantom,,
     fd.write('"Live",')
@@ -392,28 +410,28 @@ def ndar_add_row(fd, info):
     fd.write('"",')
 
     # scanner_manufacturer_pd,String,30,Conditional,Scanner Manufacturer,,,
-    fd.write('"%s",' % info['ScannerManufacturer'])
+    fd.write('"%s",' % info.get('Manufacturer','Unknown'))
 
     # scanner_type_pd,String,50,Conditional,Scanner Type,,,ScannerID
-    fd.write('"%s",' % info['ScannerID'])
+    fd.write('"%s",' % info.get('ManufacturersModelName','Unknown'))
 
     # magnetic_field_strength,String,50,Conditional,Magnetic field strength,,,
-    fd.write('%f,' % info['MagneticFieldStrength'])
+    fd.write('%f,' % info.get('MagneticFieldStrength','Unknown'))
 
     # mri_repetition_time_pd,Float,,Conditional,Repetition Time (seconds),,,
-    fd.write('%f,' % info['TR_secs'])
+    fd.write('%0.4f,' % info.get('RepetitionTime',-1.0))
 
     # mri_echo_time_pd,Float,,Conditional,Echo Time (seconds),,,
-    fd.write('%f,' % info['TE_secs'])
+    fd.write('%0.4f,' % info.get('EchoTime',-1.0))
 
     # flip_angle,String,30,Conditional,Flip angle,,,
-    fd.write('f,' % info['FlipAngle_deg'])
+    fd.write('%0.1f,' % info.get('FlipAngle',-1.0))
 
     # acquisition_matrix,String,30,Conditional,Acquisition matrix,,,
-    fd.write('"%s",' % info['AcqMatrix'])
+    fd.write('"",')
 
     # mri_field_of_view_pd,String,50,Conditional,Field of View,,,
-    fd.write('"%s",' % info['FOV'])
+    fd.write('""')
 
     # patient_position,String,50,Conditional,Patient position,,,
     fd.write('"",')
