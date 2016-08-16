@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Protocol_Translator.json" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dcm2bids.py" afterPath="$PROJECT_DIR$/dcm2bids.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dcm2ndar.py" afterPath="$PROJECT_DIR$/dcm2ndar.py" />
     </list>
     <ignored path="bidskit.iws" />
@@ -29,11 +29,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dcm2bids.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="95" column="56" selection-start-line="95" selection-start-column="26" selection-end-line="95" selection-end-column="56" />
+            <state relative-caret-position="231">
+              <caret line="78" column="0" selection-start-line="78" selection-start-column="0" selection-end-line="78" selection-end-column="0" />
               <folding>
                 <element signature="e#1480#1489#0" expanded="true" />
               </folding>
@@ -41,11 +41,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dcm2ndar.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="dcm2ndar.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="925">
-              <caret line="498" column="41" selection-start-line="498" selection-start-column="41" selection-end-line="498" selection-end-column="41" />
+            <state relative-caret-position="370">
+              <caret line="113" column="104" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
               <folding>
                 <element signature="e#1409#1418#0" expanded="true" />
               </folding>
@@ -69,9 +69,9 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/dcm2bids.py" />
         <option value="$PROJECT_DIR$/Protocol_Template.json" />
         <option value="$PROJECT_DIR$/dcm2ndar.py" />
+        <option value="$PROJECT_DIR$/dcm2bids.py" />
       </list>
     </option>
   </component>
@@ -82,10 +82,10 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="50" />
-    <option name="y" value="59" />
-    <option name="width" value="1378" />
-    <option name="height" value="1228" />
+    <option name="x" value="415" />
+    <option name="y" value="24" />
+    <option name="width" value="1670" />
+    <option name="height" value="1299" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <OptionsSetting value="true" id="Add" />
@@ -490,14 +490,21 @@
       <option name="project" value="LOCAL" />
       <updated>1471026939012</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Fixed NDAR summary CSV file column ordering.">
+      <created>1471042416755</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1471042416755</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="50" y="59" width="1378" height="1228" extended-state="0" />
-    <editor active="true" />
+    <frame x="415" y="24" width="1670" height="1299" extended-state="0" />
+    <editor active="false" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.287373" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.23712575" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -538,7 +545,8 @@
     <MESSAGE value="Mostly working version. Need to add more imaging fields to info structure for summary file output." />
     <MESSAGE value="Rewrote workflow to handle conversion separately for each subject in the DICOM directory. Added template protocol translation dictionary to DICOM root folder to be filled by user for second pass." />
     <MESSAGE value="First alpha version. Should work for Conte Core MRI data conversion. Requires user to fill GUIDs manually in each subject's NDAR CSV summary file." />
-    <option name="LAST_COMMIT_MESSAGE" value="First alpha version. Should work for Conte Core MRI data conversion. Requires user to fill GUIDs manually in each subject's NDAR CSV summary file." />
+    <MESSAGE value="Fixed NDAR summary CSV file column ordering." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed NDAR summary CSV file column ordering." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -550,6 +558,46 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/dcm2bids.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1350">
+          <caret line="95" column="56" selection-start-line="95" selection-start-column="26" selection-end-line="95" selection-end-column="56" />
+          <folding>
+            <element signature="e#1480#1489#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#1409#1418#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dcm2bids.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1425">
+          <caret line="95" column="56" selection-start-line="95" selection-start-column="26" selection-end-line="95" selection-end-column="56" />
+          <folding>
+            <element signature="e#1480#1489#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#1409#1418#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/dcm2bids.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1425">
@@ -648,9 +696,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/LICENSE.md">
-      <provider editor-type-id="MarkdownFxPreviewEditor">
-        <state />
-      </provider>
       <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
         <state split_layout="FIRST">
           <first_editor relative-caret-position="0">
@@ -658,6 +703,9 @@
           </first_editor>
           <second_editor />
         </state>
+      </provider>
+      <provider editor-type-id="MarkdownFxPreviewEditor">
+        <state />
       </provider>
     </entry>
     <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
@@ -674,30 +722,23 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/dcm2bids.py">
+    <entry file="file://$PROJECT_DIR$/Protocol_Translator.json" />
+    <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="95" column="56" selection-start-line="95" selection-start-column="26" selection-end-line="95" selection-end-column="56" />
+        <state relative-caret-position="370">
+          <caret line="113" column="104" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="0" />
           <folding>
-            <element signature="e#1480#1489#0" expanded="true" />
+            <element signature="e#1409#1418#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Protocol_Translator.json">
+    <entry file="file://$PROJECT_DIR$/dcm2bids.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" column="4" selection-start-line="1" selection-start-column="4" selection-end-line="1" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="925">
-          <caret line="498" column="41" selection-start-line="498" selection-start-column="41" selection-end-line="498" selection-end-column="41" />
+        <state relative-caret-position="231">
+          <caret line="78" column="0" selection-start-line="78" selection-start-column="0" selection-end-line="78" selection-end-column="0" />
           <folding>
-            <element signature="e#1409#1418#0" expanded="true" />
+            <element signature="e#1480#1489#0" expanded="true" />
           </folding>
         </state>
       </provider>

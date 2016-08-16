@@ -111,7 +111,7 @@ def main():
             # Run dcm2niix conversion from DICOM to Nifti with BIDS sidecars for metadata
             # This relies on the current CBIC branch of dcm2niix which extracts additional DICOM fields
             # required by NDAR
-            subprocess.call(['dcm2niix', '-b', 'y', '-o', ndar_sub_dir, dcm_sub_dir])
+            subprocess.call(['dcm2niix', '-b', 'y', '-f', 'sub-%n_%p', '-o', ndar_sub_dir, dcm_sub_dir])
 
             # Loop over all Nifti files (*.nii, *.nii.gz) for this SID
             # glob returns the full relative path from the NDAR root dir

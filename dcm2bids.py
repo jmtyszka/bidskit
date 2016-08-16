@@ -72,7 +72,7 @@ def main():
     subprocess.call(['mkdir', '-p', bids_dir])
 
     # Run dcm2niix conversion from DICOM into BIDS directory
-    subprocess.call(['dcm2niix', '-b', 'y', '-o', bids_dir, dcm_dir])
+    subprocess.call(['dcm2niix', '-b', 'y', '-f', 'sub-%n_%p', '-o', bids_dir, dcm_dir])
 
     # Load BIDS directory listing
     dlist = os.listdir(bids_dir)
