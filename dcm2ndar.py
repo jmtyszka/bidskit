@@ -175,7 +175,7 @@ def main():
                         info['SID'] = SID
                         info['ImageFile'] = os.path.basename(nii_fname)
                         info['ImageDescription'] = prot_dict[prot]
-                        info['ScanType'] = prot_dict[prot]
+                        info['ScanType'] = ndar_scantype(prot_dict[prot])
 
                         # Add row to NDAR summary CSV file
                         ndar_add_row(ndar_csv_fd, info)
@@ -263,6 +263,49 @@ def ndar_parse_filename(fname):
             prot = chunk
 
     return SID, prot, fstub, fext
+
+
+def ndar_scantype(desc):
+    """
+    Best effort guess at scan type from description
+
+    NDAR allowed MRI scan_type values
+    ----
+    fMRI
+    MR structural (T1)
+    MR structural (T2)
+    MR structural (PD)
+    MR structural (FSPGR);
+    MR structural (MPRAGE)
+    MR structural (PD, T2)
+    MR structural (B0 map)
+    MR structural (B1 map);
+    Field Map
+    MR diffusion
+    single-shell DTI
+    multi-shell DTI
+    ASL
+
+    :param desc:
+    :return scan_type:
+    """
+
+    # Convert description to upper case
+    desc = desc.upper()
+
+    # Search for common contrasts
+    if 'T1' in desc:
+        scan_type = 'MR structural (T1)'
+    elif 'T2' in desc:
+        scan_type = 'MR structural (T2)'
+    elif 'FIELDMAP' in desc or 'FMAP' in desc or 'FIELD MAP' in desc or 'B0' in desc:
+        scan_type = 'MR structural (B0 map)'
+    elif 'BOLD' in desc:
+        scan_type = 'fMRI'
+    else:
+        scan_type = 'MR structural (T1)' # T1 structural fallback value
+
+    return scan_type
 
 
 def ndar_nifti_info(nii_fname):
@@ -436,7 +479,7 @@ def ndar_add_row(fd, info):
     # "MR diffusion; fMRI; MR structural (MPRAGE); MR structural (T1); MR structural (PD); MR structural (FSPGR);
     # MR structural (T2); PET; ASL; microscopy; MR structural (PD, T2); MR structural (B0 map); MR structural (B1 map);
     # single-shell DTI; multi-shell DTI; Field Map; X-Ray",,
-    fd.write('"%s",' % info.get('ImageDescription','Unknown'))
+    fd.write('"%s",' % info.get('ScanType'))
 
     # scan_object,String,50,Required,"The Object of the Scan (e.g. Live, Post-mortem, or Phantom",Live; Post-mortem; Phantom,,
     fd.write('"Live",')
@@ -464,7 +507,7 @@ def ndar_add_row(fd, info):
     fd.write('"%s",' % info.get('ManufacturersModelName','Unknown'))
 
     # scanner_software_versions_pd
-    fd.write('%s,' % info.get('SoftwareVersions','Unknown'))
+    fd.write('"%s",' % info.get('SoftwareVersions','Unknown'))
 
     # magnetic_field_strength,String,50,Conditional,Magnetic field strength,,,
     fd.write('%f,' % info.get('MagneticFieldStrength','Unknown'))
@@ -479,12 +522,12 @@ def ndar_add_row(fd, info):
     fd.write('%0.1f,' % info.get('FlipAngle',-1.0))
 
     # MRI conditional fields
-    fd.write('%s,' % info.get('AcquisitionMatrix'))  # acquisition_matrix
-    fd.write('%s,' % info.get('FOV'))  # mri_field_of_view_pd
-    fd.write('%s,' % info.get('PatientPosition'))  # patient_position
-    fd.write('%s,' % info.get('PhotometricInterpretation'))  # photomet_interpret
+    fd.write('"%s",' % info.get('AcquisitionMatrix'))  # acquisition_matrix
+    fd.write('"%s",' % info.get('FOV'))  # mri_field_of_view_pd
+    fd.write('"%s",' % info.get('PatientPosition'))  # patient_position
+    fd.write('"%s",' % info.get('PhotometricInterpretation'))  # photomet_interpret
     fd.write('"",')  # receive_coil
-    fd.write('%s,' % info.get('TransmitCoil'))  # transmit_coil
+    fd.write('"%s",' % info.get('TransmitCoil'))  # transmit_coil
     fd.write('"No",')  # transformation_performed
     fd.write('"",')  # transformation_type
     fd.write('"",')  # image_history
@@ -527,7 +570,7 @@ def ndar_add_row(fd, info):
     fd.write('"",')  # week
     fd.write('"",')  # experiment_description
     fd.write('"",')  # visit
-    fd.write('"",')  # slice_timing
+    fd.write('"[]",')  # slice_timing
     fd.write('"No",')  # bvek_bval_files
     fd.write('"NA",')  # bvecfile
     fd.write('"NA",')  # bvalfile
