@@ -50,6 +50,7 @@ import subprocess
 import dicom
 import json
 import glob
+import nibabel as nib
 from datetime import datetime
 from dateutil import relativedelta
 
@@ -105,8 +106,8 @@ def main():
             ndar_csv_fname = os.path.join(ndar_sub_dir, SID + '_NDAR.csv')
             ndar_csv_fd = ndar_init_summary(ndar_csv_fname)
 
-            # Read additional DICOM header fields not handled by dcm2niix
-            extra_info = ndar_extra_info(dcm_sub_dir)
+            # Read additional subject-level DICOM header fields not handled by dcm2niix
+            dcm_info = ndar_dcm_info(dcm_sub_dir)
 
             # Run dcm2niix conversion from DICOM to Nifti with BIDS sidecars for metadata
             # This relies on the current CBIC branch of dcm2niix which extracts additional DICOM fields
@@ -116,6 +117,10 @@ def main():
             # Loop over all Nifti files (*.nii, *.nii.gz) for this SID
             # glob returns the full relative path from the NDAR root dir
             for nii_fname_full in glob.glob(os.path.join(ndar_sub_dir, '*.nii*')):
+
+                # Read Nifti header for image FOV, extent (ie matrix) and voxel dimensions
+                print('  Reading Nifti header')
+                nii_info = ndar_nifti_info(nii_fname_full)
 
                 # Isolate base filename
                 nii_fname = os.path.basename(nii_fname_full)
@@ -162,8 +167,9 @@ def main():
                         info = json.load(json_fd)
                         json_fd.close()
 
-                        # Combine JSON and extra DICOM info dictionaries
-                        info.update(extra_info)
+                        # Combine JSON, Nifti and DICOM info dictionaries
+                        info.update(nii_info)
+                        info.update(dcm_info)
 
                         # Add remaining fields not in JSON or DICOM metadata
                         info['SID'] = SID
@@ -259,11 +265,44 @@ def ndar_parse_filename(fname):
     return SID, prot, fstub, fext
 
 
-def ndar_extra_info(dcm_dir):
+def ndar_nifti_info(nii_fname):
     '''
-    Extract additional DICOM header fields not handled by dcm2niix
+    Extract Nifti header fields not handled by dcm2niix
+    :param nii_fname: Nifti image filename
+    :return: nii_info: Nifti information dictionary
+    '''
+
+    # Init a new dictionary
+    nii_info = dict()
+
+    # Load Nifti header
+    nii = nib.load(nii_fname)
+    hdr = nii.header
+
+    dim = hdr['dim']
+
+    # Fill dictionary
+    nii_info['AcquisitionMatrix'] = '%dx%d' % (dim[1], dim[2])
+    nii_info['NDims'] = dim[0]
+    nii_info['ImageExtent1'] = dim[1]
+    nii_info['ImageExtent2'] = dim[2]
+    nii_info['ImageExtent3'] = dim[3]
+    nii_info['ImageExtent4'] = dim[4]
+    nii_info['ImageExtent5'] = dim[5]
+
+    if dim[0] > 3:
+        nii_info['Extent4Type'] = 'Timeseries'
+    else:
+        nii_info['Extent4Type'] = 'None'
+
+    return nii_info
+
+
+def ndar_dcm_info(dcm_dir):
+    '''
+    Extract additional subject-level DICOM header fields not handled by dcm2niix
     :param dcm_dir: DICOM directory containing subject files
-    :return: extra_info: extra information dictionary
+    :return: dcm_info: extra information dictionary
     '''
 
     # Loop over files until first valid DICOM is found
@@ -279,7 +318,7 @@ def ndar_extra_info(dcm_dir):
             break
 
     # Init a new dictionary
-    extra_info = dict()
+    dcm_info = dict()
 
     # Read DoB and scan date
     dob = ds.PatientBirthDate
@@ -294,11 +333,15 @@ def ndar_extra_info(dcm_dir):
     age_months = rd.years * 12 + rd.months + round(rd.days / 30.0)
 
     # Fill dictionary
-    extra_info['Sex'] = ds.PatientSex
-    extra_info['AgeMonths'] = age_months
-    extra_info['ScanDate'] = datetime.strftime(d2, '%M/%d/%Y') # NDAR scan date format MM/DD/YYYY
+    dcm_info['Sex'] = ds.PatientSex
+    dcm_info['PatientPosition'] = ds.PatientPosition
+    dcm_info['TransmitCoil'] = ds.TransmitCoilName
+    dcm_info['SoftwareVersions'] = ds.SoftwareVersions
+    dcm_info['PhotometricInterpretation'] = ds.PhotometricInterpretation
+    dcm_info['AgeMonths'] = age_months
+    dcm_info['ScanDate'] = datetime.strftime(d2, '%M/%d/%Y') # NDAR scan date format MM/DD/YYYY
 
-    return extra_info
+    return dcm_info
 
 
 def ndar_init_summary(fname):
@@ -421,7 +464,7 @@ def ndar_add_row(fd, info):
     fd.write('"%s",' % info.get('ManufacturersModelName','Unknown'))
 
     # scanner_software_versions_pd
-    fd.write('"",')
+    fd.write('%s,' % info.get('SoftwareVersions','Unknown'))
 
     # magnetic_field_strength,String,50,Conditional,Magnetic field strength,,,
     fd.write('%f,' % info.get('MagneticFieldStrength','Unknown'))
@@ -435,29 +478,29 @@ def ndar_add_row(fd, info):
     # flip_angle,String,30,Conditional,Flip angle,,,
     fd.write('%0.1f,' % info.get('FlipAngle',-1.0))
 
-    # Other conditional fields - mostly blank
-    fd.write('"",')  # acquisition_matrix
-    fd.write('"",')  # mri_field_of_view_pd
-    fd.write('"",')  # patient_position
-    fd.write('"",')  # photomet_interpret
+    # MRI conditional fields
+    fd.write('%s,' % info.get('AcquisitionMatrix'))  # acquisition_matrix
+    fd.write('%s,' % info.get('FOV'))  # mri_field_of_view_pd
+    fd.write('%s,' % info.get('PatientPosition'))  # patient_position
+    fd.write('%s,' % info.get('PhotometricInterpretation'))  # photomet_interpret
     fd.write('"",')  # receive_coil
-    fd.write('"",')  # transmit_coil
+    fd.write('%s,' % info.get('TransmitCoil'))  # transmit_coil
     fd.write('"No",')  # transformation_performed
     fd.write('"",')  # transformation_type
     fd.write('"",')  # image_history
-    fd.write('"",')  # image_num_dimensions
-    fd.write('"",')  # image_extent1
-    fd.write('"",')  # image_extent2
-    fd.write('"",')  # image_extent3
-    fd.write('"",')  # image_extent4
-    fd.write('"",')  # extent4_type
+    fd.write('%d,' % info.get('NDims'))  # image_num_dimensions
+    fd.write('%d,' % info.get('ImageExtent1'))  # image_extent1
+    fd.write('%d,' % info.get('ImageExtent2'))  # image_extent2
+    fd.write('%d,' % info.get('ImageExtent3'))  # image_extent3
+    fd.write('%d,' % info.get('ImageExtent4'))  # image_extent4
+    fd.write('%s,' % info.get('Extent4Type'))  # extent4_type
     fd.write('"",')  # image_extent5
     fd.write('"",')  # extent5_type
     fd.write('"Millimeters",')  # image_unit1
     fd.write('"Millimeters",')  # image_unit2
     fd.write('"Millimeters",')  # image_unit3
-    fd.write('"",')  # image_unit4
-    fd.write('"",')  # image_unit5
+    fd.write('"Seconds",')  # image_unit4
+    fd.write('"Arbitrary",')  # image_unit5
     fd.write('"",')  # image_resolution1
     fd.write('"",')  # image_resolution2
     fd.write('"",')  # image_resolution3
@@ -485,9 +528,9 @@ def ndar_add_row(fd, info):
     fd.write('"",')  # experiment_description
     fd.write('"",')  # visit
     fd.write('"",')  # slice_timing
-    fd.write('"",')  # bvek_bval_files
-    fd.write('"",')  # bvecfile
-    fd.write('"",')  # bvalfile
+    fd.write('"No",')  # bvek_bval_files
+    fd.write('"NA",')  # bvecfile
+    fd.write('"NA",')  # bvalfile
 
     # Final newline
     fd.write('\n')
