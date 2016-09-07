@@ -50,12 +50,14 @@ import subprocess
 import dicom
 import json
 import glob
+import shutil
 import nibabel as nib
 from datetime import datetime
 from dateutil import relativedelta
 
 
 def main():
+
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to NDAR-compliant fileset')
     parser.add_argument('-i', '--indir', required=True, help='Source directory containing subject DICOM directories')
@@ -72,7 +74,7 @@ def main():
         ndar_root_dir = args.indir + '.ndar'
 
     # Load protocol translation and exclusion info from DICOM directory
-    # If no translator is present, prot_trans is an empty dictionary
+    # If no translator is present, prot_dict is an empty dictionary
     # and a template will be created in the DICOM directory. This template should be
     # completed by the user and the conversion rerun.
     prot_dict_json = os.path.join(dcm_root_dir, 'Protocol_Translator.json')
@@ -84,8 +86,8 @@ def main():
         create_prot_dict = False
 
     # Safe create output NDAR root directory
-    subprocess.call(['rm', '-rf', ndar_root_dir])
-    subprocess.call(['mkdir', '-p', ndar_root_dir])
+    shutil.rmtree(ndar_root_dir)
+    os.makedirs(ndar_root_dir)
 
     # Loop over each subject's DICOM directory within the root source directory
     for SID in os.listdir(dcm_root_dir):
@@ -342,11 +344,11 @@ def ndar_nifti_info(nii_fname):
 
 
 def ndar_dcm_info(dcm_dir):
-    '''
+    """
     Extract additional subject-level DICOM header fields not handled by dcm2niix
     :param dcm_dir: DICOM directory containing subject files
     :return: dcm_info: extra information dictionary
-    '''
+    """
 
     # Loop over files until first valid DICOM is found
     ds = []
