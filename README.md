@@ -14,7 +14,8 @@ Caltech branch of the dcm2niix tool (https://github.com/jmtyszka/dcm2niix)
 
 ## Quick start
 
-1. Organize DICOM Data
+### Organize DICOM Data
+
 Organize the source DICOM data into separate subject directories within a root DICOM folder. The DICOM image files do not need to be organized heirarchically within each subject directory. This might look something like the following (where RaXXXX are subject IDs:
 
 <pre>
@@ -29,7 +30,9 @@ mydicom
     ...
 </pre>
 
-2. FIRST PASS CONVERSION. Run dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
+### First Pass Conversion
+
+Run dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
 
 <pre>
 % dcm2bids.py -i mydicom -o bids
@@ -44,6 +47,8 @@ dicom
 └── Ra0951
 </pre>
 
-3. Edit the translator dictionary. 
+### Edit Translator Dictionary
 
-4. SECOND PASS CONVERSION
+Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the series name and directory fields set to their default values of "EXCLUDE_BIDS_Name" and "EXCLUDE_BIDS_Directory" (the double quotes are important).
+
+### Second Pass Conversion
