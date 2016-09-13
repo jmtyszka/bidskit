@@ -14,10 +14,10 @@ Caltech branch of the dcm2niix tool (https://github.com/jmtyszka/dcm2niix)
 
 ## Quick start
 
-### Organize all DICOM data into separate subject directories within a root DICOM folder. The DICOM image files do not need to be organized heirarchically within each subject directory.
+1. Organize all DICOM data into separate subject directories within a root DICOM folder. The DICOM image files do not need to be organized heirarchically within each subject directory.
 
-### FIRST PASS CONVERSION. Run dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files. The first pass conversion will create a template dictory (Protocol_Translator.json) in the root DICOM folder.
+2. FIRST PASS CONVERSION. Run dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files. The first pass conversion will create a template dictory (Protocol_Translator.json) in the root DICOM folder.
 
-### Edit the translator dictionary. 
+3. Edit the translator dictionary. 
 
-### SECOND PASS CONVERSION
+4. SECOND PASS CONVERSION
