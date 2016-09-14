@@ -44,11 +44,53 @@ The first pass conversion will create new translator dictionary (Protocol_Transl
 dicom
 ├── Protocol_Translator.json
 └── Ra0950
+    ├── ...
 └── Ra0951
+    ├── ...
 </pre>
 
 ### Edit Translator Dictionary
 
-Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the series name and directory fields set to their default values of "EXCLUDE_BIDS_Name" and "EXCLUDE_BIDS_Directory" (the double quotes are important).
+Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the series name and directory fields set to their default values of "EXCLUDE_BIDS_Name" and "EXCLUDE_BIDS_Directory" (the double quotes a JSON requirement):
+
+<pre>
+{
+    "Localizer":[
+        "EXCLUDE_BIDS_Name",
+        "EXCLUDE_BIDS_Directory"
+    ],
+    "rsBOLD_MB_1":[
+        "EXCLUDE_BIDS_Name",
+        "EXCLUDE_BIDS_Directory"
+    ],
+    "T1_2":[
+        "EXCLUDE_BIDS_Name",
+        "EXCLUDE_BIDS_Directory"
+    ],
+    ...
+}
+</pre>
+
+Edit the BIDS name and directory values with the BIDS-compliant filename (excluding the sub-xxxx prefix) and the BIDS purpose directory name (anat, func, fmap, etc). In the example above, this might look something like the following:
+
+<pre>
+{
+    "Localizer":[
+        "EXCLUDE_BIDS_Name",
+        "EXCLUDE_BIDS_Directory"
+    ],
+    "rsBOLD_MB_1":[
+        "task-rest_acq-MB_run-1_bold",
+        "func"
+    ],
+    "T1_2":[
+        "run-2_T1w",
+        "anat"
+    ],
+    ...
+}
+</pre>
+
+For complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
 
 ### Second Pass Conversion
