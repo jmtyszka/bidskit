@@ -9,7 +9,7 @@ dcm2bids.py -i <DICOM Directory> -o <BIDS Directory Root>
 
 Example
 ----
-% dcm2bids.py -i DICOM -o Experiment
+% dcm2bids.py -i mydicom -o mybids
 
 Authors
 ----
@@ -42,7 +42,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 
 import os
 import sys
