@@ -150,13 +150,15 @@ def main():
 
                     else:
 
-                        # Split into full path stub and extension (works for .nii.gz too)
-                        src_fstub, src_fext = src_nii_fname.split('.', 1)
+                        # Replace Nifti extension ('.nii.gz' or '.nii') with '.json'
+                        if '.nii.gz' in src_nii_fname:
+                            src_json_fname = src_nii_fname.replace('.nii.gz','.json')
+                        elif 'nii' in src_nii_fname:
+                            src_json_fname = src_nii_fname.replace('.nii','.json')
 
                         # JSON sidecar for this image
-                        src_json_fname = src_fstub + '.json'
                         if not os.path.isfile(src_json_fname):
-                            print('* JSON sidecar not found')
+                            print('* JSON sidecar not found : %s' % src_json_fname)
                             break
 
                         # Skip excluded protocols
@@ -170,6 +172,10 @@ def main():
 
                             # Use protocol dictionary to determine destination folder and image/sidecar name
                             bids_stub, bids_dir = prot_dict[prot_name]
+
+                            # Add the DICOM series number as a run number
+                            # TODO: Work out a better way to handle duplicate runs with identical protocol names
+                            bids_stub = bids_run_number(bids_stub, ser_no)
 
                             # Complete path to BIDS destination directory
                             bids_purpose_dir = os.path.join(sid_dir, bids_dir)
@@ -222,11 +228,14 @@ def main():
                                             bids_update_fmap_sidecar(src_json_fname)
 
                                         else:
-                                            print('    Echo 1 magnitude - discarding')
+
+                                            print('    Echo 2 magnitude - discarding')
                                             bids_nii_fname = [] # Discard image
                                             bids_json_fname = [] # Discard sidecar
+
                                     else:
-                                        print('    Echo 2 magnitude')
+
+                                        print('    Echo 1 magnitude')
                                         bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_magnitude1.nii.gz')
                                         bids_json_fname = [] # Discard sidecar only
 
@@ -250,9 +259,10 @@ def main():
                                         print('    Spin echo detected - likely T1w or T2w anatomic image')
 
                             # Move image and sidecar to BIDS purpose directory
-                            # Is empty filename to skip surplus fieldmap images and sidecars
+                            # Use empty filename to skip surplus fieldmap images and sidecars
 
                             if bids_nii_fname:
+
                                 print('    Copying %s to %s' % (src_nii_fname, bids_nii_fname))
                                 shutil.copy(src_nii_fname, bids_nii_fname)
 
@@ -328,9 +338,18 @@ def bids_dcm_info(dcm_dir):
     # Init a new dictionary
     dcm_info = dict()
 
-    # Fill dictionary
-    dcm_info['Sex'] = ds.PatientSex
-    dcm_info['Age'] = ds.PatientAge
+    if ds:
+
+        # Fill dictionary
+        dcm_info['Sex'] = ds.PatientSex
+        dcm_info['Age'] = ds.PatientAge
+
+    else:
+
+        print('* No DICOM header information found in %s' % dcm_dir)
+        print('* Confirm that DICOM images in this folder are uncompressed')
+        print('* Exiting')
+        sys.exit(1)
 
     return dcm_info
 
@@ -355,6 +374,46 @@ def bids_parse_filename(fname):
     ser_no = vals[3]
 
     return subj_name, prot_name, seq_name, ser_no
+
+
+def bids_run_number(bids_stub, ser_no):
+
+    # Eliminate unused suffix from ser_no if present (eg '_e2')
+    if '_' in ser_no:
+        ser_no, _ = ser_no.split('_',1)
+
+    if '_' in bids_stub:
+        # Add '_run-N' before final suffix
+        bmain, bseq = bids_stub.rsplit('_',1)
+        new_bids_stub = '%s_run-%s_%s' % (bmain, str(ser_no), bseq)
+    else:
+        # Isolated final suffix - just add 'run-N_' as a prefix
+        new_bids_stub = 'run-%s_%s' % (str(ser_no), bids_stub)
+
+    return new_bids_stub
+
+
+def bids_catch_duplicate(fname):
+    """
+    Add numeric suffix if filename already exists
+    :param fname: original filename
+    :return new_fname: new filename
+    """
+
+    new_fname = fname
+
+    fpath, fbase = os.path.split(fname)
+    fstub, fext = fbase.split('.', 1)
+
+    n = 1
+
+    while os.path.isfile(new_fname):
+
+        n += 1
+
+        new_fname = os.path.join(fpath, fstub + '_' + str(n) + '.' + fext)
+
+    return new_fname
 
 
 def bids_events_template(bold_fname):
