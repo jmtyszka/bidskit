@@ -114,6 +114,7 @@ def main():
         print('')
         print('Processing subject ' + SID)
 
+        # Loop over session directories in subject directory
         for dcm_ses_dir in glob(dcm_sub_dir + '/*/'):
 
             SES = os.path.basename(dcm_ses_dir.strip('/'))
