@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
 """
 Convert flat DICOM file set into a BIDS-compliant Nifti structure
-- Expects protocol names to be in BIDS format (eg task-rest_run-01_bold)
+
+The DICOM input directory should be organized as follows:
+<DICOM Directory>/
+    <SID 1>/
+        <Session 1>/
+            Session 1 DICOM files ...
+        <Session 2>/
+            Session 2 DICOM files ...
+        ...
+    <SID 2>/
+        <Session 1>/
+            ...
+
+Here, session refers to all scans performed during a given visit.
+Typically this can be given a date-string directory name (eg 20161104 etc).
 
 Usage
 ----
@@ -18,6 +32,7 @@ Mike Tyszka, Caltech Brain Imaging Center
 Dates
 ----
 2016-08-03 JMT From scratch
+2016-11-04 JMT Add session directory to DICOM heirarchy
 
 MIT License
 
@@ -42,7 +57,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '0.9.1'
+__version__ = '0.9.2'
 
 import os
 import sys
@@ -51,14 +66,14 @@ import subprocess
 import shutil
 import json
 import dicom
-import glob
+from glob import glob
 
 
 def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
-    parser.add_argument('-i','--indir', required=True, help='Input directory containing flat DICOM images')
+    parser.add_argument('-i','--indir', required=True, help='DICOM input directory with Subject/Session/Image organization')
     parser.add_argument('-o','--outdir', required=True, help='Output BIDS directory root')
 
     # Parse command line arguments
@@ -91,194 +106,49 @@ def main():
     if not first_pass:
         participants_fd = bids_init(bids_root_dir)
 
-    # Loop over each subject's DICOM directory within the root source directory
-    for SID in os.listdir(dcm_root_dir):
+    # Loop over subject directories in DICOM root
+    for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
-        # Subject directory within DICOM root directory
-        dcm_sub_dir = os.path.join(dcm_root_dir, SID)
+        SID = os.path.basename(dcm_sub_dir.strip('/'))
 
-        # Only process subdirectories
-        if os.path.isdir(dcm_sub_dir):
+        print('')
+        print('Processing subject ' + SID)
 
-            print('')
-            print('Processing subject ' + SID)
+        for dcm_ses_dir in glob(dcm_sub_dir + '/*/'):
 
-            # BIDS subject directory and conversion subdir
-            sid_prefix = 'sub-' + SID
-            sid_dir = os.path.join(bids_root_dir, sid_prefix)
-            conv_dir = os.path.join(sid_dir, 'conv')
+            SES = os.path.basename(dcm_ses_dir.strip('/'))
+
+            print('  Processing session ' + SES)
+
+            # BIDS subject, session and conversion directories
+            sub_prefix = 'sub-' + SID
+            ses_prefix = 'ses-' + SES
+            bids_sub_dir = os.path.join(bids_root_dir, sub_prefix)
+            bids_ses_dir = os.path.join(bids_sub_dir, ses_prefix)
+            bids_conv_dir = os.path.join(bids_ses_dir, 'conv')
+
+            # Safely create BIDS conversion directory and all containing directories as needed
+            os.makedirs(bids_conv_dir, exist_ok=True)
 
             if first_pass:
 
-                # Safe create BIDS subject directory
-                os.makedirs(sid_dir, exist_ok=True)
-
-                # Create temporary conversion directory
-                os.makedirs(conv_dir, exist_ok=True)
-
                 # Run dcm2niix conversion into temporary conversion directory
                 # This relies on the current CBIC branch of dcm2niix which extracts additional DICOM fields
-                print('  Converting DICOM images from directory %s' % dcm_root_dir)
-                subprocess.call(['dcm2niix', '-b', 'y', '-f', '%n--%p--%q--%s', '-o', conv_dir, dcm_root_dir])
+                print('  Converting all DICOM images within directory %s' % dcm_ses_dir)
+                devnull = open(os.devnull, 'w')
+                subprocess.call(['dcm2niix', '-b', 'y', '-f', '%n--%p--%q--%s', '-o', bids_conv_dir, dcm_ses_dir],
+                                stdout=devnull, stderr=subprocess.STDOUT)
 
             else:
 
                 # Get subject age and sex from representative DICOM header
-                dcm_info = bids_dcm_info(dcm_sub_dir)
+                dcm_info = bids_dcm_info(dcm_ses_dir)
 
                 # Add line to participants TSV file
                 participants_fd.write("%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
 
-            if os.path.isdir(conv_dir):
-
-                # Loop over all Nifti files (*.nii, *.nii.gz) for this SID
-                # glob returns the full relative path from the tmp dir
-                for src_nii_fname in glob.glob(os.path.join(conv_dir, '*.nii*')):
-
-                    # Parse image filename into fields
-                    subj_name, prot_name, seq_name, ser_no = bids_parse_filename(src_nii_fname)
-
-                    # Check if we're creating new protocol dictionary
-                    if first_pass:
-
-                        print('  Adding protocol %s to dictionary template' % prot_name)
-
-                        # Add current protocol to protocol dictionary
-                        # The value defaults to "EXCLUDE" which should be replaced with the correct NDAR
-                        # ImageDescription for this protocol (eg "T1w Structural", "BOLD MB EPI Resting State")
-                        prot_dict[prot_name] = ["EXCLUDE_BIDS_Name", "EXCLUDE_BIDS_Directory"]
-
-                    else:
-
-                        # Replace Nifti extension ('.nii.gz' or '.nii') with '.json'
-                        if '.nii.gz' in src_nii_fname:
-                            src_json_fname = src_nii_fname.replace('.nii.gz','.json')
-                        elif 'nii' in src_nii_fname:
-                            src_json_fname = src_nii_fname.replace('.nii','.json')
-
-                        # JSON sidecar for this image
-                        if not os.path.isfile(src_json_fname):
-                            print('* JSON sidecar not found : %s' % src_json_fname)
-                            break
-
-                        # Skip excluded protocols
-                        if prot_dict[prot_name][0].startswith('EXCLUDE'):
-
-                            print('* Excluding protocol ' + prot_name)
-
-                        else:
-
-                            print('  Organizing ' + prot_name)
-
-                            # Use protocol dictionary to determine destination folder and image/sidecar name
-                            bids_stub, bids_dir = prot_dict[prot_name]
-
-                            # Add the DICOM series number as a run number
-                            # TODO: Work out a better way to handle duplicate runs with identical protocol names
-                            bids_stub = bids_run_number(bids_stub, ser_no)
-
-                            # Complete path to BIDS destination directory
-                            bids_purpose_dir = os.path.join(sid_dir, bids_dir)
-
-                            # Complete BIDS filenames for image and sidecar
-                            bids_nii_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_' + bids_stub + '.nii.gz')
-                            bids_json_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_' + bids_stub + '.json')
-
-                            if not os.path.isdir(bids_purpose_dir):
-                                os.makedirs(bids_purpose_dir, exist_ok=True)
-
-                            # Special handling for each image purpose
-                            if bids_dir == 'func':
-
-                                if seq_name == 'EP':
-
-                                    print('    EPI detected')
-                                    print('    Creating events template file')
-                                    bids_events_template(bids_nii_fname)
-
-                            elif bids_dir == 'fmap':
-
-                                # Check for MEGE vs SE-EPI fieldmap images
-                                # MEGE will have a 'GR' sequence, SE-EPI will have 'EP'
-
-                                print('    Identifying fieldmap image type')
-                                if seq_name == 'GR':
-
-                                    print('    GRE detected')
-                                    print('    Identifying magnitude and phase images')
-
-                                    # For Siemens GRE fieldmaps, there will be three images in two series
-                                    # The "_e2" suffix is generated by dcm2niix
-                                    # *_<ser_no>.nii.gz : TE1 mag
-                                    # *_<ser_no>_e2.nii.gz : TE2 mag
-                                    # *_<ser_no+1>_e2.nii.gz : TE2-TE1 phase difference
-
-                                    if ser_no.endswith('_e2'):
-
-                                        # Read phase meta data
-                                        phase_dict = bids_read_json(src_json_fname)
-
-                                        if '_P_' in phase_dict['ImageType']:
-
-                                            print('    Phase difference image')
-                                            bids_nii_fname = bids_nii_fname.replace('.nii.gz','_phasediff.nii.gz')
-                                            bids_json_fname = bids_json_fname.replace('.json', '_phasediff.json')
-
-                                            # Update the phase difference sidecar with TE1 as per BIDS spec
-                                            bids_update_fmap_sidecar(src_json_fname)
-
-                                        else:
-
-                                            print('    Echo 2 magnitude - discarding')
-                                            bids_nii_fname = [] # Discard image
-                                            bids_json_fname = [] # Discard sidecar
-
-                                    else:
-
-                                        print('    Echo 1 magnitude')
-                                        bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_magnitude1.nii.gz')
-                                        bids_json_fname = [] # Discard sidecar only
-
-                                elif seq_name == 'EP':
-
-                                    print('    EPI detected')
-
-                                else:
-
-                                    print('    Unrecognized fieldmap detected')
-                                    print('    Simply copying image and sidecar to fmap directory')
-
-                            elif bids_dir == 'anat':
-
-                                    if seq_name == 'GR_IR':
-
-                                        print('    IR-prepared GRE detected - likely T1w MP-RAGE or equivalent')
-
-                                    elif seq_name == 'SE':
-
-                                        print('    Spin echo detected - likely T1w or T2w anatomic image')
-
-                            # Move image and sidecar to BIDS purpose directory
-                            # Use empty filename to skip surplus fieldmap images and sidecars
-
-                            if bids_nii_fname:
-
-                                print('    Copying %s to %s' % (src_nii_fname, bids_nii_fname))
-                                shutil.copy(src_nii_fname, bids_nii_fname)
-
-                            if bids_json_fname:
-                                print('    Copying %s to %s' % (src_json_fname, bids_json_fname))
-                                shutil.copy(src_json_fname, bids_json_fname)
-
-
-                # Cleanup temporary working directory after Pass 2
-                if not first_pass:
-                    print('  Cleaning up temporary files')
-                    shutil.rmtree(conv_dir)
-
-            else:
-
-                print('* Conversion directory from Pass 1 not present - skipping')
+            # Run DICOM conversions
+            bids_run_conversion(bids_conv_dir, first_pass, prot_dict, bids_ses_dir, SID)
 
     if first_pass:
         # Create a template protocol dictionary
@@ -289,6 +159,186 @@ def main():
 
     # Clean exit
     sys.exit(0)
+
+
+def bids_listdir(dname):
+    """
+    Return list of non-hidden subdirectories of a given directory
+
+    :param dname:
+    :return:
+    """
+
+    return
+
+def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID):
+    """
+
+    :param conv_dir:
+    :param first_pass:
+    :param prot_dict:
+    :param sid_dir:
+    :param SID:
+    :return:
+    """
+
+    if os.path.isdir(conv_dir):
+
+        # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
+        # glob returns the full relative path from the tmp dir
+        for src_nii_fname in glob(os.path.join(conv_dir, '*.nii*')):
+
+            # Parse image filename into fields
+            subj_name, prot_name, seq_name, ser_no = bids_parse_filename(src_nii_fname)
+
+            # Check if we're creating new protocol dictionary
+            if first_pass:
+
+                print('  Adding protocol %s to dictionary template' % prot_name)
+
+                # Add current protocol to protocol dictionary
+                # The value defaults to "EXCLUDE" which should be replaced with the correct NDAR
+                # ImageDescription for this protocol (eg "T1w Structural", "BOLD MB EPI Resting State")
+                prot_dict[prot_name] = ["EXCLUDE_BIDS_Name", "EXCLUDE_BIDS_Directory"]
+
+            else:
+
+                # Replace Nifti extension ('.nii.gz' or '.nii') with '.json'
+                if '.nii.gz' in src_nii_fname:
+                    src_json_fname = src_nii_fname.replace('.nii.gz', '.json')
+                elif 'nii' in src_nii_fname:
+                    src_json_fname = src_nii_fname.replace('.nii', '.json')
+
+                # JSON sidecar for this image
+                if not os.path.isfile(src_json_fname):
+                    print('* JSON sidecar not found : %s' % src_json_fname)
+                    break
+
+                # Skip excluded protocols
+                if prot_dict[prot_name][0].startswith('EXCLUDE'):
+
+                    print('* Excluding protocol ' + prot_name)
+
+                else:
+
+                    print('  Organizing ' + prot_name)
+
+                    # Use protocol dictionary to determine destination folder and image/sidecar name
+                    bids_stub, bids_dir = prot_dict[prot_name]
+
+                    # Add the DICOM series number as a run number
+                    # TODO: Work out a better way to handle duplicate runs with identical protocol names
+                    bids_stub = bids_run_number(bids_stub, ser_no)
+
+                    # Create BIDS purpose directory
+                    bids_purpose_dir = os.path.join(sid_dir, bids_dir)
+                    if not os.path.isdir(bids_purpose_dir):
+                        os.makedirs(bids_purpose_dir, exist_ok=True)
+
+                    # Complete BIDS filenames for image and sidecar
+                    bids_nii_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_' + bids_stub + '.nii.gz')
+                    bids_json_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_' + bids_stub + '.json')
+
+                    # Special handling for specific purposes (anat, func, fmap, etc)
+                    bids_nii_fname, bids_json_fname = bids_purpose_handling(bids_dir, seq_name, ser_no,
+                                                                            bids_nii_fname, bids_json_fname,
+                                                                            src_json_fname)
+
+                    # Move image and sidecar to BIDS purpose directory
+                    # Use empty filename to skip surplus fieldmap images and sidecars
+
+                    if bids_nii_fname:
+                        print('    Copying %s to %s' % (src_nii_fname, bids_nii_fname))
+                        shutil.copy(src_nii_fname, bids_nii_fname)
+
+                    if bids_json_fname:
+                        print('    Copying %s to %s' % (src_json_fname, bids_json_fname))
+                        shutil.copy(src_json_fname, bids_json_fname)
+
+        # Cleanup temporary working directory after Pass 2
+        if not first_pass:
+            print('  Cleaning up temporary files')
+            shutil.rmtree(conv_dir)
+
+
+def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_fname, src_json_fname):
+    """
+    Special handling for each image purpose
+
+    :param bids_dir:
+    :return:
+    """
+
+    if bids_dir == 'func':
+
+        if seq_name == 'EP':
+            print('    EPI detected')
+            print('    Creating events template file')
+            bids_events_template(bids_nii_fname)
+
+    elif bids_dir == 'fmap':
+
+        # Check for MEGE vs SE-EPI fieldmap images
+        # MEGE will have a 'GR' sequence, SE-EPI will have 'EP'
+
+        print('    Identifying fieldmap image type')
+        if seq_name == 'GR':
+
+            print('    GRE detected')
+            print('    Identifying magnitude and phase images')
+
+            # For Siemens GRE fieldmaps, there will be three images in two series
+            # The "_e2" suffix is generated by dcm2niix
+            # *_<ser_no>.nii.gz : TE1 mag
+            # *_<ser_no>_e2.nii.gz : TE2 mag
+            # *_<ser_no+1>_e2.nii.gz : TE2-TE1 phase difference
+
+            if ser_no.endswith('_e2'):
+
+                # Read phase meta data
+                phase_dict = bids_read_json(src_json_fname)
+
+                if '_P_' in phase_dict['ImageType']:
+
+                    print('    Phase difference image')
+                    bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_phasediff.nii.gz')
+                    bids_json_fname = bids_json_fname.replace('.json', '_phasediff.json')
+
+                    # Update the phase difference sidecar with TE1 as per BIDS spec
+                    bids_update_fmap_sidecar(src_json_fname)
+
+                else:
+
+                    print('    Echo 2 magnitude - discarding')
+                    bids_nii_fname = []  # Discard image
+                    bids_json_fname = []  # Discard sidecar
+
+            else:
+
+                print('    Echo 1 magnitude')
+                bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_magnitude1.nii.gz')
+                bids_json_fname = []  # Discard sidecar only
+
+        elif seq_name == 'EP':
+
+            print('    EPI detected')
+
+        else:
+
+            print('    Unrecognized fieldmap detected')
+            print('    Simply copying image and sidecar to fmap directory')
+
+    elif bids_dir == 'anat':
+
+        if seq_name == 'GR_IR':
+
+            print('    IR-prepared GRE detected - likely T1w MP-RAGE or equivalent')
+
+        elif seq_name == 'SE':
+
+            print('    Spin echo detected - likely T1w or T2w anatomic image')
+
+    return bids_nii_fname, bids_json_fname
 
 
 def bids_init(bids_root_dir):
