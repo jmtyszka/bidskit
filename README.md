@@ -20,18 +20,24 @@ Clone the repository and add the resulting directory to your path. Will upgrade 
 
 ### Organize DICOM Data
 
-Organize the source DICOM data into separate subject directories within a root DICOM folder. The DICOM image files do not need to be organized heirarchically within each subject directory. This might look something like the following (where RaXXXX are subject IDs:
+Organize the source DICOM images into separate subject and subject-session directories within a root directory (mydicom in the example below). The DICOM image files do not need to be organized heirarchically within each subject-sesssion directory. This might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
 
 <pre>
 mydicom
 └── Ra0950
-    ├── IM-0001-0001.dcm
-    ├── IM-0001-0002.dcm
-    ...
+    └── first
+        ├── IM-0001-0001.dcm
+        ├── IM-0001-0002.dcm
+        ...
+    └── second
+        ...
 └── Ra0951
-    ├── IM-0001-0001.dcm
-    ├── IM-0001-0002.dcm
-    ...
+    └── first
+        ├── IM-0001-0001.dcm
+        ├── IM-0001-0002.dcm
+        ...
+    └── second
+        ...
 </pre>
 
 ### First Pass Conversion
@@ -48,9 +54,15 @@ The first pass conversion will create new translator dictionary (Protocol_Transl
 mydicom
 ├── Protocol_Translator.json
 └── Ra0950
-    ├── ...
+    └── ses-first
+        └── ...    
+    └── ses-second
+        └── ...    
 └── Ra0951
-    ├── ...
+    └── ses-first
+        └── ...    
+    └── ses-second
+        └── ...    
 mybids
 └── conv
 </pre>
@@ -117,22 +129,23 @@ bids
 ├── dataset_description.json
 ├── participants.tsv
 └── sub-Ra0950
-    ├── anat
-    │   ├── sub-Ra0950_run-1_T1w.json
-    │   ├── sub-Ra0950_run-1_T1w.nii.gz
-    │   ├── sub-Ra0950_run-2_T1w.json
-    │   └── sub-Ra0950_run-2_T1w.nii.gz
-    ├── fmap
-    │   ├── sub-Ra0950_acq-fmap_magnitude1.nii.gz
-    │   ├── sub-Ra0950_acq-fmap_phasediff.json
-    │   └── sub-Ra0950_acq-fmap_phasediff.nii.gz
-    └── func
-        ├── sub-Ra0950_task-rest_acq-MB_run-1_bold.json
-        ├── sub-Ra0950_task-rest_acq-MB_run-1_bold.nii.gz
-        ├── sub-Ra0950_task-rest_acq-MB_run-1_events.tsv
-        ├── sub-Ra0950_task-rest_acq-MB_run-2_bold.json
-        ├── sub-Ra0950_task-rest_acq-MB_run-2_bold.nii.gz
-        └── sub-Ra0950_task-rest_acq-MB_run-2_events.tsv
+    └── ses-first
+        ├── anat
+        │   ├── sub-Ra0950_run-1_T1w.json
+        │   ├── sub-Ra0950_run-1_T1w.nii.gz
+        │   ├── sub-Ra0950_run-2_T1w.json
+        │   └── sub-Ra0950_run-2_T1w.nii.gz
+        ├── fmap
+        │   ├── sub-Ra0950_acq-fmap_magnitude1.nii.gz
+        │   ├── sub-Ra0950_acq-fmap_phasediff.json
+        │   └── sub-Ra0950_acq-fmap_phasediff.nii.gz
+        └── func
+            ├── sub-Ra0950_task-rest_acq-MB_run-1_bold.json
+            ├── sub-Ra0950_task-rest_acq-MB_run-1_bold.nii.gz
+            ├── sub-Ra0950_task-rest_acq-MB_run-1_events.tsv
+            ├── sub-Ra0950_task-rest_acq-MB_run-2_bold.json
+            ├── sub-Ra0950_task-rest_acq-MB_run-2_bold.nii.gz
+            └── sub-Ra0950_task-rest_acq-MB_run-2_events.tsv
 </pre>
 
 bidskit attempts to sort the Fieldmap data appropriately into magnitude and phase images. The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
