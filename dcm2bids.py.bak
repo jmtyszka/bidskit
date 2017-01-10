@@ -87,32 +87,24 @@ def main():
     # and a template will be created in the DICOM directory. This template should be
     # completed by the user and the conversion rerun.
     prot_dict_json = os.path.join(dcm_root_dir, 'Protocol_Translator.json')
-    prot_dict_json_bak = os.path.join(dcm_root_dir, 'Protocol_Translator.json.bak')
     prot_dict = bids_load_prot_dict(prot_dict_json)
 
-    # if prot_dict and os.path.isdir(bids_root_dir):
-    #     print('')
-    #     print('------------------------------------------------------------')
-    #     print('Pass 2 : Organizing Nifti data into BIDS directories')
-    #     print('------------------------------------------------------------')
-    #     first_pass = False
-    # else:
-    #     print('')
-    #     print('------------------------------------------------------------')
-    #     print('Pass 1 : DICOM to Nifti conversion and dictionary creation')
-    #     print('------------------------------------------------------------')
-    #     first_pass = True
-
     if prot_dict and os.path.isdir(bids_root_dir):
-        check_translator = False
+        print('')
+        print('------------------------------------------------------------')
+        print('Pass 2 : Organizing Nifti data into BIDS directories')
+        print('------------------------------------------------------------')
+        first_pass = False
     else:
-        check_translator = True
+        print('')
+        print('------------------------------------------------------------')
+        print('Pass 1 : DICOM to Nifti conversion and dictionary creation')
+        print('------------------------------------------------------------')
+        first_pass = True
 
-    if not os.path.isdir(bids_root_dir):
-        os.makedirs(bids_root_dir)
-    
-    # (Re-)Initialize BIDS output directory
-    participants_fd = bids_init(bids_root_dir)
+    # Initialize BIDS output directory
+    if not first_pass:
+        participants_fd = bids_init(bids_root_dir)
 
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
@@ -138,12 +130,8 @@ def main():
             bids_anat_dir = os.path.join(bids_ses_dir, 'anat')
             bids_func_dir = os.path.join(bids_ses_dir, 'func')
 
-            if ((not os.path.isdir(bids_conv_dir)) and (not os.path.isdir(bids_anat_dir)) and (not os.path.isdir(bids_func_dir))):
+            if first_pass or ((not os.path.isdir(bids_conv_dir)) and (not os.path.isdir(bids_anat_dir)) and (not os.path.isdir(bids_func_dir))):
 
-                # we should check that there are no new protocols in the translator
-                if not check_translator:
-                    check_translator = True
-                
                 # Safely create BIDS conversion directory and all containing directories as needed
                 os.makedirs(bids_conv_dir, exist_ok=True)
 
@@ -154,31 +142,23 @@ def main():
                 subprocess.call(['dcm2niix', '-b', 'y', '-f', '%n--%p--%q--%s', '-o', bids_conv_dir, dcm_ses_dir],
                                 stdout=devnull, stderr=subprocess.STDOUT)
 
-            # Get subject age and sex from representative DICOM header
-            dcm_info = bids_dcm_info(dcm_ses_dir)
+            if not first_pass:
 
-            # Add line to participants TSV file
-            participants_fd.write("%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
+                # Get subject age and sex from representative DICOM header
+                dcm_info = bids_dcm_info(dcm_ses_dir)
+
+                # Add line to participants TSV file
+                participants_fd.write("%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
 
             # Run DICOM conversions
-            bids_run_conversion(bids_conv_dir, check_translator, prot_dict, bids_ses_dir, SID)
+            bids_run_conversion(bids_conv_dir, first_pass, prot_dict, bids_ses_dir, SID)
 
-    if check_translator:
-        # backup existing dictionary
-        if os.path.isfile(prot_dict_json):
-            shutil.copy(prot_dict_json, prot_dict_json_bak)
-            os.remove(prot_dict_json)
+    if first_pass:
         # Create a template protocol dictionary
         bids_create_prot_dict(prot_dict_json, prot_dict)
-        print('  Check and edit protocol dictionary, then launch program again for final conversion')
-
     else:
         # Close participants TSV file
         participants_fd.close()
-        if os.path.isfile(prot_dict_json_bak):
-            # clean-up dictionary backup
-            print('  Cleaning up dictionary backup')
-            os.remove(prot_dict_json_bak)
 
     # Clean exit
     sys.exit(0)
@@ -279,9 +259,9 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID):
                         shutil.copy(src_json_fname, bids_json_fname)
 
         # Cleanup temporary working directory after Pass 2
-        if not first_pass:
-           print('  Cleaning up temporary files')
-           shutil.rmtree(conv_dir)
+        #if not first_pass:
+        #    print('  Cleaning up temporary files')
+        #    shutil.rmtree(conv_dir)
 
 
 def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_fname, src_json_fname):
@@ -353,63 +333,13 @@ def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_
 
     elif bids_dir == 'anat':
 
-        # Read meta data
-        this_dict = bids_read_json(src_json_fname)
-
         if seq_name == 'GR_IR':
 
             print('    IR-prepared GRE detected - likely T1w MP-RAGE or equivalent')
 
-            if 'tfl3d4' in this_dict['PulseSequenceDetails']:
-                # For Siemens Multi Echo MPRAGE and bias correction turned on
-                # there will be four series, 
-                # --> the first two with 4 images (one per echo)
-                # --> the last two with 1 image (combined echo)
-                # the suffix _e4 is generated by dcm2niix
-                # *_<ser_no>.nii.gz    : TE1 MPRAGE "ORIGINAL_PRIMARY_M_ND"
-                # *_<ser_no>_e2.nii.gz : TE2 MPRAGE
-                # *_<ser_no>_e3.nii.gz : TE3 MPRAGE
-                # *_<ser_no>_e4.nii.gz : TE4 MPRAGE
-                # *_<ser_no+1>.nii.gz    : TE1 MPRAGE bias-corrected "ORIGINAL_PRIMARY_M_ND_NORM"
-                # *_<ser_no+1>_e2.nii.gz : TE2 MPRAGE bias-corrected
-                # *_<ser_no+1>_e3.nii.gz : TE3 MPRAGE bias-corrected
-                # *_<ser_no+1>_e4.nii.gz : TE4 MPRAGE bias-corrected
-                # *_<ser_no+2>_e4.nii.gz : combined MPRAGE "ORIGINAL_PRIMARY_ECHO_COMBINED_ND"
-                # *_<ser_no+3>_e4.nii.gz : combined MPRAGE bias-corrected "ORIGINAL_PRIMARY_ECHO_COMBINED_ND_NORM"
-
-                if 'COMBINED' not in this_dict['ImageType']:
-                    print(' Multi-Echo MPRAGE separate echos')
-                    if ser_no.endswith('_e2'):
-                        bids_nii_fname  = bids_nii_fname.replace('_T1w.nii.gz', '_acq-MEe2_T1w.nii.gz')
-                        bids_json_fname = bids_json_fname.replace('_T1w.json', '_acq-MEe2_T1w.json')
-                    elif ser_no.endswith('_e3'):
-                        bids_nii_fname  = bids_nii_fname.replace('_T1w.nii.gz', '_acq-MEe3_T1w.nii.gz')
-                        bids_json_fname = bids_json_fname.replace('_T1w.json', '_acq-MEe3_T1w.json')
-                    elif ser_no.endswith('_e4'):
-                        bids_nii_fname  = bids_nii_fname.replace('_T1w.nii.gz', '_acq-MEe4_T1w.nii.gz')
-                        bids_json_fname = bids_json_fname.replace('_T1w.json', '_acq-MEe4_T1w.json')
-                    else:
-                        bids_nii_fname  = bids_nii_fname.replace('_T1w.nii.gz', '_acq-MEe1_T1w.nii.gz')
-                        bids_json_fname = bids_json_fname.replace('_T1w.json', '_acq-MEe1_T1w.json')
-                else:
-                    print(' Multi-Echo MPRAGE combined echos')
-                    bids_nii_fname  = bids_nii_fname.replace('_T1w.nii.gz', '_acq-MEcomb_T1w.nii.gz')
-                    bids_json_fname = bids_json_fname.replace('_T1w.json', '_acq-MEcomb_T1w.json')
-
-
         elif seq_name == 'SE':
 
             print('    Spin echo detected - likely T1w or T2w anatomic image')
-
-        # distinguish bias-corrected from non-bias-corrected acquisitions
-        if 'NORM' in this_dict['ImageType']:
-            print(' distortion corrected series')
-            if 'T1w' in bids_nii_fname:
-                bids_nii_fname = bids_nii_fname.replace('_T1w.nii.gz', '_rec-NORM_T1w.nii.gz')
-                bids_json_fname = bids_json_fname.replace('_T1w.json', '_rec-NORM_T1w.json')
-            elif 'T2w' in bids_nii_fname:
-                bids_nii_fname = bids_nii_fname.replace('_T2w.nii.gz', '_rec-NORM_T2w.nii.gz')
-                bids_json_fname = bids_json_fname.replace('_T2w.json', '_rec-NORM_T2w.json')
 
     return bids_nii_fname, bids_json_fname
 
