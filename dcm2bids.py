@@ -65,7 +65,7 @@ import argparse
 import subprocess
 import shutil
 import json
-import dicom
+import pydicom
 from glob import glob
 
 
@@ -75,12 +75,14 @@ def main():
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
     parser.add_argument('-i','--indir', required=True, help='DICOM input directory with Subject/Session/Image organization')
     parser.add_argument('-o','--outdir', required=True, help='Output BIDS directory root')
+    parser.add_argument('--use_run', action='store_true', default=False, help='Add run number to filename')
 
     # Parse command line arguments
     args = parser.parse_args()
 
     dcm_root_dir = args.indir
     bids_root_dir = args.outdir
+    use_run = args.use_run
 
     # Load protocol translation and exclusion info from DICOM directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -128,6 +130,9 @@ def main():
             bids_ses_dir = os.path.join(bids_sub_dir, ses_prefix)
             bids_conv_dir = os.path.join(bids_ses_dir, 'conv')
 
+            # Check is subject/session directory exists
+            # If it doesn't this is a new sub/ses added to the DICOM root and needs conversion
+
             # Safely create BIDS conversion directory and all containing directories as needed
             os.makedirs(bids_conv_dir, exist_ok=True)
 
@@ -149,7 +154,7 @@ def main():
                 participants_fd.write("%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
 
             # Run DICOM conversions
-            bids_run_conversion(bids_conv_dir, first_pass, prot_dict, bids_ses_dir, SID)
+            bids_run_conversion(bids_conv_dir, first_pass, prot_dict, bids_ses_dir, SID, use_run)
 
     if first_pass:
         # Create a template protocol dictionary
@@ -172,7 +177,8 @@ def bids_listdir(dname):
 
     return
 
-def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID):
+
+def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, use_run):
     """
 
     :param conv_dir:
@@ -180,6 +186,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID):
     :param prot_dict:
     :param sid_dir:
     :param SID:
+    :param use_run: flag to add run key-value to filenames [False]
     :return:
     """
 
@@ -229,7 +236,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID):
 
                     # Add the DICOM series number as a run number
                     # TODO: Work out a better way to handle duplicate runs with identical protocol names
-                    bids_stub = bids_run_number(bids_stub, ser_no)
+                    if use_run:
+                        bids_stub = bids_run_number(bids_stub, ser_no)
 
                     # Create BIDS purpose directory
                     bids_purpose_dir = os.path.join(sid_dir, bids_dir)
@@ -270,6 +278,9 @@ def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_
     :return:
     """
 
+    # Load the JSON sidecar
+    info = bids_read_json(src_json_fname)
+
     if bids_dir == 'func':
 
         if seq_name == 'EP':
@@ -297,9 +308,7 @@ def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_
             if ser_no.endswith('_e2'):
 
                 # Read phase meta data
-                phase_dict = bids_read_json(src_json_fname)
-
-                if '_P_' in phase_dict['ImageType']:
+                if '_P_' in info['ImageType']:
 
                     print('    Phase difference image')
                     bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_phasediff.nii.gz')
@@ -338,6 +347,11 @@ def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_
         elif seq_name == 'SE':
 
             print('    Spin echo detected - likely T1w or T2w anatomic image')
+
+        elif seq_name == 'GR':
+
+            print('    Gradient echo detected')
+
 
     return bids_nii_fname, bids_json_fname
 
@@ -378,7 +392,7 @@ def bids_dcm_info(dcm_dir):
     ds = []
     for dcm in os.listdir(dcm_dir):
         try:
-            ds = dicom.read_file(os.path.join(dcm_dir, dcm))
+            ds = pydicom.read_file(os.path.join(dcm_dir, dcm))
         except:
             pass
 
@@ -392,8 +406,16 @@ def bids_dcm_info(dcm_dir):
     if ds:
 
         # Fill dictionary
-        dcm_info['Sex'] = ds.PatientSex
-        dcm_info['Age'] = ds.PatientAge
+        # Note that DICOM anonymization tools sometimes clear these fields
+        if hasattr(ds, 'PatientSex'):
+            dcm_info['Sex'] = ds.PatientSex
+        else:
+            dcm_info['Sex'] = 'Unknown'
+
+        if hasattr(ds, 'PatientAge'):
+            dcm_info['Age'] = ds.PatientAge
+        else:
+            dcm_info['Age'] = 0
 
     else:
 
@@ -434,12 +456,12 @@ def bids_run_number(bids_stub, ser_no):
         ser_no, _ = ser_no.split('_',1)
 
     if '_' in bids_stub:
-        # Add '_run-N' before final suffix
+        # Add '_run-xx' before final suffix
         bmain, bseq = bids_stub.rsplit('_',1)
-        new_bids_stub = '%s_run-%s_%s' % (bmain, str(ser_no), bseq)
+        new_bids_stub = '%s_run-%02d_%s' % (bmain, int(ser_no), bseq)
     else:
-        # Isolated final suffix - just add 'run-N_' as a prefix
-        new_bids_stub = 'run-%s_%s' % (str(ser_no), bids_stub)
+        # Isolated final suffix - just add 'run-xx_' as a prefix
+        new_bids_stub = 'run-%02d_%s' % (int(ser_no), bids_stub)
 
     return new_bids_stub
 
@@ -544,8 +566,13 @@ def bids_update_fmap_sidecar(json_phase_fname):
         mag1_dict = bids_read_json(json_mag1_fname)
 
         # Add TE1 key and rename TE2 key
-        phase_dict['EchoTime1'] = mag1_dict['EchoTime']
-        phase_dict['EchoTime2'] = phase_dict.pop('EchoTime')
+        if mag1_dict:
+            phase_dict['EchoTime1'] = mag1_dict['EchoTime']
+            phase_dict['EchoTime2'] = phase_dict.pop('EchoTime')
+        else:
+            print('*** Could not determine echo times for fieldmap')
+            phase_dict['EchoTime1'] = '-1.0'
+            phase_dict['EchoTime2'] = '-1.0'
 
         # Resave phase image metadata
         bids_write_json(json_phase_fname, phase_dict)
@@ -588,9 +615,20 @@ def bids_create_prot_dict(prot_dict_json, prot_dict):
 
 
 def bids_read_json(fname):
-    fd = open(fname, 'r')
-    json_dict = json.load(fd)
-    fd.close()
+    '''
+    Safely read JSON sidecar file into a dictionary
+    :param fname: JSON filename
+    :return: dictionary structure
+    '''
+
+    try:
+        fd = open(fname, 'r')
+        json_dict = json.load(fd)
+        fd.close()
+    except:
+        print('*** JSON sidecar not found - returning empty dictionary')
+        json_dict = dict()
+
     return json_dict
 
 
