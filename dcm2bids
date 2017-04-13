@@ -1,0 +1,29 @@
+#!/bin/bash
+# Wrapper for heudiconv.py conversion from Caltech-style DICOM to BIDS
+#
+# Assumes data for each subject are in uncompressed tarballs within the DICOM directory provided
+#
+# AUTHOR : Mike Tyszka
+# DATES  : 2017-04-05 JMT From scratch
+
+if [ $# -lt 2 ]; then
+  echo "USAGE: dcm2bids <DICOM Directory> <BIDS Directory>"
+  exit
+fi
+
+dcm_dir=$1
+bids_dir=$2
+
+# Locate heuristic python script
+script_path=`dirname $0`
+heuristic=${script_path}/caltech_bids_heuristic.py
+
+for tarball in ${dcm_dir}/*.tar
+do
+
+    sid=`basename ${tarball%%.tar}`
+
+    # Run heuristic conversion on supplied DICOM directory
+    heudiconv -d "${dcm_dir}/%s.tar" -s ${sid} -o ${bids_dir} -f ${heuristic} -c dcm2niix
+
+done
