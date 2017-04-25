@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/caltech_bids_heuristic.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/dcm2bids" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/dcm2bids.py.bak" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/caltech_bids_heuristic.py" afterPath="$PROJECT_DIR$/caltech_bids_heuristic.py" />
     </list>
     <ignored path="bidskit.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -31,11 +29,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="heudiconv" pinned="false" current-in-tab="true">
+      <file leaf-file-name="heudiconv" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../heudiconv/bin/heudiconv">
           <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="10365">
+              <caret line="704" column="29" lean-forward="false" selection-start-line="704" selection-start-column="29" selection-end-line="704" selection-end-column="29" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="caltech_bids_heuristic.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/caltech_bids_heuristic.py">
+          <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="1071">
-              <caret line="720" column="69" lean-forward="false" selection-start-line="720" selection-start-column="60" selection-end-line="720" selection-end-column="69" />
+              <caret line="84" column="0" lean-forward="false" selection-start-line="84" selection-start-column="0" selection-end-line="84" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -82,8 +90,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="377" />
-    <option name="y" value="23" />
+    <option name="x" value="343" />
+    <option name="y" value="34" />
     <option name="width" value="1596" />
     <option name="height" value="1248" />
   </component>
@@ -610,13 +618,21 @@
       <option name="project" value="LOCAL" />
       <updated>1490225190994</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Add alternative heudiconv wrapper (dcm2bids) with CIT-specific heuristic (caltech_bids_heuristic)">
+      <created>1492102359491</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1492102359491</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="377" y="23" width="1596" height="1248" extended-state="0" />
+    <frame x="343" y="34" width="1596" height="1248" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24812031" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24812031" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -671,7 +687,8 @@
     <MESSAGE value="Solution for multiple series with same protocol name (add run-N to BIDS filename to distinguish copies by series number)." />
     <MESSAGE value="Add DICOM header dump to CSV table for multiple DICOM files." />
     <MESSAGE value="Update to latest pydicom. Import name changes from dicom to pydicom" />
-    <option name="LAST_COMMIT_MESSAGE" value="Update to latest pydicom. Import name changes from dicom to pydicom" />
+    <MESSAGE value="Add alternative heudiconv wrapper (dcm2bids) with CIT-specific heuristic (caltech_bids_heuristic)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add alternative heudiconv wrapper (dcm2bids) with CIT-specific heuristic (caltech_bids_heuristic)" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1007,22 +1024,21 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="420">
           <caret line="28" column="4" lean-forward="false" selection-start-line="28" selection-start-column="4" selection-end-line="28" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../heudiconv/bin/heudiconv">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="10365">
+          <caret line="704" column="29" lean-forward="false" selection-start-line="704" selection-start-column="29" selection-end-line="704" selection-end-column="29" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/caltech_bids_heuristic.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="930">
-          <caret line="62" column="28" lean-forward="false" selection-start-line="62" selection-start-column="28" selection-end-line="62" selection-end-column="28" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../heudiconv/bin/heudiconv">
-      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1071">
-          <caret line="720" column="69" lean-forward="false" selection-start-line="720" selection-start-column="60" selection-end-line="720" selection-end-column="69" />
+          <caret line="84" column="0" lean-forward="false" selection-start-line="84" selection-start-column="0" selection-end-line="84" selection-end-column="0" />
           <folding />
         </state>
       </provider>
