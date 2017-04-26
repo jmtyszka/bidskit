@@ -130,7 +130,7 @@ def main():
             bids_ses_dir = os.path.join(bids_sub_dir, ses_prefix)
             bids_conv_dir = os.path.join(bids_ses_dir, 'conv')
 
-            # Check is subject/session directory exists
+            # Check if subject/session directory exists
             # If it doesn't this is a new sub/ses added to the DICOM root and needs conversion
 
             # Safely create BIDS conversion directory and all containing directories as needed
@@ -151,10 +151,10 @@ def main():
                 dcm_info = bids_dcm_info(dcm_ses_dir)
 
                 # Add line to participants TSV file
-                participants_fd.write("%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
+                participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
 
             # Run DICOM conversions
-            bids_run_conversion(bids_conv_dir, first_pass, prot_dict, bids_ses_dir, SID, use_run)
+            bids_run_conversion(bids_conv_dir, first_pass, prot_dict, bids_ses_dir, SID, SES, use_run)
 
     if first_pass:
         # Create a template protocol dictionary
@@ -178,17 +178,21 @@ def bids_listdir(dname):
     return
 
 
-def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, use_run):
+def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, SES, use_run):
     """
 
     :param conv_dir:
     :param first_pass:
     :param prot_dict:
     :param sid_dir:
-    :param SID:
+    :param SID: subject ID
+    :param SES: session name or number
     :param use_run: flag to add run key-value to filenames [False]
     :return:
     """
+
+    # Temporary flags
+    do_cleanup = False
 
     if os.path.isdir(conv_dir):
 
@@ -205,9 +209,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, use_run):
                 print('  Adding protocol %s to dictionary template' % prot_name)
 
                 # Add current protocol to protocol dictionary
-                # The value defaults to "EXCLUDE" which should be replaced with the correct NDAR
-                # ImageDescription for this protocol (eg "T1w Structural", "BOLD MB EPI Resting State")
-                prot_dict[prot_name] = ["EXCLUDE_BIDS_Name", "EXCLUDE_BIDS_Directory"]
+                # Use default EXCLUDE_* values which can be changed (or not) by the user
+                prot_dict[prot_name] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name"]
 
             else:
 
@@ -222,34 +225,34 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, use_run):
                     print('* JSON sidecar not found : %s' % src_json_fname)
                     break
 
-                # Skip excluded protocols
                 if prot_dict[prot_name][0].startswith('EXCLUDE'):
 
+                    # Skip excluded protocols
                     print('* Excluding protocol ' + prot_name)
 
                 else:
 
                     print('  Organizing ' + prot_name)
 
-                    # Use protocol dictionary to determine destination folder and image/sidecar name
-                    bids_stub, bids_dir = prot_dict[prot_name]
+                    # Use protocol dictionary to determine purpose folder and BIDS filename suffix
+                    bids_purpose, bids_suffix  = prot_dict[prot_name]
 
                     # Add the DICOM series number as a run number
                     # TODO: Work out a better way to handle duplicate runs with identical protocol names
                     if use_run:
-                        bids_stub = bids_run_number(bids_stub, ser_no)
+                        bids_suffix = bids_run_number(bids_suffix, ser_no)
 
                     # Create BIDS purpose directory
-                    bids_purpose_dir = os.path.join(sid_dir, bids_dir)
+                    bids_purpose_dir = os.path.join(sid_dir, bids_purpose)
                     if not os.path.isdir(bids_purpose_dir):
                         os.makedirs(bids_purpose_dir, exist_ok=True)
 
                     # Complete BIDS filenames for image and sidecar
-                    bids_nii_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_' + bids_stub + '.nii.gz')
-                    bids_json_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_' + bids_stub + '.json')
+                    bids_nii_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_ses-' + SES + '_' + bids_suffix + '.nii.gz')
+                    bids_json_fname = bids_nii_fname.replace('.nii.gz','.json')
 
                     # Special handling for specific purposes (anat, func, fmap, etc)
-                    bids_nii_fname, bids_json_fname = bids_purpose_handling(bids_dir, seq_name, ser_no,
+                    bids_nii_fname, bids_json_fname = bids_purpose_handling(bids_purpose, seq_name, ser_no,
                                                                             bids_nii_fname, bids_json_fname,
                                                                             src_json_fname)
 
@@ -266,29 +269,32 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, use_run):
 
         # Cleanup temporary working directory after Pass 2
         if not first_pass:
-            print('  Cleaning up temporary files')
-            shutil.rmtree(conv_dir)
+            if do_cleanup:
+                print('  Cleaning up temporary files')
+                shutil.rmtree(conv_dir)
+            else:
+                print('  Preserving conversion directory')
 
 
-def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_fname, src_json_fname):
+def bids_purpose_handling(bids_purpose, seq_name, ser_no, bids_nii_fname, bids_json_fname, src_json_fname):
     """
     Special handling for each image purpose
 
-    :param bids_dir:
+    :param bids_purpose: BIDS purpose ('anat', 'func', 'fmap', etc)
     :return:
     """
 
     # Load the JSON sidecar
     info = bids_read_json(src_json_fname)
 
-    if bids_dir == 'func':
+    if bids_purpose == 'func':
 
         if seq_name == 'EP':
             print('    EPI detected')
             print('    Creating events template file')
             bids_events_template(bids_nii_fname)
 
-    elif bids_dir == 'fmap':
+    elif bids_purpose == 'fmap':
 
         # Check for MEGE vs SE-EPI fieldmap images
         # MEGE will have a 'GR' sequence, SE-EPI will have 'EP'
@@ -338,7 +344,7 @@ def bids_purpose_handling(bids_dir, seq_name, ser_no, bids_nii_fname, bids_json_
             print('    Unrecognized fieldmap detected')
             print('    Simply copying image and sidecar to fmap directory')
 
-    elif bids_dir == 'anat':
+    elif bids_purpose == 'anat':
 
         if seq_name == 'GR_IR':
 
@@ -384,24 +390,30 @@ def bids_init(bids_root_dir):
 def bids_dcm_info(dcm_dir):
     """
     Extract relevant subject information from DICOM header
-    :param dcm_sub_dir:
+    - Assumes only one subject present within dcm_dir
+    
+    :param dcm_dir: directory containing all DICOM files or DICOM subfolders
     :return dcm_info: DICOM header information dictionary
     """
 
-    # Loop over files until first valid DICOM is found
+    # Init the DICOM structure
     ds = []
-    for dcm in os.listdir(dcm_dir):
-        try:
-            ds = pydicom.read_file(os.path.join(dcm_dir, dcm))
-        except:
-            pass
 
-        # Break out if valid DICOM read
-        if ds:
-            break
-
-    # Init a new dictionary
+    # Init the subject info dictionary
     dcm_info = dict()
+
+    # Walk through dcm_dir looking for valid DICOM files
+    for subdir, dirs, files in os.walk(dcm_dir):
+        for file in files:
+
+            try:
+                ds = pydicom.read_file(os.path.join(subdir, file))
+            except:
+                pass
+
+            # Break out if valid DICOM read
+            if ds:
+                break
 
     if ds:
 
@@ -568,7 +580,7 @@ def bids_update_fmap_sidecar(json_phase_fname):
         # Add TE1 key and rename TE2 key
         if mag1_dict:
             phase_dict['EchoTime1'] = mag1_dict['EchoTime']
-            phase_dict['EchoTime2'] = phase_dict.pop('EchoTime')
+            phase_dict['EchoTime2'] = phase_dict('EchoTime')
         else:
             print('*** Could not determine echo times for fieldmap')
             phase_dict['EchoTime1'] = '-1.0'
