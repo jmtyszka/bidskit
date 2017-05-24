@@ -73,9 +73,9 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
-    parser.add_argument('-i','--indir', required=True, help='DICOM input directory with Subject/Session/Image organization')
-    parser.add_argument('-o','--outdir', required=True, help='Output BIDS directory root')
-    parser.add_argument('--use_run', action='store_true', default=False, help='Add run number to filename')
+    parser.add_argument('-i','--indir', default='dicom', help='DICOM input directory with Subject/Session/Image organization [dicom]')
+    parser.add_argument('-o','--outdir', default='bids', help='Output BIDS directory root [bids]')
+    parser.add_argument('--use_run', action='store_true', default=False, help='Add run number to filename [False]')
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -580,7 +580,7 @@ def bids_update_fmap_sidecar(json_phase_fname):
         # Add TE1 key and rename TE2 key
         if mag1_dict:
             phase_dict['EchoTime1'] = mag1_dict['EchoTime']
-            phase_dict['EchoTime2'] = phase_dict('EchoTime')
+            phase_dict['EchoTime2'] = phase_dict['EchoTime']
         else:
             print('*** Could not determine echo times for fieldmap')
             phase_dict['EchoTime1'] = '-1.0'
