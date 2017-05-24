@@ -47,7 +47,7 @@ import os
 import sys
 import argparse
 import subprocess
-import dicom
+import pydicom
 import json
 import glob
 import shutil
@@ -86,7 +86,8 @@ def main():
         create_prot_dict = False
 
     # Safe create output NDAR root directory
-    shutil.rmtree(ndar_root_dir)
+    if os.path.isdir(ndar_root_dir):
+        shutil.rmtree(ndar_root_dir)
     os.makedirs(ndar_root_dir)
 
     # Loop over each subject's DICOM directory within the root source directory
@@ -260,7 +261,8 @@ def ndar_parse_filename(fname):
     # Split stub at first underscore
     for chunk in fstub.split('_', 1):
         if chunk.startswith('sub-'):
-            _, SID = chunk.split('-')
+            # SID is everything after "sub-" in this chunk
+            _, SID = chunk.split('sub-', 1)
         else:
             prot = chunk
 
@@ -354,7 +356,7 @@ def ndar_dcm_info(dcm_dir):
     ds = []
     for dcm in os.listdir(dcm_dir):
         try:
-            ds = dicom.read_file(os.path.join(dcm_dir, dcm))
+            ds = pydicom.read_file(os.path.join(dcm_dir, dcm))
         except:
             pass
 
