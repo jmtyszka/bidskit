@@ -129,7 +129,7 @@ def main():
                 nii_fname = os.path.basename(nii_fname_full)
 
                 # Parse file basename
-                SID, prot, fstub, fext = ndar_parse_filename(nii_fname)
+                SID, prot, fstub = ndar_parse_filename(nii_fname)
 
                 # Full path for file stub
                 fstub_full = os.path.join(ndar_sub_dir, fstub)
@@ -247,16 +247,17 @@ def ndar_create_prot_dict(prot_dict_json, prot_dict):
 
 def ndar_parse_filename(fname):
     """
-    Extract SID and protocol string from filename in the form sub-<SID>_<Protocol String>.*
+    Extract SID and protocol string from filename in the form sub-<SID>_<Protocol String>.[nii or nii.gz]
+    
     :param fname:
-    :return: SID, prot, fstub, fext
+    :return: SID, prot, fstub
     """
 
     # Init return values
-    SID, prot, fstub, fext = 'None', 'None', 'None', 'None'
+    SID, prot, fstub = 'None', 'None', 'None'
 
-    # Split at first period to separate stub from extension(s)
-    fstub, fext = fname.split('.',1)
+    # Strip .nii or .nii.gz from fname
+    fstub = fname.replace('.nii.gz','').replace('.nii','')
 
     # Split stub at first underscore
     for chunk in fstub.split('_', 1):
@@ -266,7 +267,7 @@ def ndar_parse_filename(fname):
         else:
             prot = chunk
 
-    return SID, prot, fstub, fext
+    return SID, prot, fstub
 
 
 def ndar_scantype(desc):
