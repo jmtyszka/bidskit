@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dcm2bids.py" afterPath="$PROJECT_DIR$/dcm2bids.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dcm2ndar.py" afterPath="$PROJECT_DIR$/dcm2ndar.py" />
     </list>
     <ignored path="bidskit.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -17,7 +16,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/bidskit$dcm2ndar.coverage" NAME="dcm2ndar Coverage Results" MODIFIED="1472248118220" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Box/+Inbox+/NDAR_Conte_Upload/Conte_NDAR_Testing" />
+    <SUITE FILE_PATH="coverage/bidskit$dcm2ndar.coverage" NAME="dcm2ndar Coverage Results" MODIFIED="1496262879054" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/sandbox/NDAR/" />
     <SUITE FILE_PATH="coverage/bidskit$dcm2bids.coverage" NAME="dcm2bids Coverage Results" MODIFIED="1490225671684" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Data/QA/ASD_Motion_20170322" />
     <SUITE FILE_PATH="coverage/bidskit$dcmhdr.coverage" NAME="dcmhdr Coverage Results" MODIFIED="1478130170910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Desktop/Shuo_DICOM" />
   </component>
@@ -60,12 +59,26 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dcm2bids.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1033">
-              <caret line="626" column="0" lean-forward="false" selection-start-line="626" selection-start-column="0" selection-end-line="626" selection-end-column="0" />
-              <folding />
+            <state relative-caret-position="225">
+              <caret line="140" column="30" lean-forward="false" selection-start-line="140" selection-start-column="22" selection-end-line="140" selection-end-column="30" />
+              <folding>
+                <element signature="e#1875#1884#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dcm2ndar.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="398">
+              <caret line="575" column="48" lean-forward="true" selection-start-line="575" selection-start-column="48" selection-end-line="575" selection-end-column="48" />
+              <folding>
+                <element signature="e#1409#1418#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -83,13 +96,20 @@
     <findStrings>
       <find>bids_run_conversion</find>
       <find>run-</find>
-      <find>dicom.</find>
       <find>print</find>
       <find>filegroup</find>
       <find>participants_fd</find>
       <find>session</find>
       <find>conv</find>
       <find>conv_dir</find>
+      <find>.split</find>
+      <find>dicom.</find>
+      <find>fstub_full</find>
+      <find>fext</find>
+      <find>ndar_parse_filename</find>
+      <find>* JSON</find>
+      <find>dcm2niix</find>
+      <find>init_summ</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -100,11 +120,11 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/Protocol_Template.json" />
-        <option value="$PROJECT_DIR$/dcm2ndar.py" />
         <option value="$PROJECT_DIR$/dcmhdr.py" />
         <option value="$PROJECT_DIR$/caltech_bids_heuristic.py" />
         <option value="$PROJECT_DIR$/dcm2bids" />
         <option value="$PROJECT_DIR$/dcm2bids.py" />
+        <option value="$PROJECT_DIR$/dcm2ndar.py" />
       </list>
     </option>
   </component>
@@ -115,8 +135,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="322" />
-    <option name="y" value="56" />
+    <option name="x" value="630" />
+    <option name="y" value="70" />
     <option name="width" value="1596" />
     <option name="height" value="1248" />
   </component>
@@ -157,6 +177,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -171,8 +193,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -198,7 +218,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.dcm2bids">
+  <component name="RunManager" selected="Python.dcm2ndar">
     <configuration default="true" type="BashConfigurationType" factoryName="Bash">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="INTERPRETER_PATH" value="/bin/bash" />
@@ -411,25 +431,6 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <method />
     </configuration>
-    <configuration default="false" name="dcm2ndar" type="PythonConfigurationType" factoryName="Python">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$USER_HOME$/Box/+Inbox+/NDAR_Conte_Upload/Conte_NDAR_Testing" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="bidskit" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dcm2ndar.py" />
-      <option name="PARAMETERS" value="-i dicom -o ndar" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <method />
-    </configuration>
     <configuration default="false" name="dcmhdr" type="PythonConfigurationType" factoryName="Python">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -449,10 +450,29 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <method />
     </configuration>
+    <configuration default="false" name="dcm2ndar" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$USER_HOME$/sandbox/NDAR/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="bidskit" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dcm2ndar.py" />
+      <option name="PARAMETERS" value="-i Shinsuke -o Shinsuke.ndar" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <method />
+    </configuration>
     <list size="3">
       <item index="0" class="java.lang.String" itemvalue="Python.dcm2bids" />
-      <item index="1" class="java.lang.String" itemvalue="Python.dcm2ndar" />
-      <item index="2" class="java.lang.String" itemvalue="Python.dcmhdr" />
+      <item index="1" class="java.lang.String" itemvalue="Python.dcmhdr" />
+      <item index="2" class="java.lang.String" itemvalue="Python.dcm2ndar" />
     </list>
     <configuration default="true" type="tests" factoryName="Attests">
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -664,22 +684,44 @@
       <option name="project" value="LOCAL" />
       <updated>1493248926847</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="More updates to dcm2bids.py">
+      <created>1495645894890</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1495645894890</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Fixed filename parsing error when subject ID contains one or more dashes.">
+      <created>1495660084559</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1495660084559</updated>
+    </task>
+    <task id="LOCAL-00028" summary="Fixed filename parsing error when protocol name includes one or more '.'s">
+      <created>1495665801991</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1495665801991</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="322" y="56" width="1596" height="1248" extended-state="0" />
+    <frame x="630" y="70" width="1596" height="1248" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17982456" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17982456" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41659465" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4163053" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33044234" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3284356" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.34605378" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.34605378" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -728,7 +770,10 @@
     <MESSAGE value="Add alternative heudiconv wrapper (dcm2bids) with CIT-specific heuristic (caltech_bids_heuristic)" />
     <MESSAGE value="Updates to Caltech BIDS heuristic" />
     <MESSAGE value="Rename dcm2bids heudiconv wrapper to heudibids. Session handling updates to dcm2bids.py" />
-    <option name="LAST_COMMIT_MESSAGE" value="Rename dcm2bids heudiconv wrapper to heudibids. Session handling updates to dcm2bids.py" />
+    <MESSAGE value="More updates to dcm2bids.py" />
+    <MESSAGE value="Fixed filename parsing error when subject ID contains one or more dashes." />
+    <MESSAGE value="Fixed filename parsing error when protocol name includes one or more '.'s" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed filename parsing error when protocol name includes one or more '.'s" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -749,18 +794,11 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="67" />
+      <option name="time" value="80" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/dcmhdr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1800">
-          <caret line="128" column="0" lean-forward="false" selection-start-line="128" selection-start-column="0" selection-end-line="128" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/dcm2bids.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -1037,13 +1075,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Protocol_Translator.json" />
-    <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="805">
-          <caret line="388" column="19" lean-forward="false" selection-start-line="351" selection-start-column="0" selection-end-line="388" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/codecs.py" />
     <entry file="file://$PROJECT_DIR$/dcm2bids.py.bak" />
     <entry file="file://$PROJECT_DIR$/dcmhdr.py">
@@ -1077,11 +1108,31 @@
         </state>
       </provider>
     </entry>
+    <entry file="file:///opt/local/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/codecs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="639">
+          <caret line="307" column="40" lean-forward="true" selection-start-line="307" selection-start-column="40" selection-end-line="307" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/dcm2bids.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1033">
-          <caret line="626" column="0" lean-forward="false" selection-start-line="626" selection-start-column="0" selection-end-line="626" selection-end-column="0" />
-          <folding />
+        <state relative-caret-position="225">
+          <caret line="140" column="30" lean-forward="false" selection-start-line="140" selection-start-column="22" selection-end-line="140" selection-end-column="30" />
+          <folding>
+            <element signature="e#1875#1884#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="398">
+          <caret line="575" column="48" lean-forward="true" selection-start-line="575" selection-start-column="48" selection-end-line="575" selection-end-column="48" />
+          <folding>
+            <element signature="e#1409#1418#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

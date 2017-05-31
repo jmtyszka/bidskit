@@ -184,7 +184,7 @@ def main():
                         ndar_add_row(ndar_csv_fd, info)
 
                         # Delete JSON file
-                        os.remove(json_fname)
+                        # os.remove(json_fname)
 
 
             # Close NDAR summary file for this subject
@@ -328,6 +328,7 @@ def ndar_nifti_info(nii_fname):
     hdr = nii.header
 
     dim = hdr['dim']
+    res = hdr['pixdim']
 
     # Fill dictionary
     nii_info['AcquisitionMatrix'] = '%dx%d' % (dim[1], dim[2])
@@ -337,6 +338,11 @@ def ndar_nifti_info(nii_fname):
     nii_info['ImageExtent3'] = dim[3]
     nii_info['ImageExtent4'] = dim[4]
     nii_info['ImageExtent5'] = dim[5]
+    nii_info['ImageResolution1'] = res[1]
+    nii_info['ImageResolution2'] = res[2]
+    nii_info['ImageResolution3'] = res[3]
+    nii_info['ImageResolution4'] = res[4]
+    nii_info['ImageResolution5'] = res[5]
 
     if dim[0] > 3:
         nii_info['Extent4Type'] = 'Timeseries'
@@ -388,6 +394,7 @@ def ndar_dcm_info(dcm_dir):
     dcm_info['PhotometricInterpretation'] = ds.PhotometricInterpretation
     dcm_info['AgeMonths'] = age_months
     dcm_info['ScanDate'] = datetime.strftime(d2, '%M/%d/%Y') # NDAR scan date format MM/DD/YYYY
+    dcm_info['SliceThickness'] = ds.SliceThickness
 
     return dcm_info
 
@@ -549,12 +556,12 @@ def ndar_add_row(fd, info):
     fd.write('"Millimeters",')  # image_unit3
     fd.write('"Seconds",')  # image_unit4
     fd.write('"Arbitrary",')  # image_unit5
-    fd.write('"",')  # image_resolution1
-    fd.write('"",')  # image_resolution2
-    fd.write('"",')  # image_resolution3
-    fd.write('"",')  # image_resolution4
-    fd.write('"",')  # image_resolution5
-    fd.write('"",')  # image_slice_thickness
+    fd.write('%0.3f,' % info.get('ImageResolution1'))  # image_resolution1
+    fd.write('%0.3f,' % info.get('ImageResolution2'))  # image_resolution2
+    fd.write('%0.3f,' % info.get('ImageResolution3'))  # image_resolution3
+    fd.write('%0.3f,' % info.get('ImageResolution4'))  # image_resolution4
+    fd.write('%0.3f,' % info.get('ImageResolution5'))  # image_resolution5
+    fd.write('%0.3f,' % info.get('SliceThickness'))  # image_slice_thickness
     fd.write('"",')  # image_orientation
     fd.write('"",')  # qc_outcome
     fd.write('"",')  # qc_description
@@ -575,7 +582,7 @@ def ndar_add_row(fd, info):
     fd.write('"",')  # week
     fd.write('"",')  # experiment_description
     fd.write('"",')  # visit
-    fd.write('"[]",')  # slice_timing
+    fd.write('%s,' % str(info.get('SliceTiming')))  # slice_timing
     fd.write('"No",')  # bvek_bval_files
     fd.write('"NA",')  # bvecfile
     fd.write('"NA",')  # bvalfile
