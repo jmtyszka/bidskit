@@ -548,7 +548,7 @@ def ndar_add_row(fd, info):
     fd.write('%d,' % info.get('ImageExtent2'))  # image_extent2
     fd.write('%d,' % info.get('ImageExtent3'))  # image_extent3
     fd.write('%d,' % info.get('ImageExtent4'))  # image_extent4
-    fd.write('%s,' % info.get('Extent4Type'))  # extent4_type
+    fd.write('"%s",' % info.get('Extent4Type'))  # extent4_type
     fd.write('"",')  # image_extent5
     fd.write('"",')  # extent5_type
     fd.write('"Millimeters",')  # image_unit1
@@ -582,7 +582,7 @@ def ndar_add_row(fd, info):
     fd.write('"",')  # week
     fd.write('"",')  # experiment_description
     fd.write('"",')  # visit
-    fd.write('%s,' % str(info.get('SliceTiming')))  # slice_timing
+    fd.write('"%s",' % str(info.get('SliceTiming')))  # slice_timing
     fd.write('"No",')  # bvek_bval_files
     fd.write('"NA",')  # bvecfile
     fd.write('"NA",')  # bvalfile

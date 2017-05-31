@@ -74,8 +74,8 @@
       <file leaf-file-name="dcm2ndar.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="398">
-              <caret line="575" column="48" lean-forward="true" selection-start-line="575" selection-start-column="48" selection-end-line="575" selection-end-column="48" />
+            <state relative-caret-position="-37">
+              <caret line="550" column="18" lean-forward="false" selection-start-line="550" selection-start-column="18" selection-end-line="550" selection-end-column="18" />
               <folding>
                 <element signature="e#1409#1418#0" expanded="true" />
               </folding>
@@ -110,6 +110,7 @@
       <find>* JSON</find>
       <find>dcm2niix</find>
       <find>init_summ</find>
+      <find>Extent4Type</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -705,7 +706,14 @@
       <option name="project" value="LOCAL" />
       <updated>1495665801991</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="Added image_resolution, slice_thickness and slice_timing fields to subject .csv summary. Required by NDAR if not submitting DICOM images.">
+      <created>1496262985696</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1496262985696</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -748,7 +756,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Initial commit" />
     <MESSAGE value="DICOM to BIDS skeleton" />
     <MESSAGE value="Added mulitiple subject handlers, filename parser, essential file output. Test dataset passes BIDS validator without errors, but many warnings relating to 'a', 'b' etc suffix added by dcm2niix." />
     <MESSAGE value="Added automatic events.tsv template file generation in func directory. Previous validator warnings due to non-compliant protocol names on console. Need to put _acq key after _task key for _bold series and remove _run key from SE-EPI fieldmap series. Need to open an issue with BIDS GitHub about the fieldmap _run key." />
@@ -773,7 +780,8 @@
     <MESSAGE value="More updates to dcm2bids.py" />
     <MESSAGE value="Fixed filename parsing error when subject ID contains one or more dashes." />
     <MESSAGE value="Fixed filename parsing error when protocol name includes one or more '.'s" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed filename parsing error when protocol name includes one or more '.'s" />
+    <MESSAGE value="Added image_resolution, slice_thickness and slice_timing fields to subject .csv summary. Required by NDAR if not submitting DICOM images." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added image_resolution, slice_thickness and slice_timing fields to subject .csv summary. Required by NDAR if not submitting DICOM images." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1128,8 +1136,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dcm2ndar.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="398">
-          <caret line="575" column="48" lean-forward="true" selection-start-line="575" selection-start-column="48" selection-end-line="575" selection-end-column="48" />
+        <state relative-caret-position="-37">
+          <caret line="550" column="18" lean-forward="false" selection-start-line="550" selection-start-column="18" selection-end-line="550" selection-end-column="18" />
           <folding>
             <element signature="e#1409#1418#0" expanded="true" />
           </folding>
