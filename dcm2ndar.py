@@ -52,6 +52,7 @@ import json
 import glob
 import shutil
 import nibabel as nib
+import numpy as np
 from datetime import datetime
 from dateutil import relativedelta
 
@@ -109,7 +110,7 @@ def main():
             ndar_csv_fname = os.path.join(ndar_sub_dir, SID + '_NDAR.csv')
             ndar_csv_fd = ndar_init_summary(ndar_csv_fname)
 
-            # Read additional subject-level DICOM header fields not handled by dcm2niix
+            # Read additional subject-level DICOM header fields from first DICOM image
             dcm_info = ndar_dcm_info(dcm_sub_dir)
 
             # Run dcm2niix conversion from DICOM to Nifti with BIDS sidecars for metadata
@@ -344,6 +345,13 @@ def ndar_nifti_info(nii_fname):
     nii_info['ImageResolution4'] = res[4]
     nii_info['ImageResolution5'] = res[5]
 
+    # Use z dimension voxel spacing as slice thickness for now
+    nii_info['SliceThickness'] = dim[3]
+
+    # Infer slice orientation from sform matrix
+    # Assumes HFS patient position (reasonable for vast majority of functional neuroimaging studies)
+    nii_info['Orientation'] = ndar_infer_orientation(hdr.get_sform())
+
     if dim[0] > 3:
         nii_info['Extent4Type'] = 'Timeseries'
     else:
@@ -355,6 +363,8 @@ def ndar_nifti_info(nii_fname):
 def ndar_dcm_info(dcm_dir):
     """
     Extract additional subject-level DICOM header fields not handled by dcm2niix
+    from first DICOM image in directory    
+    
     :param dcm_dir: DICOM directory containing subject files
     :return: dcm_info: extra information dictionary
     """
@@ -394,7 +404,6 @@ def ndar_dcm_info(dcm_dir):
     dcm_info['PhotometricInterpretation'] = ds.PhotometricInterpretation
     dcm_info['AgeMonths'] = age_months
     dcm_info['ScanDate'] = datetime.strftime(d2, '%M/%d/%Y') # NDAR scan date format MM/DD/YYYY
-    dcm_info['SliceThickness'] = ds.SliceThickness
 
     return dcm_info
 
@@ -555,14 +564,14 @@ def ndar_add_row(fd, info):
     fd.write('"Millimeters",')  # image_unit2
     fd.write('"Millimeters",')  # image_unit3
     fd.write('"Seconds",')  # image_unit4
-    fd.write('"Arbitrary",')  # image_unit5
+    fd.write('"",')  # image_unit5
     fd.write('%0.3f,' % info.get('ImageResolution1'))  # image_resolution1
     fd.write('%0.3f,' % info.get('ImageResolution2'))  # image_resolution2
     fd.write('%0.3f,' % info.get('ImageResolution3'))  # image_resolution3
     fd.write('%0.3f,' % info.get('ImageResolution4'))  # image_resolution4
     fd.write('%0.3f,' % info.get('ImageResolution5'))  # image_resolution5
     fd.write('%0.3f,' % info.get('SliceThickness'))  # image_slice_thickness
-    fd.write('"",')  # image_orientation
+    fd.write('"%s",' % info.get('Orientation'))  # image_orientation
     fd.write('"",')  # qc_outcome
     fd.write('"",')  # qc_description
     fd.write('"",')  # qc_fail_quest_reason
@@ -583,14 +592,45 @@ def ndar_add_row(fd, info):
     fd.write('"",')  # experiment_description
     fd.write('"",')  # visit
     fd.write('"%s",' % str(info.get('SliceTiming')))  # slice_timing
-    fd.write('"No",')  # bvek_bval_files
-    fd.write('"NA",')  # bvecfile
-    fd.write('"NA",')  # bvalfile
+    fd.write('"",')  # bvek_bval_files
+    fd.write('"",')  # bvecfile
+    fd.write('"",')  # bvalfile
 
     # Final newline
     fd.write('\n')
 
     return
+
+
+def ndar_infer_orientation(sform):
+
+    # Default return value
+    orient = 'Axial'
+
+    # Extract upper left 3x3 matrix (rotation matrix)
+    rmat = sform[0:3,0:3]
+
+    print(rmat)
+
+    # Inspect column vectors to determine image to gradient axis mapping
+    v0, v1, v2 = rmat[:,0], rmat[:,1], rmat[:,2]
+
+    # Normalize vectors
+    v0 = v0 / np.linalg.norm(v0)
+    v1 = v1 / np.linalg.norm(v1)
+    v2 = v2 / np.linalg.norm(v2)
+
+    thresh = 0.707
+
+    if np.abs(v0[0]) > thresh:  # Axial or Coronal
+        if np.abs(v1[1]) > thresh:
+            orient = 'Axial'
+        else:
+            orient = 'Coronal'
+    else:
+        orient = 'Sagittal'
+
+    return orient
 
 
 def strip_extensions(fname):
