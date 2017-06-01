@@ -52,7 +52,6 @@ import json
 import glob
 import shutil
 import nibabel as nib
-import numpy as np
 from datetime import datetime
 from dateutil import relativedelta
 
@@ -180,12 +179,13 @@ def main():
                         info['ImageFile'] = os.path.basename(nii_fname)
                         info['ImageDescription'] = prot_dict[prot]
                         info['ScanType'] = ndar_scantype(prot_dict[prot])
+                        info['Orientation'] = ndar_orientation(info)
 
                         # Add row to NDAR summary CSV file
                         ndar_add_row(ndar_csv_fd, info)
 
                         # Delete JSON file
-                        # os.remove(json_fname)
+                        os.remove(json_fname)
 
 
             # Close NDAR summary file for this subject
@@ -314,6 +314,19 @@ def ndar_scantype(desc):
     return scan_type
 
 
+def ndar_orientation(info):
+
+    orientation = 'Axial'
+
+    if 'spc3d' in info['PulseSequenceDetails']:
+        orientation = 'Sagittal'
+
+    if 'tfl3d' in info['PulseSequenceDetails']:
+        orientation = 'Sagittal'
+
+    return orientation
+
+
 def ndar_nifti_info(nii_fname):
     '''
     Extract Nifti header fields not handled by dcm2niix
@@ -345,12 +358,8 @@ def ndar_nifti_info(nii_fname):
     nii_info['ImageResolution4'] = res[4]
     nii_info['ImageResolution5'] = res[5]
 
-    # Use z dimension voxel spacing as slice thickness for now
+    # Use z dimension voxel spacing as slice thickness
     nii_info['SliceThickness'] = dim[3]
-
-    # Infer slice orientation from sform matrix
-    # Assumes HFS patient position (reasonable for vast majority of functional neuroimaging studies)
-    nii_info['Orientation'] = ndar_infer_orientation(hdr.get_sform())
 
     if dim[0] > 3:
         nii_info['Extent4Type'] = 'Timeseries'
@@ -600,37 +609,6 @@ def ndar_add_row(fd, info):
     fd.write('\n')
 
     return
-
-
-def ndar_infer_orientation(sform):
-
-    # Default return value
-    orient = 'Axial'
-
-    # Extract upper left 3x3 matrix (rotation matrix)
-    rmat = sform[0:3,0:3]
-
-    print(rmat)
-
-    # Inspect column vectors to determine image to gradient axis mapping
-    v0, v1, v2 = rmat[:,0], rmat[:,1], rmat[:,2]
-
-    # Normalize vectors
-    v0 = v0 / np.linalg.norm(v0)
-    v1 = v1 / np.linalg.norm(v1)
-    v2 = v2 / np.linalg.norm(v2)
-
-    thresh = 0.707
-
-    if np.abs(v0[0]) > thresh:  # Axial or Coronal
-        if np.abs(v1[1]) > thresh:
-            orient = 'Axial'
-        else:
-            orient = 'Coronal'
-    else:
-        orient = 'Sagittal'
-
-    return orient
 
 
 def strip_extensions(fname):
