@@ -6,8 +6,9 @@ Python 3.4 function which takes a flat DICOM directory containing multiple imagi
 and converts into a Brain Imaging Data Structure which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
 ## Dependencies
-Developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, dicom, glob)
-Latest version of Chris Rorden's dcm2niix tool (https://github.com/rordenlab/dcm2niix)
+Developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, dicom, glob).
+
+Latest version (v1.0.20170624 at time of writing) of Chris Rorden's dcm2niix tool (https://github.com/rordenlab/dcm2niix)
 
 ## Installation
 Clone the repository and add the resulting directory to your path. Will upgrade this to a python setup soon.
