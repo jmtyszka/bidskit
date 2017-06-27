@@ -99,16 +99,16 @@ Edit the BIDS name and directory values with the BIDS-compliant filename (exclud
 <pre>
 {
     "Localizer":[
-        "EXCLUDE_BIDS_Name",
-        "EXCLUDE_BIDS_Directory"
+        "EXCLUDE_BIDS_Directory",
+        "EXCLUDE_BIDS_Name"
     ],
     "rsBOLD_MB_1":[
-        "task-rest_acq-MB_run-1_bold",
-        "func"
+        "func",
+        "task-rest_acq-MB_run-1_bold"
     ],
     "T1_2":[
-        "run-2_T1w",
-        "anat"
+        "anat",
+        "run-2_T1w"
     ],
     ...
 }
