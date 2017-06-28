@@ -57,7 +57,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '0.9.2'
+__version__ = '0.9.3'
 
 import os
 import sys
@@ -65,7 +65,7 @@ import argparse
 import subprocess
 import shutil
 import json
-import pydicom
+import dicom
 from glob import glob
 
 
@@ -75,7 +75,7 @@ def main():
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
     parser.add_argument('-i','--indir', default='dicom', help='DICOM input directory with Subject/Session/Image organization [dicom]')
     parser.add_argument('-o','--outdir', default='bids', help='Output BIDS directory root [bids]')
-    parser.add_argument('--use_run', action='store_true', default=False, help='Add run number to filename [False]')
+    parser.add_argument('--use_run', action='store_true', default=False, help='Add run number to BIDS filename [False]')
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -423,7 +423,7 @@ def bids_dcm_info(dcm_dir):
         for file in files:
 
             try:
-                ds = pydicom.read_file(os.path.join(subdir, file))
+                ds = dicom.read_file(os.path.join(subdir, file))
             except:
                 pass
 
