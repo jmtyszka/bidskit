@@ -593,14 +593,14 @@ def bids_load_prot_dict(prot_dict_json):
 
         # Read JSON protocol translator
         json_fd = open(prot_dict_json, 'r')
-        prot_trans = json.load(json_fd)
+        prot_dict = json.load(json_fd)
         json_fd.close()
 
     else:
 
-        prot_trans = dict()
+        prot_dict = dict()
 
-    return prot_trans
+    return prot_dict
 
 
 def bids_fmap_echotimes(src_phase_json_fname):
