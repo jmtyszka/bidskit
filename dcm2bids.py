@@ -134,7 +134,7 @@ def main():
             # If it doesn't this is a new sub/ses added to the DICOM root and needs conversion
 
             # Safely create BIDS conversion directory and all containing directories as needed
-            if not os.isdir(bids_conv_dir):
+            if not os.path.isdir(bids_conv_dir):
                 os.makedirs(bids_conv_dir)
 
             if first_pass:
