@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Convert flat DICOM file set into a BIDS-compliant Nifti structure
 
@@ -134,7 +134,8 @@ def main():
             # If it doesn't this is a new sub/ses added to the DICOM root and needs conversion
 
             # Safely create BIDS conversion directory and all containing directories as needed
-            os.makedirs(bids_conv_dir, exist_ok=True)
+            if not os.isdir(bids_conv_dir):
+                os.makedirs(bids_conv_dir)
 
             if first_pass:
 
@@ -245,7 +246,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, SES, use_
                     # Create BIDS purpose directory
                     bids_purpose_dir = os.path.join(sid_dir, bids_purpose)
                     if not os.path.isdir(bids_purpose_dir):
-                        os.makedirs(bids_purpose_dir, exist_ok=True)
+                        os.makedirs(bids_purpose_dir)
 
                     # Complete BIDS filenames for image and sidecar
                     bids_nii_fname = os.path.join(bids_purpose_dir, 'sub-' + SID + '_ses-' + SES + '_' + bids_suffix + '.nii.gz')
