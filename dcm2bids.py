@@ -143,7 +143,7 @@ def main():
                 # This relies on the current CBIC branch of dcm2niix which extracts additional DICOM fields
                 print('  Converting all DICOM images within directory %s' % dcm_ses_dir)
                 devnull = open(os.devnull, 'w')
-                subprocess.call(['dcm2niix', '-b', 'y', '-f', '%n--%p--%q--%s', '-o', bids_conv_dir, dcm_ses_dir],
+                subprocess.call(['dcm2niix', '-b', 'y', '-f', '%n--%d--%q--%s', '-o', bids_conv_dir, dcm_ses_dir],
                                 stdout=devnull, stderr=subprocess.STDOUT)
 
             else:
@@ -202,16 +202,16 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, SES, use_
         for src_nii_fname in glob(os.path.join(conv_dir, '*.nii*')):
 
             # Parse image filename into fields
-            subj_name, prot_name, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
+            subj_name, ser_desc, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
 
             # Check if we're creating new protocol dictionary
             if first_pass:
 
-                print('  Adding protocol %s to dictionary template' % prot_name)
+                print('  Adding protocol %s to dictionary template' % ser_desc)
 
                 # Add current protocol to protocol dictionary
                 # Use default EXCLUDE_* values which can be changed (or not) by the user
-                prot_dict[prot_name] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name"]
+                prot_dict[ser_desc] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name"]
 
             else:
 
@@ -226,17 +226,17 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, sid_dir, SID, SES, use_
                     print('* JSON sidecar not found : %s' % src_json_fname)
                     break
 
-                if prot_dict[prot_name][0].startswith('EXCLUDE'):
+                if prot_dict[ser_desc][0].startswith('EXCLUDE'):
 
                     # Skip excluded protocols
-                    print('* Excluding protocol ' + prot_name)
+                    print('* Excluding protocol ' + ser_desc)
 
                 else:
 
-                    print('  Organizing ' + prot_name)
+                    print('  Organizing ' + ser_desc)
 
                     # Use protocol dictionary to determine purpose folder and BIDS filename suffix
-                    bids_purpose, bids_suffix  = prot_dict[prot_name]
+                    bids_purpose, bids_suffix  = prot_dict[ser_desc]
 
                     # Add the DICOM series number as a run number
                     # TODO: Work out a better way to handle duplicate runs with identical protocol names
@@ -459,10 +459,9 @@ def bids_dcm_info(dcm_dir):
 def parse_dcm2niix_fname(fname):
     """
     Parse dcm2niix filename into values
-    Filename format is '%n--%p--%q--%s' ie '<name>--<protocol>--<sequence>--<series #>'
-    dcm2niix will add the '_e2' suffix to the series # for multiecho sequences such as GRE fieldmaps
+    Filename format is '%n--%d--%q--%s' ie '<name>--<description>--<sequence>--<series #>'
     :param fname: BIDS-style image or sidecar filename
-    :return subj_name, prot_name, seq_name, ser_no:
+    :return subj_name, ser_desc, seq_name, ser_no:
     """
 
     # Ignore containing directory and extension(s)
@@ -471,11 +470,11 @@ def parse_dcm2niix_fname(fname):
     # Split filename at '--'s
     vals = fname.split('--')
     subj_name = vals[0]
-    prot_name = vals[1]
+    ser_desc = vals[1]
     seq_name = vals[2]
     ser_no = vals[3]
 
-    return subj_name, prot_name, seq_name, ser_no
+    return subj_name, ser_desc, seq_name, ser_no
 
 
 def parse_bids_fname(fname):
