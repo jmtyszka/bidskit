@@ -140,10 +140,10 @@ def main():
             if first_pass:
 
                 # Run dcm2niix conversion into temporary conversion directory
-                # This relies on the current CBIC branch of dcm2niix which extracts additional DICOM fields
                 print('  Converting all DICOM images within directory %s' % dcm_ses_dir)
                 devnull = open(os.devnull, 'w')
-                subprocess.call(['dcm2niix', '-b', 'y', '-f', '%n--%d--%q--%s', '-o', bids_conv_dir, dcm_ses_dir],
+                subprocess.call(['dcm2niix', '-b', 'y', '-z', 'y', '-f', '%n--%d--%q--%s',
+                                 '-o', bids_conv_dir, dcm_ses_dir],
                                 stdout=devnull, stderr=subprocess.STDOUT)
 
             else:
