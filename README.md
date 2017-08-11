@@ -8,7 +8,7 @@ and converts into a Brain Imaging Data Structure which should pass the online BI
 ## Dependencies
 This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
 1. pydicom 0.9.9 (latest version in PyPi)
-2. Chris Rorden's dcm2niix v1.0.20170624 or greater (https://github.com/rordenlab/dcm2niix)
+2. Chris Rorden's dcm2niix v1.0.20170624 or greater ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
 ## Installation
 Clone the repository and add the resulting directory to your path. Will upgrade this to a python setup soon.
