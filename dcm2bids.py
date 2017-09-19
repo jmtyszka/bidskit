@@ -74,7 +74,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
     parser.add_argument('-i','--indir', default='dicom', help='DICOM input directory with Subject/Session/Image organization [dicom]')
-    parser.add_argument('-o','--outdir', default='bids', help='Output BIDS directory root [bids]')
+    parser.add_argument('-o','--outdir', default='source', help='Output BIDS source directory [source]')
     parser.add_argument('--use_run', action='store_true', default=False, help='Add run number to BIDS filename [False]')
 
     # Parse command line arguments
