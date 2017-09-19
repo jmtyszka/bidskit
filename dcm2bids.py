@@ -515,17 +515,16 @@ def bids_add_run_number(bids_stub, ser_no):
     :return:
     """
 
-    # Eliminate unused suffix from ser_no if present (eg '_e2')
-    if '_' in ser_no:
-        ser_no, _ = ser_no.split('_',1)
+    # Discard non-numeric characters in ser_no
+    ser_no = int(''.join(filter(str.isdigit, ser_no)))
 
     if '_' in bids_stub:
         # Add '_run-xx' before final suffix
         bmain, bseq = bids_stub.rsplit('_',1)
-        new_bids_stub = '%s_run-%02d_%s' % (bmain, int(ser_no), bseq)
+        new_bids_stub = '%s_run-%02d_%s' % (bmain, ser_no, bseq)
     else:
         # Isolated final suffix - just add 'run-xx_' as a prefix
-        new_bids_stub = 'run-%02d_%s' % (int(ser_no), bids_stub)
+        new_bids_stub = 'run-%02d_%s' % (ser_no, bids_stub)
 
     return new_bids_stub
 
