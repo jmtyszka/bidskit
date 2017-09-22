@@ -5,19 +5,32 @@ Python utilities for converting fromh DICOM to BIDS and NDAR-compliant neuroimag
 Python 3.4 function which takes a flat DICOM directory containing multiple imaging series (eg T1w MPRAGE, BOLD EPI, Fieldmaps)
 and converts into a Brain Imaging Data Structure which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
-### add docker-image install info here:
-
-## Dependencies
-This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
-1. pydicom 0.9.9 (latest version in PyPi)
-2. Chris Rorden's dcm2niix v1.0.20170624 or greater ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
-
 ## Installation
-Clone the repository and add the resulting directory to your path. Will upgrade this to a python setup soon.
+
+We have two options available for installation and running the BIDS conversion:
+
+**1. Using the Docker image:** Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
+
+`docker pull rnair07/bidskit:v1.0` (This downloads the bidskit docker image to your system)
+
+You could also skip the above step and directly run the command below instead and it will automatically pull the image for you + run the conversion.
+
+`docker run -it -v ~/PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+
+where PATH_TO_YOUR_RAW_DICOM is the root directory containing subjects DICOMs as shown below. 
+
+**OR**
+
+**2. Download the repo and install dependencies:** Clone the repository, add the resulting directory to your path and install dependencies mentioned below (_Will upgrade this to a python setup soon_).
 
 <pre>
 % git clone https://github.com/jmtyszka/bidskit.git
 </pre>
+
+**Dependencies**
+This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
+1. pydicom 0.9.9 (latest version in PyPi)
+2. Chris Rorden's dcm2niix v1.0.20170624 or greater ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
 ## Converting from DICOM to BIDS
 
