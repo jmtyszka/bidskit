@@ -58,8 +58,14 @@ mydicom
 
 ### First Pass Conversion
 
-Run dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
+Run the docker image or dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
 
+With the docker image, do:
+<pre>
+`docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+</pre>
+
+Else, if you downloaded the source and set up your local env., do:
 <pre>
 % dcm2bids.py -i mydicom -o mybids
 </pre>
@@ -132,8 +138,14 @@ Edit the BIDS name and directory values with the BIDS-compliant filename (exclud
 For complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
 
 ### Second Pass Conversion
-The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun bids2dcm.py using the same command as in the first pass:
+The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun the docker command or bids2dcm.py (use the same command as in the first pass):
 
+With the docker image, do:
+<pre>
+`docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+</pre>
+
+Else, if you're running the script locally, do:
 <pre>
 % dcm2bids.py -i mydicom -o mybids
 </pre>
