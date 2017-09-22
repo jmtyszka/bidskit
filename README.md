@@ -178,6 +178,6 @@ bids
 
 bidskit attempts to sort the Fieldmap data appropriately into magnitude and phase images. The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
 
-## Bugs, Feature Requests and Comments
+## Bugs, Feature Requests and Comments 
 
 Please use the GitHub Issues feature to raise issues with the bidskit repository (https://github.com/jmtyszka/bidskit/issues)
