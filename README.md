@@ -62,7 +62,7 @@ Run the docker image or dcm2niix on the root DICOM folder and specify an output 
 
 With the docker image, do:
 <pre>
-`docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS
 </pre>
 
 Else, if you downloaded the source and set up your local env., do:
@@ -142,7 +142,7 @@ The bidskit now has enough information to correctly organize the converted Nifti
 
 With the docker image, do:
 <pre>
-`docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS
 </pre>
 
 Else, if you're running the script locally, do:
