@@ -5,7 +5,7 @@ Python utilities for converting fromh DICOM to BIDS and NDAR-compliant neuroimag
 Python 3.4 function which takes a flat DICOM directory containing multiple imaging series (eg T1w MPRAGE, BOLD EPI, Fieldmaps)
 and converts into a Brain Imaging Data Structure which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
-# add docker-image install info here:
+### add docker-image install info here:
 
 ## Dependencies
 This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
