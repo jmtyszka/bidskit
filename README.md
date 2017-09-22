@@ -15,7 +15,7 @@ We have two options available for installation and running the BIDS conversion:
 
 You could also skip the above step and directly run the command below instead and it will automatically pull the image for you + run the conversion.
 
-`docker run -it -v ~/PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+`docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
 
 where PATH_TO_YOUR_RAW_DICOM is the root directory containing subjects DICOMs as shown below. 
 
