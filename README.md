@@ -11,11 +11,11 @@ We have two options available for installation and running the BIDS conversion:
 
 **1. Using the Docker image:** Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
 
-`docker pull rnair07/bidskit:v1.0` (This downloads the bidskit docker image to your system)
+<pre> docker pull rnair07/bidskit:v1.0 </pre> (This downloads the bidskit docker image to your system)
 
 You could also skip the above step and directly run the command below instead and it will automatically pull the image for you + run the conversion.
 
-`docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS`
+<pre> docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS </pre>
 
 where PATH_TO_YOUR_RAW_DICOM is the root directory containing subjects DICOMs as shown below. 
 
@@ -138,7 +138,7 @@ Edit the BIDS name and directory values with the BIDS-compliant filename (exclud
 For complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
 
 ### Second Pass Conversion
-The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun the docker command or bids2dcm.py (use the same command as in the first pass):
+The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun the docker command or dcm2bids.py (use the same command as in the first pass):
 
 With the docker image, do:
 <pre>
