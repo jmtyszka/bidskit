@@ -1,5 +1,5 @@
 # bidskit
-Python utilities for converting fromh DICOM to BIDS and NDAR-compliant neuroimaging formats.
+Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
 
 ## dcm2bids.py
 Python 3.4 function which takes a flat DICOM directory containing multiple imaging series (eg T1w MPRAGE, BOLD EPI, Fieldmaps)
