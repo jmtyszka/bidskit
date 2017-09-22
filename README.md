@@ -1,4 +1,4 @@
-# bidskit
+# bidskit 
 Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
 
 ## dcm2bids.py
