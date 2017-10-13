@@ -17,7 +17,7 @@ You could also skip the above step and directly run the command below instead an
 
 <pre> docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS </pre>
 
-where PATH_TO_YOUR_RAW_DICOM is the root directory containing subjects DICOMs as shown below. 
+where PATH_TO_YOUR_RAW_DICOM is the *root directory* containing the *mydicom* folder as shown in the file structure below. 
 
 **OR**
 
