@@ -1,21 +1,36 @@
-# bidskit
-Python utilities for converting fromh DICOM to BIDS and NDAR-compliant neuroimaging formats.
+# bidskit 
+Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
 
 ## dcm2bids.py
 Python 3.4 function which takes a flat DICOM directory containing multiple imaging series (eg T1w MPRAGE, BOLD EPI, Fieldmaps)
 and converts into a Brain Imaging Data Structure which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
-## Dependencies
-This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
-1. pydicom 0.9.9 (latest version in PyPi)
-2. Chris Rorden's dcm2niix v1.0.20170624 or greater ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
-
 ## Installation
-Clone the repository and add the resulting directory to your path. Will upgrade this to a python setup soon.
+
+We have two options available for installation and running the BIDS conversion:
+
+**1. Using the Docker image:** Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
+
+<pre> docker pull rnair07/bidskit:v1.0 </pre> (This downloads the bidskit docker image to your system)
+
+You could also skip the above step and directly run the command below instead and it will automatically pull the image for you + run the conversion.
+
+<pre> docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS </pre>
+
+where PATH_TO_YOUR_RAW_DICOM is the *root directory* containing the *mydicom* folder as shown in the file structure below. 
+
+**OR**
+
+**2. Download the repo and install dependencies:** Clone the repository, add the resulting directory to your path and install dependencies mentioned below (_Will upgrade this to a python setup soon_).
 
 <pre>
 % git clone https://github.com/jmtyszka/bidskit.git
 </pre>
+
+**Dependencies**
+This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
+1. pydicom 0.9.9 (latest version in PyPi)
+2. Chris Rorden's dcm2niix v1.0.20170624 or greater ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
 ## Converting from DICOM to BIDS
 
@@ -43,8 +58,14 @@ mydicom
 
 ### First Pass Conversion
 
-Run dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
+Run the docker image or dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
 
+With the docker image, do:
+<pre>
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS
+</pre>
+
+Else, if you downloaded the source and set up your local env., do:
 <pre>
 % dcm2bids.py -i mydicom -o mybids
 </pre>
@@ -117,8 +138,14 @@ Edit the BIDS name and directory values with the BIDS-compliant filename (exclud
 For complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
 
 ### Second Pass Conversion
-The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun bids2dcm.py using the same command as in the first pass:
+The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun the docker command or dcm2bids.py (use the same command as in the first pass):
 
+With the docker image, do:
+<pre>
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS
+</pre>
+
+Else, if you're running the script locally, do:
 <pre>
 % dcm2bids.py -i mydicom -o mybids
 </pre>
@@ -151,6 +178,6 @@ bids
 
 bidskit attempts to sort the Fieldmap data appropriately into magnitude and phase images. The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
 
-## Bugs, Feature Requests and Comments
+## Bugs, Feature Requests and Comments 
 
 Please use the GitHub Issues feature to raise issues with the bidskit repository (https://github.com/jmtyszka/bidskit/issues)
