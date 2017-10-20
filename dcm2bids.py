@@ -136,8 +136,11 @@ def main():
             # Safely create BIDS conversion directory and all containing directories as needed
             if not os.path.isdir(bids_conv_dir):
                 os.makedirs(bids_conv_dir)
+                needs_converting = True
+            else:
+                needs_converting = False
 
-            if first_pass:
+            if first_pass or needs_converting:
 
                 # Run dcm2niix conversion into temporary conversion directory
                 print('  Converting all DICOM images within directory %s' % dcm_ses_dir)
