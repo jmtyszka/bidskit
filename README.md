@@ -11,11 +11,11 @@ We have two options available for installation and running the BIDS conversion:
 
 **1. Using the Docker image:** Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
 
-<pre> docker pull rnair07/bidskit:v1.0 </pre> (This downloads the bidskit docker image to your system)
+<pre> docker pull rnair07/bidskit </pre> (This downloads the bidskit docker image to your system)
 
 You could also skip the above step and directly run the command below instead and it will automatically pull the image for you + run the conversion.
 
-<pre> docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS </pre>
+<pre> docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS </pre>
 
 where PATH_TO_YOUR_RAW_DICOM is the *root directory* containing the *mydicom* folder as shown in the file structure below. 
 
@@ -62,7 +62,7 @@ Run the docker image or dcm2niix on the root DICOM folder and specify an output 
 
 With the docker image, do:
 <pre>
-docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS
 </pre>
 
 Else, if you downloaded the source and set up your local env., do:
@@ -142,7 +142,7 @@ The bidskit now has enough information to correctly organize the converted Nifti
 
 With the docker image, do:
 <pre>
-docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit:v1.0 --indir=/mnt/DICOM --outdir=/mnt/BIDS
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS
 </pre>
 
 Else, if you're running the script locally, do:
