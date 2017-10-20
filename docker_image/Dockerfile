@@ -25,4 +25,4 @@ RUN pip3 install pydicom
 #Create an entrypoint to pass ARGS to python script
 ENTRYPOINT ["python3", "/app/dcm2bids.py"]
 
-#That's all. Enjoy!
+#That's all. Enjoy! 
