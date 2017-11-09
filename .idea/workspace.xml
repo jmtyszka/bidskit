@@ -2,8 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.gitignore" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/bidskit.iml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/vcs.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="" />
     </list>
     <ignored path="bidskit.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -903,7 +907,14 @@
       <option name="project" value="LOCAL" />
       <updated>1510249206719</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Version 1.0.0 with almost all current issues addressed. Add .gitignore">
+      <created>1510249371612</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1510249371612</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -957,7 +968,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Working version which passes online BIDS validator for routine fMRI protocols. Tested against recent Conte Core multiband protocol. Employs 2-pass approach to translating console protocol names to BIDS-compliant names provided by user in a JSON dictionary." />
     <MESSAGE value="Pre-wide-release alpha version for CIT testing (v0.9.0)" />
     <MESSAGE value="Pre-wide-release alpha version for CIT testing (v0.9.1)" />
     <MESSAGE value="Solution for multiple series with same protocol name (add run-N to BIDS filename to distinguish copies by series number)." />
@@ -982,7 +992,8 @@
     <MESSAGE value="Test push of working dcm2bids.py" />
     <MESSAGE value="Addressed IntendedFor, TaskName, Session/No Session issues. Moved conversion output to work/conversion and the Protocol_Translator.json to derivatives/conversion for consistency with fmriprep and mriqc. Some refractoring throughout. Still need to regression test this release and tidy up No Session logic." />
     <MESSAGE value="Version 1.0.0 with almost all current issues addressed." />
-    <option name="LAST_COMMIT_MESSAGE" value="Version 1.0.0 with almost all current issues addressed." />
+    <MESSAGE value="Version 1.0.0 with almost all current issues addressed. Add .gitignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="Version 1.0.0 with almost all current issues addressed. Add .gitignore" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
