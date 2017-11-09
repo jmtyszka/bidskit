@@ -2,7 +2,10 @@
 """
 Convert flat DICOM file set into a BIDS-compliant Nifti structure
 
-The DICOM input directory should be organized as follows:
+The DICOM input directory can be organized with or without session subdirectories:
+
+With Session Subdirectories:
+
 <DICOM Directory>/
     <SID 1>/
         <Session 1>/
@@ -13,17 +16,26 @@ The DICOM input directory should be organized as follows:
     <SID 2>/
         <Session 1>/
             ...
-
 Here, session refers to all scans performed during a given visit.
 Typically this can be given a date-string directory name (eg 20161104 etc).
 
+Without Session Subdirectories:
+
+<DICOM Directory>/
+    <SID 1>/
+        DICOM files ...
+    <SID 2>/
+        ...
+
 Usage
 ----
-dcm2bids.py -i <DICOM Directory> -o <BIDS Directory Root>
+dcm2bids.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions]
 
-Example
+Examples
 ----
-% dcm2bids.py -i mydicom -o mybids
+% dcm2bids.py
+% dcm2bids.py --no-sessions
+% dcm2bids.py -i mydicom -o mybids --no-sessions
 
 Authors
 ----
@@ -33,10 +45,11 @@ Dates
 ----
 2016-08-03 JMT From scratch
 2016-11-04 JMT Add session directory to DICOM heirarchy
+2017-11-09 JMT Added support for DWI, no sessions, IntendedFor and TaskName
 
 MIT License
 
-Copyright (c) 2016 Mike Tyszka
+Copyright (c) 2017 Mike Tyszka
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +70,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '0.9.4'
+__version__ = '1.0.0'
 
 import os
 import sys
@@ -74,10 +87,10 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
 
-    parser.add_argument('-i','--indir', default='dicom',
+    parser.add_argument('-i', '--indir', default='dicom',
                         help='DICOM input directory with Subject/Session/Image organization [dicom]')
 
-    parser.add_argument('-o','--outdir', default='source',
+    parser.add_argument('-o', '--outdir', default='source',
                         help='Output BIDS source directory [source]')
 
     parser.add_argument('--no-sessions', action='store_true', default=False,
@@ -92,10 +105,10 @@ def main():
     bids_src_dir = os.path.realpath(args.outdir)
     bids_root_dir = os.path.dirname(bids_src_dir)
     bids_deriv_dir = os.path.join(bids_root_dir, 'derivatives', 'conversion')
-    bids_work_dir = os.path.join(bids_root_dir, 'work', 'conversion')
+    work_dir = os.path.join(bids_root_dir, 'work', 'conversion')
 
     # Safely create the BIDS working, source and derivatives directories
-    safe_mkdir(bids_work_dir)
+    safe_mkdir(work_dir)
     safe_mkdir(bids_src_dir)
     safe_mkdir(bids_deriv_dir)
 
@@ -105,8 +118,8 @@ def main():
     print('------------------------------------------------------------')
     print('DICOM Root Directory       : %s' % dcm_root_dir)
     print('BIDS Source Directory      : %s' % bids_src_dir)
-    print('BIDS Working Directory     : %s' % bids_work_dir)
     print('BIDS Derivatives Directory : %s' % bids_deriv_dir)
+    print('Working Directory          : %s' % work_dir)
     print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes') )
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
@@ -116,7 +129,7 @@ def main():
     prot_dict_json = os.path.join(bids_deriv_dir, 'Protocol_Translator.json')
     prot_dict = bids_load_prot_dict(prot_dict_json)
 
-    if prot_dict and os.path.isdir(bids_work_dir):
+    if prot_dict and os.path.isdir(work_dir):
         print('')
         print('------------------------------------------------------------')
         print('Pass 2 : Populating BIDS source directory')
@@ -132,6 +145,8 @@ def main():
     # Initialize BIDS source directory contents
     if not first_pass:
         participants_fd = bids_init(bids_src_dir)
+    else:
+        participants_fd = []
 
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
@@ -139,10 +154,18 @@ def main():
         SID = os.path.basename(dcm_sub_dir.strip('/'))
 
         print('')
+        print('------------------------------------------------------------')
         print('Processing subject ' + SID)
+        print('------------------------------------------------------------')
+
+        # Handle subj vs subj/session directory lists
+        if no_sessions:
+            dcm_dir_list = [dcm_sub_dir]
+        else:
+            dcm_dir_list = glob(dcm_sub_dir + '/*/')
 
         # Loop over session directories in subject directory
-        for dcm_ses_dir in glob(dcm_sub_dir + '/*/'):
+        for dcm_dir in dcm_dir_list:
 
             # BIDS subject, session and conversion directories
             sub_prefix = 'sub-' + SID
@@ -153,29 +176,29 @@ def main():
                 SES = ''
                 ses_prefix = ''
             else:
-                SES = os.path.basename(dcm_ses_dir.strip('/'))
+                SES = os.path.basename(dcm_dir.strip('/'))
                 ses_prefix = 'ses-' + SES
                 print('  Processing session ' + SES)
 
             # Working conversion directories
-            bids_work_subj_dir = os.path.join(bids_work_dir, sub_prefix)
-            bids_work_ses_dir = os.path.join(bids_work_subj_dir, ses_prefix)
+            work_subj_dir = os.path.join(work_dir, sub_prefix)
+            work_conv_dir = os.path.join(work_subj_dir, ses_prefix)
 
             # BIDS source directory directories
             bids_src_subj_dir = os.path.join(bids_src_dir, sub_prefix)
             bids_src_ses_dir = os.path.join(bids_src_subj_dir, ses_prefix)
 
-            print('  BIDS working subject directory : %s' % bids_work_subj_dir)
+            print('  BIDS working subject directory : %s' % work_subj_dir)
             if not no_sessions:
-                print('  BIDS working session directory : %s' % bids_work_ses_dir)
+                print('  BIDS working session directory : %s' % work_conv_dir)
             print('  BIDS source subject directory  : %s' % bids_src_subj_dir)
             if not no_sessions:
                 print('  BIDS source session directory  : %s' % bids_src_ses_dir)
 
             # Safely create BIDS working directory
             # Flag for conversion if no working directory existed
-            if not os.path.isdir(bids_work_ses_dir):
-                os.makedirs(bids_work_ses_dir)
+            if not os.path.isdir(work_conv_dir):
+                os.makedirs(work_conv_dir)
                 needs_converting = True
             else:
                 needs_converting = False
@@ -183,22 +206,22 @@ def main():
             if first_pass or needs_converting:
 
                 # Run dcm2niix conversion into working conversion directory
-                print('  Converting all DICOM images within directory %s' % dcm_ses_dir)
+                print('  Converting all DICOM images in %s' % dcm_dir)
                 devnull = open(os.devnull, 'w')
                 subprocess.call(['dcm2niix', '-b', 'y', '-z', 'y', '-f', '%n--%d--%q--%s',
-                                 '-o', bids_work_ses_dir, dcm_ses_dir],
+                                 '-o', work_conv_dir, dcm_dir],
                                 stdout=devnull, stderr=subprocess.STDOUT)
 
             else:
 
                 # Get subject age and sex from representative DICOM header
-                dcm_info = bids_dcm_info(dcm_ses_dir)
+                dcm_info = bids_dcm_info(dcm_dir)
 
                 # Add line to participants TSV file
                 participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
 
             # Run dcm2niix output to BIDS source conversions
-            bids_run_conversion(bids_work_ses_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES)
+            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES)
 
     if first_pass:
         # Create a template protocol dictionary
@@ -239,14 +262,15 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
         filelist = glob(os.path.join(conv_dir, '*.nii*'))
         
         # Determine where we have runs with the same description (name)
-        run_suffix=[0] * len(filelist)
+        # TODO: Might be able to use sets instead of lists for uniqueness check
+        run_suffix = [0] * len(filelist)
         for file_index in range(len(filelist)-1):
             src_nii_fname = filelist[file_index]
             subj_name, ser_desc, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
             matches = [i for i in range(len(filelist)) if ser_desc in filelist[i]]
             if len(matches) > 1:
                 for i in matches:
-                    run_suffix[i]=i-min(matches)+1  #Yes, this will re-create this little list several times and no, that's not ideal
+                    run_suffix[i] = i - min(matches) + 1  # Yes, this will re-create this little list several times and no, that's not ideal
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
         file_index = 0
@@ -280,11 +304,11 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
                 if prot_dict[ser_desc][0].startswith('EXCLUDE'):
 
                     # Skip excluded protocols
-                    print('* Excluding protocol ' + ser_desc)
+                    print('* Excluding protocol ' + str(ser_desc))
 
                 else:
 
-                    print('  Organizing ' + ser_desc)
+                    print('  Organizing ' + str(ser_desc))
 
                     # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
                     bids_purpose, bids_suffix, bids_intendedfor = prot_dict[ser_desc]
@@ -326,8 +350,9 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
                                           bids_nii_fname, bids_json_fname)
             file_index += 1
 
-        # Optional working directory cleanup after Pass 2
         if not first_pass:
+
+            # Optional working directory cleanup after Pass 2
             if do_cleanup:
                 print('  Cleaning up temporary files')
                 shutil.rmtree(conv_dir)
@@ -340,17 +365,19 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     """
     Special handling for each image purpose (func, anat, fmap, dwi, etc)
 
-    :param bids_purpose: string
-    :param bids_intendedfor: string
-    :param seq_name: string
-    :param work_nii_fname: string
-    :param work_json_fname: string
-    :param bids_nii_fname: string
-    :param bids_json_fname: string
+    :param bids_purpose: str
+    :param bids_intendedfor: str
+    :param seq_name: str
+    :param work_nii_fname: str
+    :param work_json_fname: str
+    :param bids_nii_fname: str
+    :param bids_json_fname: str
     :return:
     """
 
     # Init DWI sidecars
+    work_bval_fname = []
+    work_bvec_fname = []
     bids_bval_fname = []
     bids_bvec_fname = []
 
@@ -448,28 +475,28 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
 
         # Fill DWI bval and bvec working and source filenames
         # Non-empty filenames trigger the copy below
-        work_bval_fname =  work_json_fname.replace('.json', '.bval')
-        bids_bval_fname =  bids_json_fname.replace('.json', '.bval')
-        work_bvec_fname = work_json_fname.replace('.json', '.bvec')
-        bids_bvec_fname = bids_json_fname.replace('.json', '.bvec')
+        work_bval_fname = str(work_json_fname.replace('.json', '.bval'))
+        bids_bval_fname = str(bids_json_fname.replace('.json', '.bval'))
+        work_bvec_fname = str(work_json_fname.replace('.json', '.bvec'))
+        bids_bvec_fname = str(bids_json_fname.replace('.json', '.bvec'))
 
     # Populate BIDS source directory with Nifti images, JSON and DWI sidecars
     print('  Populating BIDS source directory')
 
     if bids_nii_fname:
-        print('    Copying %s to %s' % (work_nii_fname, bids_nii_fname))
-        shutil.copy(work_nii_fname, bids_nii_fname)
+        print('    Copying %s to %s' % (os.path.basename(work_nii_fname), os.path.basename(bids_nii_fname)))
+        shutil.copy(work_nii_fname, str(bids_nii_fname))
 
     if bids_json_fname:
-        print('    Writing JSON sidecar to %s' % bids_json_fname)
+        print('    Writing JSON sidecar to %s' % os.path.basename(bids_json_fname))
         bids_write_json(bids_json_fname, info)
 
     if bids_bval_fname:
-        print('    Writing diffusion b-values to %s' % bids_bval_fname)
+        print('    Writing diffusion b-values to %s' % os.path.basename(bids_bval_fname))
         shutil.copy(work_bval_fname, bids_bval_fname)
 
     if bids_bvec_fname:
-        print('    Writing diffusion b-vectors to %s' % bids_bvec_fname)
+        print('    Writing diffusion b-vectors to %s' % os.path.basename(bids_bvec_fname))
         shutil.copy(work_bvec_fname, bids_bvec_fname)
 
 
@@ -557,8 +584,12 @@ def parse_dcm2niix_fname(fname):
     """
     Parse dcm2niix filename into values
     Filename format is '%n--%d--%q--%s' ie '<name>--<description>--<sequence>--<series #>'
-    :param fname: BIDS-style image or sidecar filename
-    :return subj_name, ser_desc, seq_name, ser_no:
+    :param fname: str
+        BIDS-style image or sidecar filename
+    :return subj_name: str
+            ser_desc: str
+            seq_name: str
+            ser_no: int
     """
 
     # Ignore containing directory and extension(s)
@@ -704,7 +735,7 @@ def bids_fmap_echotimes(src_phase_json_fname):
     """
     Extract TE1 and TE2 from mag and phase MEGE fieldmap pairs
 
-    :param src_phase_json_fname:
+    :param src_phase_json_fname: str
     :return:
     """
 
