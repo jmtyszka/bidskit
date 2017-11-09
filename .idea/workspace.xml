@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="Addressed IntendedFor, TaskName, Session/No Session issues. Moved conversion output to work/conversion and the Protocol_Translator.json to derivatives/conversion for consistency with fmriprep and mriqc. Some refractoring throughout. Still need to regression test this release and tidy up No Session logic.">
+    <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.gitignore" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dcm2bids.py" afterPath="$PROJECT_DIR$/dcm2bids.py" />
     </list>
     <ignored path="bidskit.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -176,7 +176,7 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="js.eslint.eslintPackage" value="" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
     <property name="Git.Branch.Popup.ShowAllRemotes" value="true" />
   </component>
   <component name="RecentsManager">
@@ -896,14 +896,20 @@
       <option name="project" value="LOCAL" />
       <updated>1510188964867</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="Version 1.0.0 with almost all current issues addressed.">
+      <created>1510249206719</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1510249206719</updated>
+    </task>
+    <option name="localTasksCounter" value="45" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="103" y="58" width="1773" height="1300" extended-state="0" />
-    <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16187254" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16187254" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.34522822" sideWeight="0.50168777" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -951,7 +957,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Limited scan_type string to NDAR valid values (eg &quot;MR Structural (T1)&quot;)" />
     <MESSAGE value="Working version which passes online BIDS validator for routine fMRI protocols. Tested against recent Conte Core multiband protocol. Employs 2-pass approach to translating console protocol names to BIDS-compliant names provided by user in a JSON dictionary." />
     <MESSAGE value="Pre-wide-release alpha version for CIT testing (v0.9.0)" />
     <MESSAGE value="Pre-wide-release alpha version for CIT testing (v0.9.1)" />
@@ -976,7 +981,8 @@
     <MESSAGE value="Fix non-numeric characters in series number conversion" />
     <MESSAGE value="Test push of working dcm2bids.py" />
     <MESSAGE value="Addressed IntendedFor, TaskName, Session/No Session issues. Moved conversion output to work/conversion and the Protocol_Translator.json to derivatives/conversion for consistency with fmriprep and mriqc. Some refractoring throughout. Still need to regression test this release and tidy up No Session logic." />
-    <option name="LAST_COMMIT_MESSAGE" value="Addressed IntendedFor, TaskName, Session/No Session issues. Moved conversion output to work/conversion and the Protocol_Translator.json to derivatives/conversion for consistency with fmriprep and mriqc. Some refractoring throughout. Still need to regression test this release and tidy up No Session logic." />
+    <MESSAGE value="Version 1.0.0 with almost all current issues addressed." />
+    <option name="LAST_COMMIT_MESSAGE" value="Version 1.0.0 with almost all current issues addressed." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
