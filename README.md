@@ -56,6 +56,14 @@ mydicom
         ...
 </pre>
 
+#### Conversion without Sessions
+
+You can also omit the use of session subdirectories if you only have one session per subject. Use the --no-sessions command line flag to achieve this (this feature is switched off by default):
+<pre>
+% dcm2bids.py --no-sessions -i mydicom -o mybids
+</pre>
+
+
 ### First Pass Conversion
 
 Run the docker image or dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
@@ -65,57 +73,72 @@ With the docker image, do:
 docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS
 </pre>
 
-Else, if you downloaded the source and set up your local env., do:
+Else, if you downloaded the source and set up your local environment, you can use any of the following:
 <pre>
+% dcm2bids.py
+% dcm2bids.py -i mydicom
 % dcm2bids.py -i mydicom -o mybids
 </pre>
 
 The first pass conversion will create new translator dictionary (Protocol_Translator.json) in the root DICOM folder. This has been prefilled with the protocol series names from the DICOM header of all unique series detected in the original DICOM files. The command will also create the new BIDS directory containing a single temporary conversion directory containing Nifti images and JSON sidecars for all series in the source DICOM folder:
 
 <pre>
-mydicom
-├── Protocol_Translator.json
+derivatives/
+└── conversion/
+    ├── Protocol_Translator.json
+dicom/
 └── Ra0950
-    └── ses-first
+    └── first/
         └── ...    
-    └── ses-second
+    └── second/
         └── ...    
 └── Ra0951
-    └── ses-first
+    └── first/
         └── ...    
-    └── ses-second
+    └── second/
         └── ...    
-mybids
-└── conv
+source/
+work/
+└── conversion/
+    └── sub-Ra0950/
+        └── ses-first/
+            ├── sub-Ra0950_ses-first_....nii.gz
+            ├── sub-Ra0950_ses-first_....json
+
+            
 </pre>
 
 ### Edit Translator Dictionary
 
-Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the series name and directory fields set to their default values of "EXCLUDE_BIDS_Name" and "EXCLUDE_BIDS_Directory" (the double quotes a JSON requirement):
+Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the series name and directory fields set to their default values of "EXCLUDE_BIDS_Name" and "EXCLUDE_BIDS_Directory" (the double quotes are a JSON requirement):
 
 <pre>
 {
     "Localizer":[
-        "EXCLUDE_BIDS_Name",
         "EXCLUDE_BIDS_Directory"
+        "EXCLUDE_BIDS_Name",
+        "UNASSSIGNED"
     ],
     "rsBOLD_MB_1":[
-        "EXCLUDE_BIDS_Name",
         "EXCLUDE_BIDS_Directory"
+        "EXCLUDE_BIDS_Name",
+        "UNASSSIGNED"
     ],
     "T1_2":[
-        "EXCLUDE_BIDS_Name",
         "EXCLUDE_BIDS_Directory"
+        "EXCLUDE_BIDS_Name",
+        "UNASSSIGNED"
     ],
     "Fieldmap_rsBOLD":[
-        "acq-fmap",
-        "fmap"
+        "EXCLUDE_BIDS_Directory"
+        "EXCLUDE_BIDS_Name",
+        "UNASSSIGNED"
     ],
     ...
 }
 </pre>
 
-Edit the BIDS name and directory values with the BIDS-compliant filename (excluding the sub-xxxx prefix) and the BIDS purpose directory name (anat, func, fmap, etc). In the example above, this might look something like the following:
+Edit the BIDS Directory and Name entries for each series with the BIDS-compliant filename suffix (excluding the sub-xxxx_ses-xxxx_ prefix and any file extensions) and the BIDS purpose directory name (anat, func, fmap, etc). In the example above, this might look something like the following:
 
 <pre>
 {
@@ -125,11 +148,11 @@ Edit the BIDS name and directory values with the BIDS-compliant filename (exclud
     ],
     "rsBOLD_MB_1":[
         "func",
-        "task-rest_acq-MB_run-1_bold"
+        "task-rest_acq-MB_run-01_bold"
     ],
     "T1_2":[
         "anat",
-        "run-2_T1w"
+        "run-02_T1w"
     ],
     ...
 }
@@ -145,12 +168,12 @@ With the docker image, do:
 docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS
 </pre>
 
-Else, if you're running the script locally, do:
+Else, if you're running the script locally, do and of the following depending on the command that was run for Phase 1:
 <pre>
 % dcm2bids.py -i mydicom -o mybids
 </pre>
 
-This will copy and rename all files generated in the first pass into the output BIDS directory (mybids), which will now look something like this:
+This will populate the BIDS source directory from the working conversion directory:
 
 <pre>
 bids
@@ -159,21 +182,21 @@ bids
 └── sub-Ra0950
     └── ses-first
         ├── anat
-        │   ├── sub-Ra0950_run-1_T1w.json
-        │   ├── sub-Ra0950_run-1_T1w.nii.gz
-        │   ├── sub-Ra0950_run-2_T1w.json
-        │   └── sub-Ra0950_run-2_T1w.nii.gz
+        │   ├── sub-Ra0950_run-01_T1w.json
+        │   ├── sub-Ra0950_run-01_T1w.nii.gz
+        │   ├── sub-Ra0950_run-02_T1w.json
+        │   └── sub-Ra0950_run-02_T1w.nii.gz
         ├── fmap
         │   ├── sub-Ra0950_acq-fmap_magnitude1.nii.gz
         │   ├── sub-Ra0950_acq-fmap_phasediff.json
         │   └── sub-Ra0950_acq-fmap_phasediff.nii.gz
         └── func
-            ├── sub-Ra0950_task-rest_acq-MB_run-1_bold.json
-            ├── sub-Ra0950_task-rest_acq-MB_run-1_bold.nii.gz
-            ├── sub-Ra0950_task-rest_acq-MB_run-1_events.tsv
-            ├── sub-Ra0950_task-rest_acq-MB_run-2_bold.json
-            ├── sub-Ra0950_task-rest_acq-MB_run-2_bold.nii.gz
-            └── sub-Ra0950_task-rest_acq-MB_run-2_events.tsv
+            ├── sub-Ra0950_task-rest_acq-MB_run-01_bold.json
+            ├── sub-Ra0950_task-rest_acq-MB_run-01_bold.nii.gz
+            ├── sub-Ra0950_task-rest_acq-MB_run-01_events.tsv
+            ├── sub-Ra0950_task-rest_acq-MB_run-02_bold.json
+            ├── sub-Ra0950_task-rest_acq-MB_run-02_bold.nii.gz
+            └── sub-Ra0950_task-rest_acq-MB_run-02_events.tsv
 </pre>
 
 bidskit attempts to sort the Fieldmap data appropriately into magnitude and phase images. The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
