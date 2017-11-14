@@ -79,17 +79,15 @@ Note that the defaults for the input DICOM and output BIDS directories are `dico
 
 If you're using the Docker image, run the following:
 <pre>
-docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS
+docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/dicom --outdir=/mnt/source
 </pre>
 
 If you're running dcm2bids.py locally from source, you can use any of the following:
 <pre>
 % dcm2bids.py
 % dcm2bids.py -i mydicom
-% dcm2bids.py -i mydicom -o mybids
+% dcm2bids.py -i mydicom -o mysource
 </pre>
-
-
 
 The first pass conversion will create new translator dictionary (Protocol_Translator.json) in the root DICOM folder. This has been prefilled with the protocol series names from the DICOM header of all unique series detected in the original DICOM files. The command will also create the new BIDS directory containing a single temporary conversion directory containing Nifti images and JSON sidecars for all series in the source DICOM folder:
 
