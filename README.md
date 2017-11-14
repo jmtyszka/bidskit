@@ -2,14 +2,15 @@
 Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
 
 ## dcm2bids.py
-Python 3.4 function which takes a flat DICOM directory containing multiple imaging series (eg T1w MPRAGE, BOLD EPI, Fieldmaps)
-and converts into a Brain Imaging Data Structure which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
+Python script which takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a
+Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
 ## Installation
 
-We have two options available for installation and running the BIDS conversion:
+There are two options available for installation and running the BIDS conversion:
 
-**1. Using the Docker image:** Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
+### Docker Image
+Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
 
 <pre> docker pull rnair07/bidskit </pre> (This downloads the bidskit docker image to your system)
 
@@ -19,9 +20,8 @@ You could also skip the above step and directly run the command below instead an
 
 where PATH_TO_YOUR_RAW_DICOM is the *root directory* containing the *mydicom* folder as shown in the file structure below. 
 
-**OR**
-
-**2. Download the repo and install dependencies:** Clone the repository, add the resulting directory to your path and install dependencies mentioned below (_Will upgrade this to a python setup soon_).
+### From Source
+Clone the repository, add the resulting directory to your path and install dependencies mentioned below (_Will upgrade this to a python setup soon_).
 
 <pre>
 % git clone https://github.com/jmtyszka/bidskit.git
@@ -30,13 +30,13 @@ where PATH_TO_YOUR_RAW_DICOM is the *root directory* containing the *mydicom* fo
 **Dependencies**
 This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
 1. pydicom 0.9.9 (latest version in PyPi)
-2. Chris Rorden's dcm2niix v1.0.20170624 or greater ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
+2. Chris Rorden's dcm2niix - the latest version at the time of writing is v1.0.20171103 ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
-## Converting from DICOM to BIDS
+## DICOM to BIDS Conversion
 
 ### Organize DICOM Data
 
-Organize the source DICOM images into separate subject and subject-session directories within a root directory (mydicom in the example below). The DICOM image files do not need to be organized heirarchically within each subject-sesssion directory. This might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
+Organize the source DICOM images into separate subject and subject-session directories within a root directory (`mydicom` in the example below, but the script default is simply `dicom`). The organization of DICOM files within each subject directory can follow a session-series heirarchy or by a simple flat directory containing all subject files. The conversion to Nifti-1 format and JSON sidecar generation is handled by dcm2niix, so whatever works for dcm2niix will hopefully work for dcm2bids.py. A typical DICOM directory tree might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
 
 <pre>
 mydicom
@@ -57,15 +57,12 @@ mydicom
 </pre>
 
 #### Conversion without Sessions
-
-You can also omit the use of session subdirectories if you only have one session per subject. Use the --no-sessions command line flag to achieve this (this feature is switched off by default):
+You can omit the use of session subdirectories if you only have one session per subject. Use the --no-sessions command line flag to achieve this (this feature is switched off by default):
 <pre>
 % dcm2bids.py --no-sessions -i mydicom -o mybids
 </pre>
 
-
 ### First Pass Conversion
-
 Run the docker image or dcm2niix on the root DICOM folder and specify an output root BIDS folder for the converted files.
 
 With the docker image, do:
