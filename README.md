@@ -107,7 +107,8 @@ work/
 
 ### Edit Translator Dictionary
 
-Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the series name and directory fields set to their default values of "EXCLUDE_BIDS_Name" and "EXCLUDE_BIDS_Directory" (the double quotes are a JSON requirement):
+Open Protocol_Translator.json in a text editor. Initially it will look something like the following, with the BIDS directory, filename suffix and IntendedFor fields set to their default values of "EXCLUDE_BIDS_Name", "EXCLUDE_BIDS_Directory" and 
+"UNASSIGNED" (the double quotes are a JSON requirement):
 
 <pre>
 {
@@ -135,27 +136,37 @@ Open Protocol_Translator.json in a text editor. Initially it will look something
 }
 </pre>
 
-Edit the BIDS Directory and Name entries for each series with the BIDS-compliant filename suffix (excluding the sub-xxxx_ses-xxxx_ prefix and any file extensions) and the BIDS purpose directory name (anat, func, fmap, etc). In the example above, this might look something like the following:
+The IntendedFor field is only relevant for fieldmap series and links the fieldmap to one or more EPI series for distortion correction.
+
+Edit the BIDS directory and filename suffix entries for each series with the BIDS-compliant filename suffix (excluding the sub-xxxx_ses-xxxx_ prefix and any file extensions) and the BIDS purpose directory name (anat, func, fmap, etc). In the example above, this might look something like the following:
 
 <pre>
 {
     "Localizer":[
         "EXCLUDE_BIDS_Directory",
-        "EXCLUDE_BIDS_Name"
+        "EXCLUDE_BIDS_Name",
+        "UNASSIGNED"
     ],
     "rsBOLD_MB_1":[
         "func",
-        "task-rest_acq-MB_run-01_bold"
+        "task-rest_acq-MB_run-01_bold",
+        "UNASSIGNED"
     ],
     "T1_2":[
         "anat",
-        "run-02_T1w"
+        "run-02_T1w",
+        "UNASSIGNED"
+    ],
+    "Fieldmap_rsBOLD":[
+        "fmap",
+        "acq-rest",
+        ["task-rest_acq-MB_run-01_bold", "task-rest_acq-MB_run-02_bold"]
     ],
     ...
 }
 </pre>
 
-For complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
+Complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
 
 ### Second Pass Conversion
 The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun the docker command or dcm2bids.py (use the same command as in the first pass):
@@ -196,8 +207,7 @@ bids
             └── sub-Ra0950_task-rest_acq-MB_run-02_events.tsv
 </pre>
 
-bidskit attempts to sort the Fieldmap data appropriately into magnitude and phase images. The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
+bidskit attempts to sort the fieldmap data appropriately into magnitude and phase images (for multi-echo GRE fieldmaps), or phase-encoding reversed pairs (for SE-EPI fieldmapping). The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
 
 ## Bugs, Feature Requests and Comments 
-
 Please use the GitHub Issues feature to raise issues with the bidskit repository (https://github.com/jmtyszka/bidskit/issues)
