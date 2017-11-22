@@ -9,7 +9,7 @@ Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation
 
 There are two options available for installation and running the BIDS conversion:
 
-### Docker Image
+### Docker Image (this assumes you have Docker installed on your system (https://docs.docker.com/engine/installation/)
 Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
 
 <pre> docker pull rnair07/bidskit </pre> (This downloads the bidskit docker image to your system)
