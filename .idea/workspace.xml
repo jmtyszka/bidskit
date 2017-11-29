@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dcm2bids.py" afterPath="$PROJECT_DIR$/dcm2bids.py" />
     </list>
     <ignored path="bidskit.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -27,24 +28,14 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dcm2bids.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1080">
-              <caret line="72" column="20" lean-forward="false" selection-start-line="72" selection-start-column="20" selection-end-line="72" selection-end-column="20" />
+            <state relative-caret-position="1807">
+              <caret line="878" column="22" lean-forward="true" selection-start-line="878" selection-start-column="22" selection-end-line="878" selection-end-column="22" />
               <folding>
                 <element signature="e#2210#2219#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name=".gitignore" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/.gitignore">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="465">
-              <caret line="31" column="9" lean-forward="false" selection-start-line="31" selection-start-column="9" selection-end-line="31" selection-end-column="9" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -60,11 +51,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>init_summ</find>
-      <find>Extent4Type</find>
-      <find>orientation</find>
-      <find>infer</find>
-      <find>totalRead</find>
       <find>dcm2niix</find>
       <find>do_clean</find>
       <find>update</find>
@@ -90,6 +76,11 @@
       <find>bids_run_conversion</find>
       <find>force_</find>
       <find>file_index</find>
+      <find>task</find>
+      <find>bids_events_template</find>
+      <find>bids_write_json</find>
+      <find>overwrite)</find>
+      <find>Overwriting previous</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -123,8 +114,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="606" />
-    <option name="y" value="81" />
+    <option name="x" value="548" />
+    <option name="y" value="52" />
     <option name="width" value="1773" />
     <option name="height" value="1300" />
   </component>
@@ -166,6 +157,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -177,8 +170,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -821,11 +812,18 @@
       <option name="project" value="LOCAL" />
       <updated>1510258730902</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="Remove .idea remnant">
+      <created>1510258767692</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1510258767692</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="606" y="81" width="1773" height="1300" extended-state="0" />
+    <frame x="548" y="52" width="1773" height="1300" extended-state="0" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17935702" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -1219,21 +1217,20 @@
       </provider>
     </entry>
     <entry file="file://$USER_HOME$/Downloads/workflows-6.py" />
-    <entry file="file://$PROJECT_DIR$/dcm2bids.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1080">
-          <caret line="72" column="20" lean-forward="false" selection-start-line="72" selection-start-column="20" selection-end-line="72" selection-end-column="20" />
-          <folding>
-            <element signature="e#2210#2219#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="465">
           <caret line="31" column="9" lean-forward="false" selection-start-line="31" selection-start-column="9" selection-end-line="31" selection-end-column="9" />
-          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dcm2bids.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1807">
+          <caret line="878" column="22" lean-forward="true" selection-start-line="878" selection-start-column="22" selection-end-line="878" selection-end-column="22" />
+          <folding>
+            <element signature="e#2210#2219#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

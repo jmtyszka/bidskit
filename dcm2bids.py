@@ -96,10 +96,14 @@ def main():
     parser.add_argument('--no-sessions', action='store_true', default=False,
                         help='Do not use session sub-directories')
 
+    parser.add_argument('--overwrite', action='store_true', default=False,
+                        help='Overwrite existing files')
+
     # Parse command line arguments
     args = parser.parse_args()
     dcm_root_dir = os.path.realpath(args.indir)
     no_sessions = args.no_sessions
+    overwrite = args.overwrite
 
     # Place derivatives and working directories in parent of BIDS source directory
     bids_src_dir = os.path.realpath(args.outdir)
@@ -121,6 +125,7 @@ def main():
     print('BIDS Derivatives Directory : %s' % bids_deriv_dir)
     print('Working Directory          : %s' % work_dir)
     print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes') )
+    print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No') )
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -144,7 +149,7 @@ def main():
 
     # Initialize BIDS source directory contents
     if not first_pass:
-        participants_fd = bids_init(bids_src_dir)
+        participants_fd = bids_init(bids_src_dir, overwrite)
     else:
         participants_fd = []
 
@@ -221,7 +226,7 @@ def main():
                 participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
 
             # Run dcm2niix output to BIDS source conversions
-            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES)
+            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, overwrite)
 
     if first_pass:
         # Create a template protocol dictionary
@@ -234,7 +239,7 @@ def main():
     sys.exit(0)
 
 
-def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
+def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, overwrite=False):
     """
     Run dcm2niix output to BIDS source conversions
 
@@ -250,6 +255,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
         subject ID
     :param SES: string
         session name or number
+    :param overwrite: bool
+        overwrite flag
     :return:
     """
 
@@ -347,7 +354,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
                     # This function populates BIDS structure with the image and adjusted sidecar
                     bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
                                           src_nii_fname, src_json_fname,
-                                          bids_nii_fname, bids_json_fname)
+                                          bids_nii_fname, bids_json_fname,
+                                          overwrite)
             file_index += 1
 
         if not first_pass:
@@ -361,7 +369,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES):
 
 
 def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
-                          work_nii_fname, work_json_fname, bids_nii_fname, bids_json_fname):
+                          work_nii_fname, work_json_fname, bids_nii_fname, bids_json_fname,
+                          overwrite=False):
     """
     Special handling for each image purpose (func, anat, fmap, dwi, etc)
 
@@ -372,6 +381,7 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     :param work_json_fname: str
     :param bids_nii_fname: str
     :param bids_json_fname: str
+    :param overwrite: bool
     :return:
     """
 
@@ -389,8 +399,7 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         if seq_name == 'EP':
 
             print('    EPI detected')
-            print('      Creating events template file')
-            bids_events_template(bids_nii_fname)
+            bids_events_template(bids_nii_fname, overwrite)
 
             # Add taskname to BIDS JSON sidecar
             bids_keys = parse_bids_fname(bids_nii_fname)
@@ -484,28 +493,26 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     print('  Populating BIDS source directory')
 
     if bids_nii_fname:
-        print('    Copying %s to %s' % (os.path.basename(work_nii_fname), os.path.basename(bids_nii_fname)))
-        shutil.copy(work_nii_fname, str(bids_nii_fname))
+        safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
 
     if bids_json_fname:
-        print('    Writing JSON sidecar to %s' % os.path.basename(bids_json_fname))
         bids_write_json(bids_json_fname, info)
 
     if bids_bval_fname:
-        print('    Writing diffusion b-values to %s' % os.path.basename(bids_bval_fname))
-        shutil.copy(work_bval_fname, bids_bval_fname)
+        safe_copy(work_bval_fname, bids_bval_fname, overwrite)
 
     if bids_bvec_fname:
-        print('    Writing diffusion b-vectors to %s' % os.path.basename(bids_bvec_fname))
-        shutil.copy(work_bvec_fname, bids_bvec_fname)
+        safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
-def bids_init(bids_src_dir):
+def bids_init(bids_src_dir, overwrite=False):
     """
     Initialize BIDS source directory
 
     :param bids_src_dir: string
-        root BIDS directory
+        BIDS source directory
+    :param overwrite: string
+        Overwrite flag
     :return participants_fd: object
         participant TSV file descriptor
     """
@@ -523,7 +530,7 @@ def bids_init(bids_src_dir):
                'ReferencesAndLinks': "References and links for this dataset go here"})
 
     # Write JSON file
-    bids_write_json(datadesc_json, meta_dict)
+    bids_write_json(datadesc_json, meta_dict, overwrite)
 
     return participants_fd
 
@@ -679,20 +686,36 @@ def bids_catch_duplicate(fname):
 
     return new_fname
 
-def bids_events_template(bold_fname):
+
+def bids_events_template(bold_fname, overwrite=False):
     """
     Create a template events file for a corresponding BOLD imaging file
-    :param bold_fname: BOLD imaging filename (.nii.gz)
+    :param bold_fname: str
+        BOLD imaging filename (.nii.gz)
+    :param overwrite: bool
+        Overwrite flag
     :return: Nothing
     """
 
     events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
 
-    fd = open(events_fname, 'w')
-    fd.write('onset\tduration\ttrial_type\tresponse_time\n')
-    fd.write('1.0\t0.5\tgo\t0.555\n')
-    fd.write('2.5\t0.4\tstop\t0.666\n')
-    fd.close()
+    if os.path.isfile(events_fname):
+        if overwrite:
+            print('  Overwriting previous %s' % events_fname)
+            create_file = True
+        else:
+            print('  Preserving previous %s' % events_fname)
+            create_file = False
+    else:
+        print('  Creating %s' % events_fname)
+        create_file = True
+
+    if create_file:
+        fd = open(events_fname, 'w')
+        fd.write('onset\tduration\ttrial_type\tresponse_time\n')
+        fd.write('1.0\t0.5\tgo\t0.555\n')
+        fd.write('2.5\t0.4\tstop\t0.666\n')
+        fd.close()
 
 
 def strip_extensions(fname):
@@ -825,17 +848,32 @@ def bids_read_json(fname):
     return json_dict
 
 
-def bids_write_json(fname, meta_dict):
+def bids_write_json(fname, meta_dict, overwrite=False):
     """
-    Write a dictionary to a JSON file
+    Write a dictionary to a JSON file. Account for overwrite flag
     :param fname: string
         JSON filename
     :param meta_dict: dictionary
         Dictionary
+    :param overwrite: bool
+        Overwrite flag
     :return:
     """
-    with open(fname, 'w') as fd:
-        json.dump(meta_dict, fd, indent=4, separators=(',', ':'))
+
+    if os.path.isfile(fname):
+        if overwrite:
+            print('    Overwriting previous %s' % os.path.basename(fname))
+            create_file = True
+        else:
+            print('    Preserving previous %s' % fname)
+            create_file = False
+    else:
+        print('    Creating new %s' % os.path.basename(fname))
+        create_file = True
+
+    if create_file:
+        with open(fname, 'w') as fd:
+            json.dump(meta_dict, fd, indent=4, separators=(',', ':'))
 
 
 def safe_mkdir(dname):
@@ -847,6 +885,30 @@ def safe_mkdir(dname):
 
     if not os.path.isdir(dname):
         os.makedirs(dname, exist_ok=True)
+
+
+def safe_copy(file1, file2, overwrite=False):
+    """
+    Copy file accounting for overwrite flag
+    :param file1: str
+    :param file2: str
+    :param overwrite: bool
+    :return:
+    """
+
+    if os.path.isfile(file2):
+        if overwrite:
+            print('    Overwriting previous %s' % os.path.basename(file2))
+            create_file = True
+        else:
+            print('    Preserving previous %s' % os.path.basename(file2))
+            create_file = False
+    else:
+        print('    Copying %s to %s' % (os.path.basename(file1), os.path.basename(file2)))
+        create_file = True
+
+    if create_file:
+        shutil.copy(file1, file2)
 
 
 # This is the standard boilerplate that calls the main() function.
