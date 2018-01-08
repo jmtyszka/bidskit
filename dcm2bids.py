@@ -276,7 +276,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
             subj_name, ser_desc, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
             matches = [i for i in range(len(filelist)) if ser_desc in filelist[i]]
             if len(matches) > 1:
-            for i in range(len(matches)):
+                for i in range(len(matches)):
                     run_suffix[matches[i]] = i + 1  # Yes, this will re-create this little list several times and no, that's not ideal                for i in matches:
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
