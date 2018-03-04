@@ -78,7 +78,7 @@ import argparse
 import subprocess
 import shutil
 import json
-import dicom
+import pydicom
 from glob import glob
 
 
@@ -555,7 +555,7 @@ def bids_dcm_info(dcm_dir):
         for file in files:
 
             try:
-                ds = dicom.read_file(os.path.join(subdir, file))
+                ds = pydicom.read_file(os.path.join(subdir, file))
             except:
                 pass
 
