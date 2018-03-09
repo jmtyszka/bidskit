@@ -1,7 +1,7 @@
 # bidskit 
 Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
 
-## dcm2bids.py
+## dcm2bids.py (current version 1.1.0)
 Python script which takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a
 Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
@@ -30,8 +30,8 @@ Clone the repository, add the resulting directory to your path and install depen
 </pre>
 
 **Dependencies**
-This release was developed under Python 3.5 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
-1. pydicom 0.9.9 (latest version in PyPi)
+This release was developed under Python 3.6 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
+1. pydicom 1.0.1 (latest version in PyPi)
 2. Chris Rorden's dcm2niix - the latest version at the time of writing is v1.0.20171103 ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
 ## DICOM to BIDS Conversion
