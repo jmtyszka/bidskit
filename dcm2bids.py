@@ -29,7 +29,7 @@ Without Session Subdirectories:
 
 Usage
 ----
-dcm2bids.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions]
+dcm2bids.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
 
 Examples
 ----
@@ -46,10 +46,12 @@ Dates
 2016-08-03 JMT From scratch
 2016-11-04 JMT Add session directory to DICOM heirarchy
 2017-11-09 JMT Added support for DWI, no sessions, IntendedFor and TaskName
+2018-03-09 JMT Fixed IntendedFor handling (#20, #27) and run-number issues (#28)
+               Migrated to pydicom v1.0.1 (note namespace change to pydicom)
 
 MIT License
 
-Copyright (c) 2017 Mike Tyszka
+Copyright (c) 2017-2018 Mike Tyszka
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -70,7 +72,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 import os
 import sys
@@ -268,19 +270,10 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
         # glob returns the full relative path from the tmp dir
         filelist = glob(os.path.join(conv_dir, '*.nii*'))
         
-        # Determine where we have runs with the same description (name)
-        # TODO: Might be able to use sets instead of lists for uniqueness check
-        run_suffix = [0] * len(filelist)
-        for file_index in range(len(filelist)-1):
-            src_nii_fname = filelist[file_index]
-            subj_name, ser_desc, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
-            matches = [i for i in range(len(filelist)) if ser_desc in filelist[i]]
-            if len(matches) > 1:
-                for i in range(len(matches)):
-                    run_suffix[matches[i]] = i + 1  # Yes, this will re-create this little list several times and no, that's not ideal                for i in matches:
+        # Create dictionary of series duplication counts
+        ser_duplicates = bids_count_duplicates(filelist)
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
-        file_index = 0
         for src_nii_fname in filelist:
 
             # Parse image filename into fields
@@ -320,9 +313,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
                     bids_purpose, bids_suffix, bids_intendedfor = prot_dict[ser_desc]
 
-                    # Add run suffix for duplicate series descriptions
-                    if run_suffix[file_index]:
-                        bids_suffix = bids_add_run_number(bids_suffix, str(run_suffix[file_index]))
+                    # Safely add run-* key to BIDS suffix
+                    bids_suffix = bids_add_run_number(bids_suffix, ser_duplicates[ser_desc])
 
                     # Create BIDS purpose directory
                     bids_purpose_dir = os.path.join(src_dir, bids_purpose)
@@ -342,13 +334,13 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     if not 'UNASSIGNED' in bids_intendedfor:
                         if isinstance(bids_intendedfor, str):
                             # Single linked image
-                            bids_intendedfor = bids_prefix + bids_intendedfor + '.nii.gz'
+                            bids_intendedfor = bids_build_intendedfor(bids_prefix, bids_intendedfor)
                         else:
                             # Loop over all linked images
                             for ifc, ifstr in enumerate(bids_intendedfor):
                                 # Avoid multiple substitutions
                                 if not '.nii.gz' in ifstr:
-                                    bids_intendedfor[ifc] = bids_prefix + ifstr + '.nii.gz'
+                                    bids_intendedfor[ifc] = bids_build_intendedfor(bids_prefix, ifstr)
 
                     # Special handling for specific purposes (anat, func, fmap, etc)
                     # This function populates BIDS structure with the image and adjusted sidecar
@@ -356,7 +348,6 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                                           src_nii_fname, src_json_fname,
                                           bids_nii_fname, bids_json_fname,
                                           overwrite)
-            file_index += 1
 
         if not first_pass:
 
@@ -641,27 +632,42 @@ def parse_bids_fname(fname):
     return bids_keys
 
 
-def bids_add_run_number(bids_stub, ser_no):
+def bids_add_run_number(bids_suffix, run_num):
     """
-    Add run number to BIDS filename
+    Safely add run number to BIDS suffix
+    Handle prior existence of run-* in BIDS filename template from protocol translator
 
-    :param bids_stub:
-    :param ser_no:
-    :return:
+    :param bids_suffix, str
+    :param run_num, int
+    :return: new_bids_suffix, str
     """
 
-    # Discard non-numeric characters in ser_no
-    ser_no = int(''.join(filter(str.isdigit, ser_no)))
+    if run_num == 1:
 
-    if '_' in bids_stub:
-        # Add '_run-xx' before final suffix
-        bmain, bseq = bids_stub.rsplit('_',1)
-        new_bids_stub = '%s_run-%02d_%s' % (bmain, ser_no, bseq)
+        # Only one of this series so no changes necessary
+        # This works for suffices both with and without existing run-* values
+        new_bids_suffix = bids_suffix
+
+    elif "run-" in bids_suffix:
+
+        # Preserve existing run-* value in suffix
+        print('  * BIDS suffix already contains run number - skipping')
+        new_bids_suffix = bids_suffix
+
     else:
-        # Isolated final suffix - just add 'run-xx_' as a prefix
-        new_bids_stub = 'run-%02d_%s' % (ser_no, bids_stub)
 
-    return new_bids_stub
+        if '_' in bids_suffix:
+
+            # Add '_run-xx' before final suffix
+            bmain, bseq = bids_suffix.rsplit('_', 1)
+            new_bids_suffix = '%s_run-%02d_%s' % (bmain, run_num, bseq)
+
+        else:
+
+            # Isolated final suffix - just add 'run-xx_' as a prefix
+            new_bids_suffix = 'run-%02d_%s' % (run_num, bids_suffix)
+
+    return new_bids_suffix
 
 
 def bids_catch_duplicate(fname):
@@ -874,6 +880,41 @@ def bids_write_json(fname, meta_dict, overwrite=False):
     if create_file:
         with open(fname, 'w') as fd:
             json.dump(meta_dict, fd, indent=4, separators=(',', ':'))
+
+
+def bids_count_duplicates(file_list):
+    """
+    Search for duplicate series names in dcm2niix output file list
+    Return dictionary of duplicate counts for each series description
+
+    :param file_list:
+    :return: ser_duplicates, dict
+    """
+
+    # Construct list of series descriptions from file names
+    ser_list = []
+    for fname in file_list:
+        _, ser_desc, _, _ = parse_dcm2niix_fname(fname)
+        ser_list.append(ser_desc)
+
+    # Count duplicates of each series description
+    ser_duplicates = {ser : ser_list.count(ser) for ser in ser_list}
+
+    return ser_duplicates
+
+
+def bids_build_intendedfor(bids_prefix, bids_suffix):
+    """
+    Build the IntendedFor entry for a fieldmap sidecar
+
+    :param bids_prefix:
+    :param bids_suffix:
+    :return: ifstr, str
+    """
+
+    ifstr = os.path.join("func", bids_prefix + bids_suffix + ".nii.gz")
+
+    return ifstr
 
 
 def safe_mkdir(dname):
