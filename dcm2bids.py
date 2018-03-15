@@ -72,7 +72,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 import os
 import sys
@@ -121,8 +121,9 @@ def main():
 
     print('')
     print('------------------------------------------------------------')
-    print('Directory Structure')
+    print('DICOM to BIDS Converter')
     print('------------------------------------------------------------')
+    print('Software Version           : %s' % __version__)
     print('DICOM Root Directory       : %s' % dcm_root_dir)
     print('BIDS Source Directory      : %s' % bids_src_dir)
     print('BIDS Derivatives Directory : %s' % bids_deriv_dir)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="">
+    <list default="true" id="569a65a7-96a3-4e40-8905-0c2836da3caa" name="Default" comment="Fixed logic for inference of run numbers in the presence of duplicate series descriptions.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/dcm2bids.py" afterPath="$PROJECT_DIR$/dcm2bids.py" />
     </list>
@@ -31,8 +31,8 @@
       <file leaf-file-name="dcm2bids.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dcm2bids.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="125">
-              <caret line="915" column="7" lean-forward="true" selection-start-line="915" selection-start-column="7" selection-end-line="915" selection-end-column="7" />
+            <state relative-caret-position="639">
+              <caret line="128" column="61" lean-forward="true" selection-start-line="128" selection-start-column="61" selection-end-line="128" selection-end-column="61" />
               <folding>
                 <element signature="e#2387#2396#0" expanded="true" />
               </folding>
@@ -115,7 +115,7 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="561" />
+    <option name="x" value="116" />
     <option name="y" value="23" />
     <option name="width" value="2066" />
     <option name="height" value="1318" />
@@ -617,13 +617,6 @@
       <option name="presentableId" value="Default" />
       <updated>1470270872542</updated>
     </task>
-    <task id="LOCAL-00001" summary="Initial commit">
-      <created>1470271049163</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1470271049163</updated>
-    </task>
     <task id="LOCAL-00002" summary="DICOM to BIDS skeleton">
       <created>1470271619607</created>
       <option name="number" value="00002" />
@@ -960,11 +953,18 @@
       <option name="project" value="LOCAL" />
       <updated>1520637760123</updated>
     </task>
-    <option name="localTasksCounter" value="50" />
+    <task id="LOCAL-00050" summary="Fixed logic for inference of run numbers in the presence of duplicate series descriptions.">
+      <created>1521072608713</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1521072608713</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="561" y="23" width="2066" height="1318" extended-state="0" />
+    <frame x="116" y="23" width="2066" height="1318" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -1005,7 +1005,6 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Solution for multiple series with same protocol name (add run-N to BIDS filename to distinguish copies by series number)." />
     <MESSAGE value="Add DICOM header dump to CSV table for multiple DICOM files." />
     <MESSAGE value="Update to latest pydicom. Import name changes from dicom to pydicom" />
     <MESSAGE value="Add alternative heudiconv wrapper (dcm2bids) with CIT-specific heuristic (caltech_bids_heuristic)" />
@@ -1030,7 +1029,8 @@
     <MESSAGE value="Version 1.0.0 with almost all current issues addressed. Add .gitignore" />
     <MESSAGE value="Remove .idea remnant" />
     <MESSAGE value="Fixed IntendedFor handling (#20, #27) and run-number issues (#28). Migrated to pydicom v1.0.1 (note namespace change to pydicom)." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed IntendedFor handling (#20, #27) and run-number issues (#28). Migrated to pydicom v1.0.1 (note namespace change to pydicom)." />
+    <MESSAGE value="Fixed logic for inference of run numbers in the presence of duplicate series descriptions." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed logic for inference of run numbers in the presence of duplicate series descriptions." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1042,12 +1042,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/dcm2bids.py</url>
-          <line>278</line>
+          <line>279</line>
           <option name="timeStamp" value="109" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/dcm2bids.py</url>
-          <line>318</line>
+          <line>319</line>
           <option name="timeStamp" value="110" />
         </line-breakpoint>
       </breakpoints>
@@ -1358,8 +1358,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dcm2bids.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="125">
-          <caret line="915" column="7" lean-forward="true" selection-start-line="915" selection-start-column="7" selection-end-line="915" selection-end-column="7" />
+        <state relative-caret-position="639">
+          <caret line="128" column="61" lean-forward="true" selection-start-line="128" selection-start-column="61" selection-end-line="128" selection-end-column="61" />
           <folding>
             <element signature="e#2387#2396#0" expanded="true" />
           </folding>
