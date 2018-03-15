@@ -81,6 +81,7 @@ import subprocess
 import shutil
 import json
 import pydicom
+import numpy as np
 from glob import glob
 
 
@@ -270,11 +271,12 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
         # glob returns the full relative path from the tmp dir
         filelist = glob(os.path.join(conv_dir, '*.nii*'))
         
-        # Create dictionary of series duplication counts
-        ser_duplicates = bids_count_duplicates(filelist)
+        # Infer run numbers accounting for duplicates.
+        # Only used if run-* not present in translator BIDS filename stub
+        run_no = bids_auto_run_no(filelist)
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
-        for src_nii_fname in filelist:
+        for fc, src_nii_fname in enumerate(filelist):
 
             # Parse image filename into fields
             subj_name, ser_desc, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
@@ -314,7 +316,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     bids_purpose, bids_suffix, bids_intendedfor = prot_dict[ser_desc]
 
                     # Safely add run-* key to BIDS suffix
-                    bids_suffix = bids_add_run_number(bids_suffix, ser_duplicates[ser_desc])
+                    bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
 
                     # Create BIDS purpose directory
                     bids_purpose_dir = os.path.join(src_dir, bids_purpose)
@@ -632,23 +634,17 @@ def parse_bids_fname(fname):
     return bids_keys
 
 
-def bids_add_run_number(bids_suffix, run_num):
+def bids_add_run_number(bids_suffix, run_no):
     """
     Safely add run number to BIDS suffix
     Handle prior existence of run-* in BIDS filename template from protocol translator
 
     :param bids_suffix, str
-    :param run_num, int
+    :param run_no, int
     :return: new_bids_suffix, str
     """
 
-    if run_num == 1:
-
-        # Only one of this series so no changes necessary
-        # This works for suffices both with and without existing run-* values
-        new_bids_suffix = bids_suffix
-
-    elif "run-" in bids_suffix:
+    if "run-" in bids_suffix:
 
         # Preserve existing run-* value in suffix
         print('  * BIDS suffix already contains run number - skipping')
@@ -660,37 +656,14 @@ def bids_add_run_number(bids_suffix, run_num):
 
             # Add '_run-xx' before final suffix
             bmain, bseq = bids_suffix.rsplit('_', 1)
-            new_bids_suffix = '%s_run-%02d_%s' % (bmain, run_num, bseq)
+            new_bids_suffix = '%s_run-%02d_%s' % (bmain, run_no, bseq)
 
         else:
 
             # Isolated final suffix - just add 'run-xx_' as a prefix
-            new_bids_suffix = 'run-%02d_%s' % (run_num, bids_suffix)
+            new_bids_suffix = 'run-%02d_%s' % (run_no, bids_suffix)
 
     return new_bids_suffix
-
-
-def bids_catch_duplicate(fname):
-    """
-    Add numeric suffix if filename already exists
-    :param fname: original filename
-    :return new_fname: new filename
-    """
-
-    new_fname = fname
-
-    fpath, fbase = os.path.split(fname)
-    fstub, fext = fbase.split('.', 1)
-
-    n = 1
-
-    while os.path.isfile(new_fname):
-
-        n += 1
-
-        new_fname = os.path.join(fpath, fstub + '_' + str(n) + '.' + fext)
-
-    return new_fname
 
 
 def bids_events_template(bold_fname, overwrite=False):
@@ -704,13 +677,14 @@ def bids_events_template(bold_fname, overwrite=False):
     """
 
     events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+    events_bname = os.path.basename(events_fname)
 
     if os.path.isfile(events_fname):
         if overwrite:
-            print('  Overwriting previous %s' % events_fname)
+            print('  Overwriting previous %s' % events_bname)
             create_file = True
         else:
-            print('  Preserving previous %s' % events_fname)
+            print('  Preserving previous %s' % events_bname)
             create_file = False
     else:
         print('  Creating %s' % events_fname)
@@ -866,15 +840,17 @@ def bids_write_json(fname, meta_dict, overwrite=False):
     :return:
     """
 
+    bname = os.path.basename(fname)
+
     if os.path.isfile(fname):
         if overwrite:
-            print('    Overwriting previous %s' % os.path.basename(fname))
+            print('    Overwriting previous %s' % bname)
             create_file = True
         else:
-            print('    Preserving previous %s' % fname)
+            print('    Preserving previous %s' % bname)
             create_file = False
     else:
-        print('    Creating new %s' % os.path.basename(fname))
+        print('    Creating new %s' % bname)
         create_file = True
 
     if create_file:
@@ -882,25 +858,33 @@ def bids_write_json(fname, meta_dict, overwrite=False):
             json.dump(meta_dict, fd, indent=4, separators=(',', ':'))
 
 
-def bids_count_duplicates(file_list):
+def bids_auto_run_no(file_list):
     """
     Search for duplicate series names in dcm2niix output file list
-    Return dictionary of duplicate counts for each series description
+    Return inferred run numbers accounting for duplication
 
-    :param file_list:
-    :return: ser_duplicates, dict
+    :param file_list: list of str
+    :return: run_num, array of int
     """
 
-    # Construct list of series descriptions from file names
-    ser_list = []
+    # Construct list of series descriptions and original numbers from file names
+    ser_desc_list = []
     for fname in file_list:
         _, ser_desc, _, _ = parse_dcm2niix_fname(fname)
-        ser_list.append(ser_desc)
+        ser_desc_list.append(ser_desc)
 
-    # Count duplicates of each series description
-    ser_duplicates = {ser : ser_list.count(ser) for ser in ser_list}
+    # Find unique ser_desc entries using sets
+    unique_descs = set(ser_desc_list)
 
-    return ser_duplicates
+    run_no = np.zeros(len(file_list))
+    for desc in unique_descs:
+        n = 1
+        for i, ser_desc in enumerate(ser_desc_list):
+            if ser_desc == desc:
+                run_no[i] = n
+                n += 1
+
+    return run_no
 
 
 def bids_build_intendedfor(bids_prefix, bids_suffix):
@@ -928,28 +912,30 @@ def safe_mkdir(dname):
         os.makedirs(dname, exist_ok=True)
 
 
-def safe_copy(file1, file2, overwrite=False):
+def safe_copy(fname1, fname2, overwrite=False):
     """
     Copy file accounting for overwrite flag
-    :param file1: str
-    :param file2: str
+    :param fname1: str
+    :param fname2: str
     :param overwrite: bool
     :return:
     """
 
-    if os.path.isfile(file2):
+    bname1, bname2 = os.path.basename(fname1), os.path.basename(fname2)
+
+    if os.path.isfile(fname2):
         if overwrite:
-            print('    Overwriting previous %s' % os.path.basename(file2))
+            print('    Copying %s to %s (overwrite)' % (bname1, bname2))
             create_file = True
         else:
-            print('    Preserving previous %s' % os.path.basename(file2))
+            print('    Preserving previous %s' % bname2)
             create_file = False
     else:
-        print('    Copying %s to %s' % (os.path.basename(file1), os.path.basename(file2)))
+        print('    Copying %s to %s' % (bname1, bname2))
         create_file = True
 
     if create_file:
-        shutil.copy(file1, file2)
+        shutil.copy(fname1, fname2)
 
 
 # This is the standard boilerplate that calls the main() function.
