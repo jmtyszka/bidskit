@@ -1,6 +1,6 @@
 # PyCharm configurations #
 ##########################
-.idea/
+.idea/*
 
 # Compiled source #
 ###################
