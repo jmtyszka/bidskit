@@ -1,4 +1,4 @@
-# MAINTAINER: rnair@caltech.edu | feel free to copy and adapt as needed.| v1.1.0 of BIDSKIT
+# MAINTAINER: rnair@caltech.edu | feel free to copy and adapt as needed.| v1.1.2 of BIDSKIT
 FROM ubuntu:trusty
 
 # Install updates, Python3 for BIDS conversion script, Pip3 for Python to pull the pydicom module
