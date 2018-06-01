@@ -72,7 +72,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 import os
 import sys
@@ -280,16 +280,16 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
         for fc, src_nii_fname in enumerate(filelist):
 
             # Parse image filename into fields
-            subj_name, ser_desc, seq_name, ser_no = parse_dcm2niix_fname(src_nii_fname)
+            info = parse_dcm2niix_fname(src_nii_fname)
 
             # Check if we're creating new protocol dictionary
             if first_pass:
 
-                print('  Adding protocol %s to dictionary template' % ser_desc)
+                print('  Adding protocol %s to dictionary template' % info['SerDesc'])
 
                 # Add current protocol to protocol dictionary
                 # Use default EXCLUDE_* values which can be changed (or not) by the user
-                prot_dict[ser_desc] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
+                prot_dict[info['SerDesc']] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
 
             else:
 
@@ -304,17 +304,17 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     print('* JSON sidecar not found : %s' % src_json_fname)
                     break
 
-                if prot_dict[ser_desc][0].startswith('EXCLUDE'):
+                if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
 
                     # Skip excluded protocols
-                    print('* Excluding protocol ' + str(ser_desc))
+                    print('* Excluding protocol ' + str(info['SerDesc']))
 
                 else:
 
-                    print('  Organizing ' + str(ser_desc))
+                    print('  Organizing ' + str(info['SerDesc']))
 
                     # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
-                    bids_purpose, bids_suffix, bids_intendedfor = prot_dict[ser_desc]
+                    bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
 
                     # Safely add run-* key to BIDS suffix
                     bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
@@ -337,17 +337,17 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     if not 'UNASSIGNED' in bids_intendedfor:
                         if isinstance(bids_intendedfor, str):
                             # Single linked image
-                            bids_intendedfor = bids_build_intendedfor(bids_prefix, bids_intendedfor)
+                            bids_intendedfor = bids_build_intendedfor(SID, SES, bids_intendedfor)
                         else:
                             # Loop over all linked images
                             for ifc, ifstr in enumerate(bids_intendedfor):
                                 # Avoid multiple substitutions
                                 if not '.nii.gz' in ifstr:
-                                    bids_intendedfor[ifc] = bids_build_intendedfor(bids_prefix, ifstr)
+                                    bids_intendedfor[ifc] = bids_build_intendedfor(SID, SES, ifstr)
 
                     # Special handling for specific purposes (anat, func, fmap, etc)
                     # This function populates BIDS structure with the image and adjusted sidecar
-                    bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
+                    bids_purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
                                           src_nii_fname, src_json_fname,
                                           bids_nii_fname, bids_json_fname,
                                           overwrite)
@@ -417,17 +417,19 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
             print('    GRE detected')
             print('    Identifying magnitude and phase images')
 
-            # 2017-06-26 JMT Adapt to changes in dcm2niix JSON sidecar
             # For Siemens dual gradient echo fieldmaps, three Nifti/JSON pairs are generated from two series
-            # *--GR--<serno>.<ext> : magnitude image from echo 1 (EchoNumber unset, ImageType[2] = "M")
-            # *--GR--<serno>a.<ext> : magnitude image from echo 2 (EchoNumber = 2, ImageType[2] = "M")
-            # *--GR--<serno+1>.<ext> : inter-echo phase difference (EchoNumber = 2, ImageType[2] = "P")
+            # Requires dcm2nixx v1.0.20180404 or later for echo number suffix
+            # *--GR--<serno>_e1.<ext> : magnitude image from echo 1 (EchoNumber unset, ImageType[2] = "M")
+            # *--GR--<serno>_e2.<ext> : magnitude image from echo 2 (EchoNumber = 2, ImageType[2] = "M")
+            # *--GR--<serno+1>_e2_ph.<ext> : inter-echo phase difference (EchoNumber = 2, ImageType[2] = "P")
 
             if 'EchoNumber' in info:
 
                 if info['EchoNumber'] == 2:
 
                     if 'P' in info['ImageType'][2]:
+
+                        print('    Interecho phase difference detected')
 
                         # Read phase meta data
                         bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_phasediff.nii.gz')
@@ -441,13 +443,13 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
                     else:
 
                         # Echo 2 magnitude - discard
-                        print('    Echo 2 magnitude - discarding')
+                        print('    Echo 2 magnitude detected - discarding')
                         bids_nii_fname = []  # Discard image
                         bids_json_fname = []  # Discard sidecar
 
             else:
 
-                print('    Echo 1 magnitude')
+                print('    Echo 1 magnitude detected')
                 bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_magnitude.nii.gz')
                 bids_json_fname = []  # Discard sidecar only
 
@@ -490,7 +492,7 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
 
     if bids_json_fname:
-        bids_write_json(bids_json_fname, info)
+        bids_write_json(bids_json_fname, info, overwrite)
 
     if bids_bval_fname:
         safe_copy(work_bval_fname, bids_bval_fname, overwrite)
@@ -585,25 +587,36 @@ def parse_dcm2niix_fname(fname):
     """
     Parse dcm2niix filename into values
     Filename format is '%n--%d--%q--%s' ie '<name>--<description>--<sequence>--<series #>'
+
     :param fname: str
         BIDS-style image or sidecar filename
-    :return subj_name: str
-            ser_desc: str
-            seq_name: str
-            ser_no: int
+    :return info: dict
     """
 
     # Ignore containing directory and extension(s)
     fname = strip_extensions(os.path.basename(fname))
 
+    # Create info dictionary
+    info = dict()
+
     # Split filename at '--'s
     vals = fname.split('--')
-    subj_name = vals[0]
-    ser_desc = vals[1]
-    seq_name = vals[2]
-    ser_no = vals[3]
 
-    return subj_name, ser_desc, seq_name, ser_no
+    info['SubjName'] = vals[0]
+    info['SerDesc'] = vals[1]
+    info['SeqName'] = vals[2]
+
+    # Parse series string
+    # eg '10' or '10_e2' or '10_e2_ph'
+    ser_vals = vals[3].split('_')
+
+    info['SerNo'] = ser_vals[0]
+    if len(ser_vals) > 1:
+        info['EchoNo'] = ser_vals[1]
+    if len(ser_vals) > 2:
+        info['IsPhase'] = True
+
+    return info
 
 
 def parse_bids_fname(fname):
@@ -751,14 +764,18 @@ def bids_fmap_echotimes(src_phase_json_fname):
         # Read phase image metadata
         phase_dict = bids_read_json(src_phase_json_fname)
 
-        # Parse dcm2niix filename into fields
-        subj_name, prot_name, seq_name, ser_no = parse_dcm2niix_fname(src_phase_json_fname)
+        # Populate series info dictionary from dcm2niix output filename
+        info = parse_dcm2niix_fname(src_phase_json_fname)
 
         # Magnitude 1 series number is one less than phasediff series number
-        mag1_ser_no = str(int(ser_no) - 1)
+        mag1_ser_no = str(int(info['SerNo']) - 1)
 
         # Construct dcm2niix mag1 JSON filename
-        src_mag1_json_fname = subj_name + '--' + prot_name + '--' + seq_name + '--' + mag1_ser_no + '.json'
+        # Requires dicm2niix v1.0.20180404 or later for echo number suffix '_e1'
+        src_mag1_json_fname = info['SubjName'] +'--' +\
+                              info['SerDesc'] + '--' +\
+                              info['SeqName'] + '--' +\
+                              mag1_ser_no + '_e1.json'
         src_mag1_json_path = os.path.join(os.path.dirname(src_phase_json_fname), src_mag1_json_fname)
 
         # Read mag1 metadata
@@ -871,8 +888,8 @@ def bids_auto_run_no(file_list):
     # Construct list of series descriptions and original numbers from file names
     ser_desc_list = []
     for fname in file_list:
-        _, ser_desc, _, _ = parse_dcm2niix_fname(fname)
-        ser_desc_list.append(ser_desc)
+        info = parse_dcm2niix_fname(fname)
+        ser_desc_list.append(info['SerDesc'])
 
     # Find unique ser_desc entries using sets
     unique_descs = set(ser_desc_list)
@@ -888,16 +905,23 @@ def bids_auto_run_no(file_list):
     return run_no
 
 
-def bids_build_intendedfor(bids_prefix, bids_suffix):
+def bids_build_intendedfor(SID, SES, bids_suffix):
     """
     Build the IntendedFor entry for a fieldmap sidecar
 
-    :param bids_prefix:
+    :param SID, str : Subject ID
+    :param SES, str : Session number
     :param bids_suffix:
     :return: ifstr, str
     """
 
-    ifstr = os.path.join("func", bids_prefix + bids_suffix + ".nii.gz")
+    # Complete BIDS filenames for image and sidecar
+    if SES:
+        # If sessions are being used, add session directory to IntendedFor field
+        ifstr = os.path.join('ses-'+SES, 'func', 'sub-'+SID+'_ses-'+SES+'_'+bids_suffix+'.nii.gz')
+    else:
+        ifstr = os.path.join('func', 'sub-'+SID+'_'+bids_suffix+'.nii.gz')
+
 
     return ifstr
 
