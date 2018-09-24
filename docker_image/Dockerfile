@@ -17,7 +17,7 @@ RUN cd /tmp && git clone https://github.com/rordenlab/dcm2niix.git && cd dcm2nii
 
 #Create a dir to store python script
 RUN mkdir WORKDIR /app
-COPY .. /app
+COPY . /app
 
 #Install required python depencendies (pydicom)
 RUN pip3 install pydicom
