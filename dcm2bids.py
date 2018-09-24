@@ -480,10 +480,10 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
 
         # Fill DWI bval and bvec working and source filenames
         # Non-empty filenames trigger the copy below
-        work_bval_fname = str(work_json_fname.replace('.json', '.bval'))
-        bids_bval_fname = str(bids_json_fname.replace('.json', '.bval'))
-        work_bvec_fname = str(work_json_fname.replace('.json', '.bvec'))
-        bids_bvec_fname = str(bids_json_fname.replace('.json', '.bvec'))
+        work_bval_fname = str(work_json_fname.replace('dwi.json', 'dwi.bval'))
+        bids_bval_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bval'))
+        work_bvec_fname = str(work_json_fname.replace('dwi.json', 'dwi.bvec'))
+        bids_bvec_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bvec'))
 
     # Populate BIDS source directory with Nifti images, JSON and DWI sidecars
     print('  Populating BIDS source directory')
