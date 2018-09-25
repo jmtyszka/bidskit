@@ -21,6 +21,7 @@ COPY . /app
 
 #Install required python depencendies (pydicom)
 RUN pip3 install pydicom
+RUN pip3 install numpy
 
 #Create an entrypoint to pass ARGS to python script
 ENTRYPOINT ["python3", "/app/dcm2bids.py"]
