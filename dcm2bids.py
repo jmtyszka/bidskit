@@ -707,8 +707,8 @@ def bids_events_template(bold_fname, overwrite=False):
     if create_file:
         fd = open(events_fname, 'w')
         fd.write('onset\tduration\ttrial_type\tresponse_time\n')
-        fd.write('1.0\t0.5\tgo\t0.555\n')
-        fd.write('2.5\t0.4\tstop\t0.666\n')
+        #fd.write('1.0\t0.5\tgo\t0.555\n')
+        #fd.write('2.5\t0.4\tstop\t0.666\n')
         fd.close()
 
 
