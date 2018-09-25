@@ -304,53 +304,58 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     print('* JSON sidecar not found : %s' % src_json_fname)
                     break
 
-                if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
+                if info['SerDesc']] in prot_dict.keys():
+    
+					if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
 
-                    # Skip excluded protocols
-                    print('* Excluding protocol ' + str(info['SerDesc']))
+						# Skip excluded protocols
+						print('* Excluding protocol ' + str(info['SerDesc']))
 
-                else:
+					else:
 
-                    print('  Organizing ' + str(info['SerDesc']))
+						print('  Organizing ' + str(info['SerDesc']))
 
-                    # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
-                    bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
+						# Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
+						bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
 
-                    # Safely add run-* key to BIDS suffix
-                    bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
+						# Safely add run-* key to BIDS suffix
+						bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
 
-                    # Create BIDS purpose directory
-                    bids_purpose_dir = os.path.join(src_dir, bids_purpose)
-                    safe_mkdir(bids_purpose_dir)
+						# Create BIDS purpose directory
+						bids_purpose_dir = os.path.join(src_dir, bids_purpose)
+						safe_mkdir(bids_purpose_dir)
 
-                    # Complete BIDS filenames for image and sidecar
-                    if SES:
-                        bids_prefix = 'sub-' + SID + '_ses-' + SES + '_'
-                    else:
-                        bids_prefix = 'sub-' + SID + '_'
+						# Complete BIDS filenames for image and sidecar
+						if SES:
+							bids_prefix = 'sub-' + SID + '_ses-' + SES + '_'
+						else:
+							bids_prefix = 'sub-' + SID + '_'
 
-                    # Construct BIDS source Nifti and JSON filenames
-                    bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
-                    bids_json_fname = bids_nii_fname.replace('.nii.gz','.json')
+						# Construct BIDS source Nifti and JSON filenames
+						bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
+						bids_json_fname = bids_nii_fname.replace('.nii.gz','.json')
 
-                    # Add prefix and suffix to IntendedFor values
-                    if not 'UNASSIGNED' in bids_intendedfor:
-                        if isinstance(bids_intendedfor, str):
-                            # Single linked image
-                            bids_intendedfor = bids_build_intendedfor(SID, SES, bids_intendedfor)
-                        else:
-                            # Loop over all linked images
-                            for ifc, ifstr in enumerate(bids_intendedfor):
-                                # Avoid multiple substitutions
-                                if not '.nii.gz' in ifstr:
-                                    bids_intendedfor[ifc] = bids_build_intendedfor(SID, SES, ifstr)
+						# Add prefix and suffix to IntendedFor values
+						if not 'UNASSIGNED' in bids_intendedfor:
+							if isinstance(bids_intendedfor, str):
+								# Single linked image
+								bids_intendedfor = bids_build_intendedfor(SID, SES, bids_intendedfor)
+							else:
+								# Loop over all linked images
+								for ifc, ifstr in enumerate(bids_intendedfor):
+									# Avoid multiple substitutions
+									if not '.nii.gz' in ifstr:
+										bids_intendedfor[ifc] = bids_build_intendedfor(SID, SES, ifstr)
 
-                    # Special handling for specific purposes (anat, func, fmap, etc)
-                    # This function populates BIDS structure with the image and adjusted sidecar
-                    bids_purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
-                                          src_nii_fname, src_json_fname,
-                                          bids_nii_fname, bids_json_fname,
-                                          overwrite)
+						# Special handling for specific purposes (anat, func, fmap, etc)
+						# This function populates BIDS structure with the image and adjusted sidecar
+						bids_purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
+											  src_nii_fname, src_json_fname,
+											  bids_nii_fname, bids_json_fname,
+											  overwrite)
+				else:
+					# Skip protocols not in the dictionary
+					print('* Protocol ' + str(info['SerDesc']) + ' is not in the dictionary, did not convert.')							  
 
         if not first_pass:
 
