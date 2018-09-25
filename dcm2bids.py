@@ -515,7 +515,7 @@ def bids_init(bids_src_dir, overwrite=False):
 
     # Create template participant TSV file in BIDS root directory
     parts_tsv = os.path.join(bids_src_dir, 'participants.tsv')
-    participants_fd = open(parts_tsv, 'w')
+    participants_fd = open(parts_tsv, 'a+')
     participants_fd.write('participant_id\tsex\tage\n')
 
     # Create template JSON dataset description
