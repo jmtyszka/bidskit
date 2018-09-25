@@ -520,9 +520,12 @@ def bids_init(bids_src_dir, overwrite=False):
 
     # Create template participant TSV file in BIDS root directory
     parts_tsv = os.path.join(bids_src_dir, 'participants.tsv')
-    participants_fd = open(parts_tsv, 'a+')
-    participants_fd.write('participant_id\tsex\tage\n')
-
+    if parts_tsv.exists():
+		participants_fd = open(parts_tsv, 'a+')
+	else:
+		participants_fd = open(parts_tsv, 'a+')
+		participants_fd.write('participant_id\tsex\tage\n')
+		
     # Create template JSON dataset description
     datadesc_json = os.path.join(bids_src_dir, 'dataset_description.json')
     meta_dict = dict({'BIDSVersion': "1.0.0",
