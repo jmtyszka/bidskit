@@ -221,7 +221,7 @@ def main():
                                  '-o', work_conv_dir, dcm_dir],
                                 stdout=devnull, stderr=subprocess.STDOUT)
 
-            else:
+            if not first_pass:
 
                 # Get subject age and sex from representative DICOM header
                 dcm_info = bids_dcm_info(dcm_dir)
