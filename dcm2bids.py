@@ -304,7 +304,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     print('* JSON sidecar not found : %s' % src_json_fname)
                     break
 
-                if info['SerDesc']] in prot_dict.keys():
+                if info['SerDesc'] in prot_dict.keys():
     
 					if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
 
