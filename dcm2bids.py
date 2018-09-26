@@ -153,10 +153,8 @@ def main():
 
     # Initialize BIDS source directory contents
     if not first_pass:
-        participants_fd = bids_init(bids_src_dir, overwrite)
-    else:
-        participants_fd = []
-
+        bids_init(bids_src_dir, overwrite)
+    
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
@@ -227,17 +225,16 @@ def main():
                 dcm_info = bids_dcm_info(dcm_dir)
 
                 # Add line to participants TSV file
-                participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
-
+                #participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
+                add_participant_record(bids_src_dir, SID, dcm_info['Age'], dcm_info['Sex'])
+                
             # Run dcm2niix output to BIDS source conversions
             bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, overwrite)
 
     if first_pass:
         # Create a template protocol dictionary
         bids_create_prot_dict(prot_dict_json, prot_dict)
-    else:
-        # Close participants TSV file
-        participants_fd.close()
+
 
     # Clean exit
     sys.exit(0)
@@ -514,17 +511,8 @@ def bids_init(bids_src_dir, overwrite=False):
         BIDS source directory
     :param overwrite: string
         Overwrite flag
-    :return participants_fd: object
-        participant TSV file descriptor
+    :return True
     """
-
-    # Create template participant TSV file in BIDS root directory
-    parts_tsv = os.path.join(bids_src_dir, 'participants.tsv')
-    if os.path.exists(parts_tsv):
-        participants_fd = open(parts_tsv, 'a+')
-    else:
-        participants_fd = open(parts_tsv, 'a+')
-        participants_fd.write('participant_id\tsex\tage\n')
 
     # Create template JSON dataset description
     datadesc_json = os.path.join(bids_src_dir, 'dataset_description.json')
@@ -536,8 +524,34 @@ def bids_init(bids_src_dir, overwrite=False):
     # Write JSON file
     bids_write_json(datadesc_json, meta_dict, overwrite)
 
-    return participants_fd
+    return True
 
+def add_participant_record(studydir, subject, age, sex): #copied from heudiconv, this solution is good b/c it checks if the same subject id is already exists
+    participants_tsv = os.path.join(studydir, 'participants.tsv')
+    participant_id = 'sub-%s' % subject
+
+    if not create_file_if_missing(participants_tsv,'\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
+        # check if may be subject record already exists
+        with open(participants_tsv) as f:
+            f.readline()
+            known_subjects = {l.split('\t')[0] for l in f.readlines()}
+        if participant_id in known_subjects:
+            return
+    # Add a new participant
+    with open(participants_tsv, 'a') as f:
+        f.write('\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
+                              
+def create_file_if_missing(filename, content):
+    """Create file if missing, so we do not
+    override any possibly introduced changes"""
+    if os.path.lexists(filename):
+        return False
+    dirname = os.path.dirname(filename)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    with open(filename, 'w') as f:
+        f.write(content)
+    return True
 
 def bids_dcm_info(dcm_dir):
     """
