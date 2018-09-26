@@ -520,7 +520,7 @@ def bids_init(bids_src_dir, overwrite=False):
 
     # Create template participant TSV file in BIDS root directory
     parts_tsv = os.path.join(bids_src_dir, 'participants.tsv')
-    if parts_tsv.exists():
+    if os.path.exists(parts_tsv):
         participants_fd = open(parts_tsv, 'a+')
     else:
         participants_fd = open(parts_tsv, 'a+')
