@@ -153,10 +153,8 @@ def main():
 
     # Initialize BIDS source directory contents
     if not first_pass:
-        participants_fd = bids_init(bids_src_dir, overwrite)
-    else:
-        participants_fd = []
-
+        bids_init(bids_src_dir, overwrite)
+    
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
@@ -227,17 +225,16 @@ def main():
                 dcm_info = bids_dcm_info(dcm_dir)
 
                 # Add line to participants TSV file
-                participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
-
+                #participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
+                add_participant_record(bids_src_dir, SID, dcm_info['Age'], dcm_info['Sex'])
+                
             # Run dcm2niix output to BIDS source conversions
             bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, overwrite)
 
     if first_pass:
         # Create a template protocol dictionary
         bids_create_prot_dict(prot_dict_json, prot_dict)
-    else:
-        # Close participants TSV file
-        participants_fd.close()
+
 
     # Clean exit
     sys.exit(0)
@@ -304,53 +301,58 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     print('* JSON sidecar not found : %s' % src_json_fname)
                     break
 
-                if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
+                if info['SerDesc'] in prot_dict.keys():
+    
+                    if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
 
-                    # Skip excluded protocols
-                    print('* Excluding protocol ' + str(info['SerDesc']))
+                        # Skip excluded protocols
+                        print('* Excluding protocol ' + str(info['SerDesc']))
 
-                else:
-
-                    print('  Organizing ' + str(info['SerDesc']))
-
-                    # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
-                    bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
-
-                    # Safely add run-* key to BIDS suffix
-                    bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
-
-                    # Create BIDS purpose directory
-                    bids_purpose_dir = os.path.join(src_dir, bids_purpose)
-                    safe_mkdir(bids_purpose_dir)
-
-                    # Complete BIDS filenames for image and sidecar
-                    if SES:
-                        bids_prefix = 'sub-' + SID + '_ses-' + SES + '_'
                     else:
-                        bids_prefix = 'sub-' + SID + '_'
 
-                    # Construct BIDS source Nifti and JSON filenames
-                    bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
-                    bids_json_fname = bids_nii_fname.replace('.nii.gz','.json')
+                        print('  Organizing ' + str(info['SerDesc']))
 
-                    # Add prefix and suffix to IntendedFor values
-                    if not 'UNASSIGNED' in bids_intendedfor:
-                        if isinstance(bids_intendedfor, str):
-                            # Single linked image
-                            bids_intendedfor = bids_build_intendedfor(SID, SES, bids_intendedfor)
+                        # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
+                        bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
+
+                        # Safely add run-* key to BIDS suffix
+                        bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
+
+                        # Create BIDS purpose directory
+                        bids_purpose_dir = os.path.join(src_dir, bids_purpose)
+                        safe_mkdir(bids_purpose_dir)
+
+                        # Complete BIDS filenames for image and sidecar
+                        if SES:
+                            bids_prefix = 'sub-' + SID + '_ses-' + SES + '_'
                         else:
-                            # Loop over all linked images
-                            for ifc, ifstr in enumerate(bids_intendedfor):
-                                # Avoid multiple substitutions
-                                if not '.nii.gz' in ifstr:
-                                    bids_intendedfor[ifc] = bids_build_intendedfor(SID, SES, ifstr)
+                            bids_prefix = 'sub-' + SID + '_'
 
-                    # Special handling for specific purposes (anat, func, fmap, etc)
-                    # This function populates BIDS structure with the image and adjusted sidecar
-                    bids_purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
-                                          src_nii_fname, src_json_fname,
-                                          bids_nii_fname, bids_json_fname,
-                                          overwrite)
+                        # Construct BIDS source Nifti and JSON filenames
+                        bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
+                        bids_json_fname = bids_nii_fname.replace('.nii.gz','.json')
+
+                        # Add prefix and suffix to IntendedFor values
+                        if not 'UNASSIGNED' in bids_intendedfor:
+                            if isinstance(bids_intendedfor, str):
+                                # Single linked image
+                                bids_intendedfor = bids_build_intendedfor(SID, SES, bids_intendedfor)
+                            else:
+                                # Loop over all linked images
+                                for ifc, ifstr in enumerate(bids_intendedfor):
+                                    # Avoid multiple substitutions
+                                    if not '.nii.gz' in ifstr:
+                                        bids_intendedfor[ifc] = bids_build_intendedfor(SID, SES, ifstr)
+
+                        # Special handling for specific purposes (anat, func, fmap, etc)
+                        # This function populates BIDS structure with the image and adjusted sidecar
+                        bids_purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
+                                              src_nii_fname, src_json_fname,
+                                              bids_nii_fname, bids_json_fname,
+                                              overwrite)
+                else:
+                    # Skip protocols not in the dictionary
+                    print('* Protocol ' + str(info['SerDesc']) + ' is not in the dictionary, did not convert.')
 
         if not first_pass:
 
@@ -480,9 +482,9 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
 
         # Fill DWI bval and bvec working and source filenames
         # Non-empty filenames trigger the copy below
-        work_bval_fname = str(work_json_fname.replace('dwi.json', 'dwi.bval'))
+        work_bval_fname = str(work_json_fname.replace('.json', '.bval'))
         bids_bval_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bval'))
-        work_bvec_fname = str(work_json_fname.replace('dwi.json', 'dwi.bvec'))
+        work_bvec_fname = str(work_json_fname.replace('.json', '.bvec'))
         bids_bvec_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bvec'))
 
     # Populate BIDS source directory with Nifti images, JSON and DWI sidecars
@@ -509,14 +511,8 @@ def bids_init(bids_src_dir, overwrite=False):
         BIDS source directory
     :param overwrite: string
         Overwrite flag
-    :return participants_fd: object
-        participant TSV file descriptor
+    :return True
     """
-
-    # Create template participant TSV file in BIDS root directory
-    parts_tsv = os.path.join(bids_src_dir, 'participants.tsv')
-    participants_fd = open(parts_tsv, 'w')
-    participants_fd.write('participant_id\tsex\tage\n')
 
     # Create template JSON dataset description
     datadesc_json = os.path.join(bids_src_dir, 'dataset_description.json')
@@ -528,8 +524,34 @@ def bids_init(bids_src_dir, overwrite=False):
     # Write JSON file
     bids_write_json(datadesc_json, meta_dict, overwrite)
 
-    return participants_fd
+    return True
 
+def add_participant_record(studydir, subject, age, sex): #copied from heudiconv, this solution is good b/c it checks if the same subject id is already exists
+    participants_tsv = os.path.join(studydir, 'participants.tsv')
+    participant_id = 'sub-%s' % subject
+
+    if not create_file_if_missing(participants_tsv,'\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
+        # check if may be subject record already exists
+        with open(participants_tsv) as f:
+            f.readline()
+            known_subjects = {l.split('\t')[0] for l in f.readlines()}
+        if participant_id in known_subjects:
+            return
+    # Add a new participant
+    with open(participants_tsv, 'a') as f:
+        f.write('\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
+                              
+def create_file_if_missing(filename, content):
+    """Create file if missing, so we do not
+    override any possibly introduced changes"""
+    if os.path.lexists(filename):
+        return False
+    dirname = os.path.dirname(filename)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    with open(filename, 'w') as f:
+        f.write(content)
+    return True
 
 def bids_dcm_info(dcm_dir):
     """
@@ -689,27 +711,27 @@ def bids_events_template(bold_fname, overwrite=False):
         Overwrite flag
     :return: Nothing
     """
+    if "_bold.nii.gz" in bold_fname: #can have sbref.nii.gz here and you do not want overwrite it
+        events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+        events_bname = os.path.basename(events_fname)
 
-    events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
-    events_bname = os.path.basename(events_fname)
-
-    if os.path.isfile(events_fname):
-        if overwrite:
-            print('  Overwriting previous %s' % events_bname)
-            create_file = True
+        if os.path.isfile(events_fname):
+            if overwrite:
+                print('  Overwriting previous %s' % events_bname)
+                create_file = True
+            else:
+                print('  Preserving previous %s' % events_bname)
+                create_file = False
         else:
-            print('  Preserving previous %s' % events_bname)
-            create_file = False
-    else:
-        print('  Creating %s' % events_fname)
-        create_file = True
+            print('  Creating %s' % events_fname)
+            create_file = True
 
-    if create_file:
-        fd = open(events_fname, 'w')
-        fd.write('onset\tduration\ttrial_type\tresponse_time\n')
-        fd.write('1.0\t0.5\tgo\t0.555\n')
-        fd.write('2.5\t0.4\tstop\t0.666\n')
-        fd.close()
+        if create_file:
+            fd = open(events_fname, 'w')
+            fd.write('onset\tduration\ttrial_type\tresponse_time\n')
+            #fd.write('1.0\t0.5\tgo\t0.555\n')
+            #fd.write('2.5\t0.4\tstop\t0.666\n')
+            fd.close()
 
 
 def strip_extensions(fname):
