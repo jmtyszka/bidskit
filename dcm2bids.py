@@ -482,9 +482,9 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
 
         # Fill DWI bval and bvec working and source filenames
         # Non-empty filenames trigger the copy below
-        work_bval_fname = str(work_json_fname.replace('dwi.json', 'dwi.bval'))
+        work_bval_fname = str(work_json_fname.replace('.json', '.bval'))
         bids_bval_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bval'))
-        work_bvec_fname = str(work_json_fname.replace('dwi.json', 'dwi.bvec'))
+        work_bvec_fname = str(work_json_fname.replace('.json', '.bvec'))
         bids_bvec_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bvec'))
 
     # Populate BIDS source directory with Nifti images, JSON and DWI sidecars
@@ -711,27 +711,27 @@ def bids_events_template(bold_fname, overwrite=False):
         Overwrite flag
     :return: Nothing
     """
+    if "_bold.nii.gz" in bold_fname: #can have sbref.nii.gz here and you do not want overwrite it
+        events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+        events_bname = os.path.basename(events_fname)
 
-    events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
-    events_bname = os.path.basename(events_fname)
-
-    if os.path.isfile(events_fname):
-        if overwrite:
-            print('  Overwriting previous %s' % events_bname)
-            create_file = True
+        if os.path.isfile(events_fname):
+            if overwrite:
+                print('  Overwriting previous %s' % events_bname)
+                create_file = True
+            else:
+                print('  Preserving previous %s' % events_bname)
+                create_file = False
         else:
-            print('  Preserving previous %s' % events_bname)
-            create_file = False
-    else:
-        print('  Creating %s' % events_fname)
-        create_file = True
+            print('  Creating %s' % events_fname)
+            create_file = True
 
-    if create_file:
-        fd = open(events_fname, 'w')
-        fd.write('onset\tduration\ttrial_type\tresponse_time\n')
-        #fd.write('1.0\t0.5\tgo\t0.555\n')
-        #fd.write('2.5\t0.4\tstop\t0.666\n')
-        fd.close()
+        if create_file:
+            fd = open(events_fname, 'w')
+            fd.write('onset\tduration\ttrial_type\tresponse_time\n')
+            #fd.write('1.0\t0.5\tgo\t0.555\n')
+            #fd.write('2.5\t0.4\tstop\t0.666\n')
+            fd.close()
 
 
 def strip_extensions(fname):
