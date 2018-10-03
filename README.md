@@ -1,6 +1,8 @@
 # bidskit 
 Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
 
+[![DOI](https://zenodo.org/badge/64889181.svg)](https://zenodo.org/badge/latestdoi/64889181)
+
 ## dcm2bids.py (current version 1.1.2)
 Python script which takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a
 Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
