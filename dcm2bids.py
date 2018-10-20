@@ -318,6 +318,9 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                         # Safely add run-* key to BIDS suffix
                         bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
 
+                        # Assume the IntendedFor field should aslo have a run- added
+                        prot_dict = bids_add_intended_run(prot_dict, info, run_no[fc])
+
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
                         safe_mkdir(bids_purpose_dir)
@@ -987,6 +990,51 @@ def safe_copy(fname1, fname2, overwrite=False):
 
     if create_file:
         shutil.copy(fname1, fname2)
+
+def bids_add_intended_run(prot_dict, info, run_no):
+    """
+    Add run numbers to files in IntendedFor.
+    :param prot_dict: dict
+    :param info: dict
+    :param run_no: int
+    :return prot_dict: dict
+    """
+
+    prot_dict_update = dict()
+    for k in prot_dict.keys():
+        if prot_dict[k][0] == 'fmap':
+            # get a list of the intended runs
+            intended_for = prot_dict[k][2]
+            if type(prot_dict[k][2]) == list:
+                intended_for = prot_dict[k][2]
+            elif prot_dict[k][2] != 'UNASSIGNED':
+                intended_for = [prot_dict[k][2]]
+            else:
+                break
+
+            suffixes = [os.path.basename(x) for x in intended_for]
+            types = [os.path.dirname(x) for x in intended_for]
+
+            # determine if this sequence is intended by the fmap
+            if prot_dict[info['SerDesc']] in suffixes:
+                idx = suffixes.index(prot_dict[info['SerDesc']][1])
+
+                # change intendedfor to include run or add a new run
+                new_suffix = bids_add_run_number(suffixes[idx], run_no)
+
+                if new_suffix != suffixes[idx]:
+                    if '_run-' in suffixes[idx]:
+                        suffixes.append(new_suffix)
+                        types.append(types[idx])
+                    else:
+                        suffixes[idx] = new_suffix
+
+                intended_for = [os.path.join(x[0], x[1]) for x in zip(types, suffixes)]
+                prot_dict_update[k] = ['fmap', prot_dict[k][1], intended_for]
+
+    prot_dict.update(prot_dict_update)
+    return prot_dict
+
 
 
 # This is the standard boilerplate that calls the main() function.
