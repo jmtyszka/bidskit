@@ -154,7 +154,7 @@ def main():
     # Initialize BIDS source directory contents
     if not first_pass:
         bids_init(bids_src_dir, overwrite)
-    
+
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
@@ -227,7 +227,7 @@ def main():
                 # Add line to participants TSV file
                 #participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
                 add_participant_record(bids_src_dir, SID, dcm_info['Age'], dcm_info['Sex'])
-                
+
             # Run dcm2niix output to BIDS source conversions
             bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, overwrite)
 
@@ -263,12 +263,12 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
 
     # Flag for working conversion directory cleanup
     do_cleanup = False
-
+    print(prot_dict)
     if os.path.isdir(conv_dir):
 
         # glob returns the full relative path from the tmp dir
         filelist = glob(os.path.join(conv_dir, '*.nii*'))
-        
+
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
         run_no = bids_auto_run_no(filelist)
@@ -302,7 +302,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     break
 
                 if info['SerDesc'] in prot_dict.keys():
-    
+
                     if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
 
                         # Skip excluded protocols
@@ -540,7 +540,7 @@ def add_participant_record(studydir, subject, age, sex): #copied from heudiconv,
     # Add a new participant
     with open(participants_tsv, 'a') as f:
         f.write('\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
-                              
+
 def create_file_if_missing(filename, content):
     """Create file if missing, so we do not
     override any possibly introduced changes"""
@@ -557,7 +557,7 @@ def bids_dcm_info(dcm_dir):
     """
     Extract relevant subject information from DICOM header
     - Assumes only one subject present within dcm_dir
-    
+
     :param dcm_dir: directory containing all DICOM files or DICOM subfolders
     :return dcm_info: DICOM header information dictionary
     """
@@ -936,13 +936,17 @@ def bids_build_intendedfor(SID, SES, bids_suffix):
     :param bids_suffix:
     :return: ifstr, str
     """
+    bids_name = os.path.basename(bids_suffix)
+    bids_type = os.path.dirname(bids_suffix)
+    if bids_type == '':
+        bids_type = 'func'
 
     # Complete BIDS filenames for image and sidecar
     if SES:
         # If sessions are being used, add session directory to IntendedFor field
-        ifstr = os.path.join('ses-'+SES, 'func', 'sub-'+SID+'_ses-'+SES+'_'+bids_suffix+'.nii.gz')
+        ifstr = os.path.join('ses-'+SES, bids_type, 'sub-'+SID+'_ses-'+SES+'_'+bids_name+'.nii.gz')
     else:
-        ifstr = os.path.join('func', 'sub-'+SID+'_'+bids_suffix+'.nii.gz')
+        ifstr = os.path.join(bids_type, 'sub-'+SID+'_'+bids_name+'.nii.gz')
 
 
     return ifstr
