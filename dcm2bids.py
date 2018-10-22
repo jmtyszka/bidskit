@@ -154,7 +154,7 @@ def main():
     # Initialize BIDS source directory contents
     if not first_pass:
         bids_init(bids_src_dir, overwrite)
-    
+
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
@@ -227,7 +227,7 @@ def main():
                 # Add line to participants TSV file
                 #participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
                 add_participant_record(bids_src_dir, SID, dcm_info['Age'], dcm_info['Sex'])
-                
+
             # Run dcm2niix output to BIDS source conversions
             bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, overwrite)
 
@@ -263,12 +263,12 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
 
     # Flag for working conversion directory cleanup
     do_cleanup = False
-
+    print(prot_dict)
     if os.path.isdir(conv_dir):
 
         # glob returns the full relative path from the tmp dir
         filelist = glob(os.path.join(conv_dir, '*.nii*'))
-        
+
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
         run_no = bids_auto_run_no(filelist)
@@ -302,7 +302,7 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
                     break
 
                 if info['SerDesc'] in prot_dict.keys():
-    
+
                     if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
 
                         # Skip excluded protocols
@@ -317,6 +317,9 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
 
                         # Safely add run-* key to BIDS suffix
                         bids_suffix = bids_add_run_number(bids_suffix, run_no[fc])
+
+                        # Assume the IntendedFor field should aslo have a run- added
+                        prot_dict = bids_add_intended_run(prot_dict, info, run_no[fc])
 
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
@@ -540,7 +543,7 @@ def add_participant_record(studydir, subject, age, sex): #copied from heudiconv,
     # Add a new participant
     with open(participants_tsv, 'a') as f:
         f.write('\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
-                              
+
 def create_file_if_missing(filename, content):
     """Create file if missing, so we do not
     override any possibly introduced changes"""
@@ -557,7 +560,7 @@ def bids_dcm_info(dcm_dir):
     """
     Extract relevant subject information from DICOM header
     - Assumes only one subject present within dcm_dir
-    
+
     :param dcm_dir: directory containing all DICOM files or DICOM subfolders
     :return dcm_info: DICOM header information dictionary
     """
@@ -936,13 +939,17 @@ def bids_build_intendedfor(SID, SES, bids_suffix):
     :param bids_suffix:
     :return: ifstr, str
     """
+    bids_name = os.path.basename(bids_suffix)
+    bids_type = os.path.dirname(bids_suffix)
+    if bids_type == '':
+        bids_type = 'func'
 
     # Complete BIDS filenames for image and sidecar
     if SES:
         # If sessions are being used, add session directory to IntendedFor field
-        ifstr = os.path.join('ses-'+SES, 'func', 'sub-'+SID+'_ses-'+SES+'_'+bids_suffix+'.nii.gz')
+        ifstr = os.path.join('ses-'+SES, bids_type, 'sub-'+SID+'_ses-'+SES+'_'+bids_name+'.nii.gz')
     else:
-        ifstr = os.path.join('func', 'sub-'+SID+'_'+bids_suffix+'.nii.gz')
+        ifstr = os.path.join(bids_type, 'sub-'+SID+'_'+bids_name+'.nii.gz')
 
 
     return ifstr
@@ -983,6 +990,51 @@ def safe_copy(fname1, fname2, overwrite=False):
 
     if create_file:
         shutil.copy(fname1, fname2)
+
+def bids_add_intended_run(prot_dict, info, run_no):
+    """
+    Add run numbers to files in IntendedFor.
+    :param prot_dict: dict
+    :param info: dict
+    :param run_no: int
+    :return prot_dict: dict
+    """
+
+    prot_dict_update = dict()
+    for k in prot_dict.keys():
+        if prot_dict[k][0] == 'fmap':
+            # get a list of the intended runs
+            intended_for = prot_dict[k][2]
+            if type(prot_dict[k][2]) == list:
+                intended_for = prot_dict[k][2]
+            elif prot_dict[k][2] != 'UNASSIGNED':
+                intended_for = [prot_dict[k][2]]
+            else:
+                break
+
+            suffixes = [os.path.basename(x) for x in intended_for]
+            types = [os.path.dirname(x) for x in intended_for]
+
+            # determine if this sequence is intended by the fmap
+            if prot_dict[info['SerDesc']] in suffixes:
+                idx = suffixes.index(prot_dict[info['SerDesc']][1])
+
+                # change intendedfor to include run or add a new run
+                new_suffix = bids_add_run_number(suffixes[idx], run_no)
+
+                if new_suffix != suffixes[idx]:
+                    if '_run-' in suffixes[idx]:
+                        suffixes.append(new_suffix)
+                        types.append(types[idx])
+                    else:
+                        suffixes[idx] = new_suffix
+
+                intended_for = [os.path.join(x[0], x[1]) for x in zip(types, suffixes)]
+                prot_dict_update[k] = ['fmap', prot_dict[k][1], intended_for]
+
+    prot_dict.update(prot_dict_update)
+    return prot_dict
+
 
 
 # This is the standard boilerplate that calls the main() function.
