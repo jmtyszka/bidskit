@@ -29,13 +29,13 @@ Without Session Subdirectories:
 
 Usage
 ----
-dcm2bids.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
+convert.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
 
 Examples
 ----
-% dcm2bids.py
-% dcm2bids.py --no-sessions
-% dcm2bids.py -i mydicom -o mybids --no-sessions
+% convert.py
+% convert.py --no-sessions
+% convert.py -i mydicom -o mybids --no-sessions
 
 Authors
 ----
