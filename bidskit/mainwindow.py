@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BIDS conversion tool
+BIDS conversion tool main window class
 
 AUTHOR
 ----
@@ -29,7 +29,6 @@ You should have received a copy of the GNU General Public License
 along with stellate.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import sys
 from PyQt5 import QtWidgets
 from bidskit.bidskit_ui import Ui_MainWindow
 
@@ -69,15 +68,4 @@ class BIDSKitMainWindow(QtWidgets.QMainWindow):
 
         if dname:
             self.ui.dicomdirText.setText(dname)
-
-
-# Main entry point
-if __name__ == "__main__":
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    window = BIDSKitMainWindow()
-    window.show()
-
-    sys.exit(app.exec_())
 
