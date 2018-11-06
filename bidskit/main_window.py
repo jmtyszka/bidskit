@@ -31,7 +31,7 @@ along with stellate.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
 from PyQt5 import QtWidgets
-from bidskit_ui import Ui_MainWindow
+from bidskit.bidskit_ui import Ui_MainWindow
 
 
 class BIDSKitMainWindow(QtWidgets.QMainWindow):
