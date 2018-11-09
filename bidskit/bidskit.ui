@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>BIDSKit</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -81,7 +81,7 @@
        <item>
         <widget class="QTableWidget" name="tableWidget">
          <property name="rowCount">
-          <number>5</number>
+          <number>6</number>
          </property>
          <property name="columnCount">
           <number>7</number>
@@ -107,6 +107,7 @@
          <attribute name="verticalHeaderStretchLastSection">
           <bool>false</bool>
          </attribute>
+         <row/>
          <row/>
          <row/>
          <row/>
@@ -149,22 +150,22 @@
          </column>
          <item row="0" column="0">
           <property name="text">
-           <string>Rest_1</string>
+           <string>Localizer</string>
           </property>
          </item>
          <item row="0" column="1">
           <property name="text">
-           <string>func</string>
+           <string>anat</string>
           </property>
          </item>
          <item row="0" column="2">
           <property name="text">
-           <string>rest</string>
+           <string>-</string>
           </property>
          </item>
          <item row="0" column="3">
           <property name="text">
-           <string>highres</string>
+           <string>-</string>
           </property>
          </item>
          <item row="0" column="4">
@@ -179,19 +180,197 @@
          </item>
          <item row="0" column="6">
           <property name="text">
+           <string>gre</string>
+          </property>
+         </item>
+         <item row="1" column="0">
+          <property name="text">
+           <string>T1w</string>
+          </property>
+         </item>
+         <item row="1" column="1">
+          <property name="text">
+           <string>anat</string>
+          </property>
+         </item>
+         <item row="1" column="2">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="1" column="3">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="1" column="4">
+          <property name="text">
+           <string>1</string>
+          </property>
+         </item>
+         <item row="1" column="5">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="1" column="6">
+          <property name="text">
+           <string>T1w</string>
+          </property>
+         </item>
+         <item row="2" column="0">
+          <property name="text">
+           <string>T2w</string>
+          </property>
+         </item>
+         <item row="2" column="1">
+          <property name="text">
+           <string>anat</string>
+          </property>
+         </item>
+         <item row="2" column="2">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="2" column="3">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="2" column="4">
+          <property name="text">
+           <string>1</string>
+          </property>
+         </item>
+         <item row="2" column="5">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="2" column="6">
+          <property name="text">
+           <string>T2w</string>
+          </property>
+         </item>
+         <item row="3" column="0">
+          <property name="text">
+           <string>Rest1</string>
+          </property>
+         </item>
+         <item row="3" column="1">
+          <property name="text">
+           <string>func</string>
+          </property>
+         </item>
+         <item row="3" column="2">
+          <property name="text">
+           <string>rest</string>
+          </property>
+         </item>
+         <item row="3" column="3">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="3" column="4">
+          <property name="text">
+           <string>1</string>
+          </property>
+         </item>
+         <item row="3" column="5">
+          <property name="text">
+           <string>1</string>
+          </property>
+         </item>
+         <item row="3" column="6">
+          <property name="text">
            <string>bold</string>
+          </property>
+         </item>
+         <item row="4" column="0">
+          <property name="text">
+           <string>FmapAP</string>
+          </property>
+         </item>
+         <item row="4" column="1">
+          <property name="text">
+           <string>fmap</string>
+          </property>
+         </item>
+         <item row="4" column="2">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="4" column="3">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="4" column="4">
+          <property name="text">
+           <string>1</string>
+          </property>
+         </item>
+         <item row="4" column="5">
+          <property name="text">
+           <string>AP</string>
+          </property>
+         </item>
+         <item row="4" column="6">
+          <property name="text">
+           <string>epi</string>
+          </property>
+         </item>
+         <item row="5" column="0">
+          <property name="text">
+           <string>FmapPA</string>
+          </property>
+         </item>
+         <item row="5" column="1">
+          <property name="text">
+           <string>fmap</string>
+          </property>
+         </item>
+         <item row="5" column="2">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="5" column="3">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </item>
+         <item row="5" column="4">
+          <property name="text">
+           <string>1</string>
+          </property>
+         </item>
+         <item row="5" column="5">
+          <property name="text">
+           <string>PA</string>
+          </property>
+         </item>
+         <item row="5" column="6">
+          <property name="text">
+           <string>epi</string>
           </property>
          </item>
         </widget>
        </item>
        <item>
-        <widget class="QTreeView" name="treeView">
+        <widget class="QTreeView" name="BIDSTree">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <attribute name="headerShowSortIndicator" stdset="0">
+          <bool>true</bool>
+         </attribute>
         </widget>
        </item>
       </layout>
