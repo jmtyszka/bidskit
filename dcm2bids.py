@@ -102,6 +102,12 @@ def main():
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Overwrite existing files')
 
+    parser.add_argument('--skip_if_pruning', action='store_true', default=False,
+                        help='Skip pruning of nonexistent IntendedFor items in json files')
+    
+    parser.add_argument('--clean_conv_dir', action='store_true', default=False,
+                        help='Clean up conversion directory')
+
     # Parse command line arguments
     args = parser.parse_args()
     dcm_root_dir = os.path.realpath(args.indir)
@@ -155,10 +161,14 @@ def main():
     if not first_pass:
         bids_init(bids_src_dir, overwrite)
 
+    subject_dir_list = []
+
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
+
         SID = os.path.basename(dcm_sub_dir.strip('/'))
+        subject_dir_list.append( bids_src_dir + "/sub-" + SID )
 
         print('')
         print('------------------------------------------------------------')
@@ -229,18 +239,62 @@ def main():
                 add_participant_record(bids_src_dir, SID, dcm_info['Age'], dcm_info['Sex'])
 
             # Run dcm2niix output to BIDS source conversions
-            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, overwrite)
+            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, args.clean_conv_dir, overwrite)
 
     if first_pass:
         # Create a template protocol dictionary
         bids_create_prot_dict(prot_dict_json, prot_dict)
 
 
+    if not args.skip_if_pruning:
+        print( "Subject directories to prune:  " + ", ".join(subject_dir_list) )
+        for bids_subj_dir in subject_dir_list:
+            bids_prune_intendedfors(bids_subj_dir, True)
+
     # Clean exit
     sys.exit(0)
 
 
-def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, overwrite=False):
+def bids_prune_intendedfors(bids_subj_dir, fmap_only):
+    """
+    Prune out all "IntendedFor" entries pointing to nonexistent files from all json files in given directory tree
+    
+    :param bids_subj_dir: string
+        Subject directory
+    :param fmap_only: boolean
+        Only looks at json files in an fmap directory
+    """
+    
+    # Traverse through all directories in bids_subj_dir
+    for root, dirs, files in os.walk(bids_subj_dir):
+        for name in files:
+         
+            # Only examine json files, ignore dataset_description, and only work in fmap directories if so specified
+            if os.path.splitext(name)[1] == ".json" and not name == "dataset_description.json" and (not fmap_only or os.path.basename(root) == "fmap"):
+                with open(os.path.join(root, name), 'r+') as f:
+
+                    # Read json file
+                    data = json.load(f)
+                    
+                    if 'IntendedFor' in data:
+                     
+                        # Prune list of files that do not exist
+                        bids_intendedfor = []
+                        for i in data['IntendedFor']:
+                            i_fullpath = os.path.join(bids_subj_dir, i)
+                            if os.path.isfile(i_fullpath):
+                                bids_intendedfor.append(i)
+                          
+                        # Modify IntendedFor with pruned list 
+                        data['IntendedFor'] = bids_intendedfor
+                        
+                        # Update json file
+                        f.seek(0)
+                        json.dump(data, f, indent=4)
+                        f.truncate()
+     
+
+def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clean_conv_dir, overwrite=False):
     """
     Run dcm2niix output to BIDS source conversions
 
@@ -256,13 +310,15 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, over
         subject ID
     :param SES: string
         session name or number
+    :param clean_conv_dir: bool
+        clean up conversion directory
     :param overwrite: bool
         overwrite flag
     :return:
     """
 
     # Flag for working conversion directory cleanup
-    do_cleanup = False
+    do_cleanup = clean_conv_dir
     print(prot_dict)
     if os.path.isdir(conv_dir):
 
