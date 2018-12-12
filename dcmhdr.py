@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """
-Convert flat DICOM file set into a BIDS-compliant Nifti structure
-- Expects protocol names to be in BIDS format (eg task-rest_run-01_bold)
+Extract useful tag values from header of a DICOM image
 
 Usage
 ----
-dcm2bids.py -i <DICOM Directory> -o <BIDS Directory Root>
+dcmhdr.py -i <DICOM Image File> -o <Output CSV File>
 
 Example
 ----
-% dcm2bids.py -i mydicom -o mybids
+% dcmhdr.py -i IM-001.dcm -o IM-001_Header.csv
 
 Authors
 ----
@@ -18,10 +17,11 @@ Mike Tyszka, Caltech Brain Imaging Center
 Dates
 ----
 2016-08-03 JMT From scratch
+2018-12-11 JMT Update comments
 
 MIT License
 
-Copyright (c) 2016 Mike Tyszka
+Copyright (c) 2018 Mike Tyszka
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
