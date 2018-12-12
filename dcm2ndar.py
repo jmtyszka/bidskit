@@ -112,6 +112,10 @@ def main():
             # Read additional subject-level DICOM header fields from first DICOM image
             dcm_info = ndar_dcm_info(dcm_sub_dir)
 
+            if not dcm_info:
+                print('* Cannot continue - exiting')
+                sys.exit(1)
+
             # Run dcm2niix conversion from DICOM to Nifti with BIDS sidecars for metadata
             # This relies on the current CBIC branch of dcm2niix which extracts additional DICOM fields
             # required by NDAR
@@ -378,6 +382,9 @@ def ndar_dcm_info(dcm_dir):
     :return: dcm_info: extra information dictionary
     """
 
+    # Init a new dictionary
+    dcm_info = dict()
+
     # Loop over files until first valid DICOM is found
     ds = []
     for dcm in os.listdir(dcm_dir):
@@ -390,8 +397,11 @@ def ndar_dcm_info(dcm_dir):
         if ds:
             break
 
-    # Init a new dictionary
-    dcm_info = dict()
+    # No valid DICOM file found in entire directory
+    if not ds:
+        print('* No valid DICOM data found at top level of %s' % dcm_dir)
+        print('* Subdirectories not yet supported')
+        return dcm_info
 
     # Read DoB and scan date
     dob = ds.PatientBirthDate
