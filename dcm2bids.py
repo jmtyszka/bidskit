@@ -48,6 +48,7 @@ Dates
 2017-11-09 JMT Added support for DWI, no sessions, IntendedFor and TaskName
 2018-03-09 JMT Fixed IntendedFor handling (#20, #27) and run-number issues (#28)
                Migrated to pydicom v1.0.1 (note namespace change to pydicom)
+2019-02-25 JMT Fixed arbitrary run ordering (sorted glob)
 
 MIT License
 
@@ -319,11 +320,14 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
 
     # Flag for working conversion directory cleanup
     do_cleanup = clean_conv_dir
-    print(prot_dict)
+
+    # Proceed if conversion directory exists
     if os.path.isdir(conv_dir):
 
         # glob returns the full relative path from the tmp dir
-        filelist = glob(os.path.join(conv_dir, '*.nii*'))
+        # Note that glob returns arbitrarily ordered filenames, which must be sorted lexically
+        # for the run ordering below to work correctly.
+        filelist = sorted(glob(os.path.join(conv_dir, '*.nii*')))
 
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
