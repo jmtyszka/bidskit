@@ -357,9 +357,10 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
                     src_json_fname = src_nii_fname.replace('.nii', '.json')
 
                 # JSON sidecar for this image
+                # Warn if not found and continue
                 if not os.path.isfile(src_json_fname):
-                    print('* JSON sidecar not found : %s' % src_json_fname)
-                    break
+                    print('* WARNING: JSON sidecar %s not found' % src_json_fname)
+                    continue
 
                 if info['SerDesc'] in prot_dict.keys():
 
