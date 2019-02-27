@@ -325,10 +325,12 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
     if os.path.isdir(conv_dir):
 
         # glob returns the full relative path from the tmp dir
-        # Note that glob returns arbitrarily ordered filenames, which must be sorted lexically
+        # Note that glob returns arbitrarily ordered filenames, which must be sorted according to serNo
         # for the run ordering below to work correctly.
-        filelist = sorted(glob(os.path.join(conv_dir, '*.nii*')))
-
+        filelisttmp = glob(os.path.join(conv_dir, '*.nii*'))
+        serNolist   = [int(parse_dcm2niix_fname(file)['SerNo']) for file in filelisttmp]
+        filelist    = [file for _,file in sorted(zip(serNolist,filelisttmp))]
+        
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
         run_no = bids_auto_run_no(filelist)
