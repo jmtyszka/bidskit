@@ -6,7 +6,7 @@ ui_qt = $(app_name).ui
 all: $(ui_py)
 
 $(ui_py): $(ui_qt)
-	pyuic5 $< -o $@
+	pyside2-uic -x $< -o $@
 
 clean:
 	rm -rf $(ui_py)

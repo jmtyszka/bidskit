@@ -12,6 +12,7 @@ setup(
     url = "http://packages.python.org/bidskit",
     packages=['bidskit', 'tests'],
     scripts=['bin/bidskit'],
+    install_requires=['PySide2'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",

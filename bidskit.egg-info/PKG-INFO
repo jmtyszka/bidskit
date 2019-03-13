@@ -1,0 +1,14 @@
+Metadata-Version: 1.1
+Name: bidskit
+Version: 1.2.0
+Summary: DICOM to BIDS Converter
+Home-page: http://packages.python.org/bidskit
+Author: Mike Tyszka
+Author-email: jmt@caltech.edu
+License: MIT
+Description: A tool for converting and organizing DICOM data in the BIDS format
+Keywords: DICOM BIDS Converter
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Topic :: Utilities
+Classifier: License :: OSI Approved :: MIT License

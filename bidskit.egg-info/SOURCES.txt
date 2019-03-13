@@ -1,0 +1,14 @@
+README.md
+setup.py
+bidskit/__init__.py
+bidskit/bidskit_ui.py
+bidskit/convert.py
+bidskit/mainwindow.py
+bidskit/scandicom.py
+bidskit/validate.py
+bidskit.egg-info/PKG-INFO
+bidskit.egg-info/SOURCES.txt
+bidskit.egg-info/dependency_links.txt
+bidskit.egg-info/requires.txt
+bidskit.egg-info/top_level.txt
+bin/bidskit
