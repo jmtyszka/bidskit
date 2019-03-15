@@ -40,7 +40,7 @@ This release was developed under Python 3.6 (os, sys, argparse, subprocess, shut
 
 ### Organize DICOM Data
 
-Organize the source DICOM images into separate subject and subject-session directories within a root directory (`mydicom` in the example below, but the script default is simply `dicom`). The organization of DICOM files within each subject directory can follow a session-series heirarchy or by a simple flat directory containing all subject files. The conversion to Nifti-1 format and JSON sidecar generation is handled by dcm2niix, so whatever works for dcm2niix will hopefully work for dcm2bids.py. A typical DICOM directory tree might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
+Organize the source DICOM images into separate subject and subject-session directories within a root directory (`mydicom` in the example below, but the script default is simply `dicom`). The organization of DICOM files **within each subject directory** can follow a session-series heirarchy or a simple flat organization. The conversion to Nifti-1 format and JSON sidecar generation is handled by dcm2niix, so whatever works for dcm2niix will hopefully work for dcm2bids.py. A typical DICOM directory tree might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
 
 <pre>
 mydicom
