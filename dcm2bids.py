@@ -135,8 +135,8 @@ def main():
     print('BIDS Source Directory      : %s' % bids_src_dir)
     print('BIDS Derivatives Directory : %s' % bids_deriv_dir)
     print('Working Directory          : %s' % work_dir)
-    print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes') )
-    print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No') )
+    print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes'))
+    print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No'))
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -167,13 +167,12 @@ def main():
     # Loop over subject directories in DICOM root
     for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
 
-
-        SID = os.path.basename(dcm_sub_dir.strip('/'))
-        subject_dir_list.append( bids_src_dir + "/sub-" + SID )
+        sid = os.path.basename(dcm_sub_dir.strip('/'))
+        subject_dir_list.append(bids_src_dir + "/sub-" + sid)
 
         print('')
         print('------------------------------------------------------------')
-        print('Processing subject ' + SID)
+        print('Processing subject ' + sid)
         print('------------------------------------------------------------')
 
         # Handle subj vs subj/session directory lists
@@ -186,17 +185,17 @@ def main():
         for dcm_dir in dcm_dir_list:
 
             # BIDS subject, session and conversion directories
-            sub_prefix = 'sub-' + SID
+            sub_prefix = 'sub-' + sid
 
             if no_sessions:
                 # If session subdirs aren't being used, *_ses_dir = *sub_dir
                 # Use an empty ses_prefix with os.path.join to achieve this
-                SES = ''
+                ses = ''
                 ses_prefix = ''
             else:
-                SES = os.path.basename(dcm_dir.strip('/'))
-                ses_prefix = 'ses-' + SES
-                print('  Processing session ' + SES)
+                ses = os.path.basename(dcm_dir.strip('/'))
+                ses_prefix = 'ses-' + ses
+                print('  Processing session ' + ses)
 
             # Working conversion directories
             work_subj_dir = os.path.join(work_dir, sub_prefix)
@@ -236,19 +235,18 @@ def main():
                 dcm_info = bids_dcm_info(dcm_dir)
 
                 # Add line to participants TSV file
-                #participants_fd.write("sub-%s\t%s\t%s\n" % (SID, dcm_info['Sex'], dcm_info['Age']))
-                add_participant_record(bids_src_dir, SID, dcm_info['Age'], dcm_info['Sex'])
+                add_participant_record(bids_src_dir, sid, dcm_info['Age'], dcm_info['Sex'])
 
             # Run dcm2niix output to BIDS source conversions
-            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, SID, SES, args.clean_conv_dir, overwrite)
+            bids_run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, sid, ses,
+                                args.clean_conv_dir, overwrite)
 
     if first_pass:
         # Create a template protocol dictionary
         bids_create_prot_dict(prot_dict_json, prot_dict)
 
-
     if not args.skip_if_pruning:
-        print( "Subject directories to prune:  " + ", ".join(subject_dir_list) )
+        print("Subject directories to prune:  " + ", ".join(subject_dir_list))
         for bids_subj_dir in subject_dir_list:
             bids_prune_intendedfors(bids_subj_dir, True)
 
@@ -272,6 +270,7 @@ def bids_prune_intendedfors(bids_subj_dir, fmap_only):
          
             # Only examine json files, ignore dataset_description, and only work in fmap directories if so specified
             if os.path.splitext(name)[1] == ".json" and not name == "dataset_description.json" and (not fmap_only or os.path.basename(root) == "fmap"):
+
                 with open(os.path.join(root, name), 'r+') as f:
 
                     # Read json file
@@ -295,7 +294,7 @@ def bids_prune_intendedfors(bids_subj_dir, fmap_only):
                         f.truncate()
      
 
-def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clean_conv_dir, overwrite=False):
+def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_conv_dir, overwrite=False):
     """
     Run dcm2niix output to BIDS source conversions
 
@@ -307,9 +306,9 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
         Protocol translation dictionary
     :param src_dir: string
         BIDS source output subj or subj/session directory
-    :param SID: string
+    :param sid: string
         subject ID
-    :param SES: string
+    :param ses: string
         session name or number
     :param clean_conv_dir: bool
         clean up conversion directory
@@ -328,8 +327,8 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
         # Note that glob returns arbitrarily ordered filenames, which must be sorted according to serNo
         # for the run ordering below to work correctly.
         filelisttmp = glob(os.path.join(conv_dir, '*.nii*'))
-        serNolist   = [int(parse_dcm2niix_fname(file)['SerNo']) for file in filelisttmp]
-        filelist    = [file for _,file in sorted(zip(serNolist,filelisttmp))]
+        sernolist = [int(parse_dcm2niix_fname(file)['SerNo']) for file in filelisttmp]
+        filelist = [file for _, file in sorted(zip(sernolist, filelisttmp))]
         
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
@@ -357,6 +356,9 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
                     src_json_fname = src_nii_fname.replace('.nii.gz', '.json')
                 elif 'nii' in src_nii_fname:
                     src_json_fname = src_nii_fname.replace('.nii', '.json')
+                else:
+                    print('* Unknown extension: %s' % src_nii_fname)
+                    break
 
                 # JSON sidecar for this image
                 # Warn if not found and continue
@@ -389,26 +391,26 @@ def bids_run_conversion(conv_dir, first_pass, prot_dict, src_dir, SID, SES, clea
                         safe_mkdir(bids_purpose_dir)
 
                         # Complete BIDS filenames for image and sidecar
-                        if SES:
-                            bids_prefix = 'sub-' + SID + '_ses-' + SES + '_'
+                        if ses:
+                            bids_prefix = 'sub-' + sid + '_ses-' + ses + '_'
                         else:
-                            bids_prefix = 'sub-' + SID + '_'
+                            bids_prefix = 'sub-' + sid + '_'
 
                         # Construct BIDS source Nifti and JSON filenames
                         bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
-                        bids_json_fname = bids_nii_fname.replace('.nii.gz','.json')
+                        bids_json_fname = bids_nii_fname.replace('.nii.gz', '.json')
 
                         # Add prefix and suffix to IntendedFor values
-                        if not 'UNASSIGNED' in bids_intendedfor:
+                        if 'UNASSIGNED' not in bids_intendedfor:
                             if isinstance(bids_intendedfor, str):
                                 # Single linked image
-                                bids_intendedfor = bids_build_intendedfor(SID, SES, bids_intendedfor)
+                                bids_intendedfor = bids_build_intendedfor(sid, ses, bids_intendedfor)
                             else:
                                 # Loop over all linked images
                                 for ifc, ifstr in enumerate(bids_intendedfor):
                                     # Avoid multiple substitutions
-                                    if not '.nii.gz' in ifstr:
-                                        bids_intendedfor[ifc] = bids_build_intendedfor(SID, SES, ifstr)
+                                    if '.nii.gz' not in ifstr:
+                                        bids_intendedfor[ifc] = bids_build_intendedfor(sid, ses, ifstr)
 
                         # Special handling for specific purposes (anat, func, fmap, etc)
                         # This function populates BIDS structure with the image and adjusted sidecar
@@ -473,7 +475,7 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     elif bids_purpose == 'fmap':
 
         # Add IntendedFor field if requested through protocol translator
-        if not 'UNASSIGNED' in bids_intendedfor:
+        if 'UNASSIGNED' not in bids_intendedfor:
             info['IntendedFor'] = bids_intendedfor
 
         # Check for MEGE vs SE-EPI fieldmap images
@@ -504,9 +506,9 @@ def bids_purpose_handling(bids_purpose, bids_intendedfor, seq_name,
                         bids_json_fname = bids_json_fname.replace('.json', '_phasediff.json')
 
                         # Extract TE1 and TE2 from mag and phase JSON sidecars
-                        TE1, TE2 = bids_fmap_echotimes(work_json_fname)
-                        info['EchoTime1'] = TE1
-                        info['EchoTime2'] = TE2
+                        te1, te2 = bids_fmap_echotimes(work_json_fname)
+                        info['EchoTime1'] = te1
+                        info['EchoTime2'] = te2
 
                     else:
 
@@ -583,16 +585,27 @@ def bids_init(bids_src_dir, overwrite=False):
     # Create template JSON dataset description
     datadesc_json = os.path.join(bids_src_dir, 'dataset_description.json')
     meta_dict = dict({'BIDSVersion': "1.0.0",
-               'License': "This data is made available under the Creative Commons BY-SA 4.0 International License.",
-               'Name': "The dataset name goes here",
-               'ReferencesAndLinks': "References and links for this dataset go here"})
+                      'License': "This data is made available under the Creative Commons BY-SA 4.0 International License.",
+                      'Name': "The dataset name goes here",
+                      'ReferencesAndLinks': "References and links for this dataset go here"})
 
     # Write JSON file
     bids_write_json(datadesc_json, meta_dict, overwrite)
 
     return True
 
-def add_participant_record(studydir, subject, age, sex): #copied from heudiconv, this solution is good b/c it checks if the same subject id is already exists
+
+def add_participant_record(studydir, subject, age, sex):
+    """
+    Copied from heudiconv, this solution is good b/c it checks if the same subject ID already exists
+    
+    :param studydir: 
+    :param subject: 
+    :param age: 
+    :param sex: 
+    :return: 
+    """
+
     participants_tsv = os.path.join(studydir, 'participants.tsv')
     participant_id = 'sub-%s' % subject
 
@@ -603,21 +616,34 @@ def add_participant_record(studydir, subject, age, sex): #copied from heudiconv,
             known_subjects = {l.split('\t')[0] for l in f.readlines()}
         if participant_id in known_subjects:
             return
+
     # Add a new participant
     with open(participants_tsv, 'a') as f:
         f.write('\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
 
+
 def create_file_if_missing(filename, content):
-    """Create file if missing, so we do not
-    override any possibly introduced changes"""
+    """
+    Create file if missing, so we do not override any possibly introduced changes
+
+    :param filename:
+    :param content:
+    :return:
+    """
+
     if os.path.lexists(filename):
         return False
+
     dirname = os.path.dirname(filename)
+
     if not os.path.exists(dirname):
         os.makedirs(dirname)
+
     with open(filename, 'w') as f:
         f.write(content)
+
     return True
+
 
 def bids_dcm_info(dcm_dir):
     """
@@ -640,7 +666,7 @@ def bids_dcm_info(dcm_dir):
 
             try:
                 ds = pydicom.read_file(os.path.join(subdir, file))
-            except:
+            except IOError:
                 pass
 
             # Break out if valid DICOM read
@@ -795,8 +821,6 @@ def bids_events_template(bold_fname, overwrite=False):
         if create_file:
             fd = open(events_fname, 'w')
             fd.write('onset\tduration\ttrial_type\tresponse_time\n')
-            #fd.write('1.0\t0.5\tgo\t0.555\n')
-            #fd.write('2.5\t0.4\tstop\t0.666\n')
             fd.close()
 
 
@@ -860,7 +884,7 @@ def bids_fmap_echotimes(src_phase_json_fname):
 
         # Construct dcm2niix mag1 JSON filename
         # Requires dicm2niix v1.0.20180404 or later for echo number suffix '_e1'
-        src_mag1_json_fname = info['SubjName'] +'--' +\
+        src_mag1_json_fname = info['SubjName'] + '--' +\
                               info['SerDesc'] + '--' +\
                               info['SeqName'] + '--' +\
                               mag1_ser_no + '_e1.json'
@@ -993,27 +1017,27 @@ def bids_auto_run_no(file_list):
     return run_no
 
 
-def bids_build_intendedfor(SID, SES, bids_suffix):
+def bids_build_intendedfor(sid, ses, bids_suffix):
     """
     Build the IntendedFor entry for a fieldmap sidecar
 
-    :param SID, str : Subject ID
-    :param SES, str : Session number
-    :param bids_suffix:
+    :param: sid, str, Subject ID
+    :param: ses, str,  Session number
+    :param: bids_suffix
     :return: ifstr, str
     """
+
     bids_name = os.path.basename(bids_suffix)
     bids_type = os.path.dirname(bids_suffix)
     if bids_type == '':
         bids_type = 'func'
 
     # Complete BIDS filenames for image and sidecar
-    if SES:
+    if ses:
         # If sessions are being used, add session directory to IntendedFor field
-        ifstr = os.path.join('ses-'+SES, bids_type, 'sub-'+SID+'_ses-'+SES+'_'+bids_name+'.nii.gz')
+        ifstr = os.path.join('ses-' + ses, bids_type, 'sub-' + sid + '_ses-' + ses + '_' + bids_name + '.nii.gz')
     else:
-        ifstr = os.path.join(bids_type, 'sub-'+SID+'_'+bids_name+'.nii.gz')
-
+        ifstr = os.path.join(bids_type, 'sub-' + sid + '_' + bids_name + '.nii.gz')
 
     return ifstr
 
@@ -1054,6 +1078,7 @@ def safe_copy(fname1, fname2, overwrite=False):
     if create_file:
         shutil.copy(fname1, fname2)
 
+
 def bids_add_intended_run(prot_dict, info, run_no):
     """
     Add run numbers to files in IntendedFor.
@@ -1064,10 +1089,12 @@ def bids_add_intended_run(prot_dict, info, run_no):
     """
 
     prot_dict_update = dict()
+
     for k in prot_dict.keys():
+
         if prot_dict[k][0] == 'fmap':
-            # get a list of the intended runs
-            intended_for = prot_dict[k][2]
+
+            # Construct a list of the intended runs
             if type(prot_dict[k][2]) == list:
                 intended_for = prot_dict[k][2]
             elif prot_dict[k][2] != 'UNASSIGNED':
@@ -1096,8 +1123,8 @@ def bids_add_intended_run(prot_dict, info, run_no):
                 prot_dict_update[k] = ['fmap', prot_dict[k][1], intended_for]
 
     prot_dict.update(prot_dict_update)
-    return prot_dict
 
+    return prot_dict
 
 
 # This is the standard boilerplate that calls the main() function.
