@@ -3,9 +3,11 @@ Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimagi
 
 [![DOI](https://zenodo.org/badge/64889181.svg)](https://zenodo.org/badge/latestdoi/64889181)
 
-## dcm2bids.py (current version 1.1.3)
+## dcm2bids.py (current version 1.2)
 Python script which takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a
 Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
+
+The version numbering for bidskit follows that of the BIDS specification it implements. At the time of writing, BIDS and bidskit are at version 1.2.
 
 ## Installation
 
@@ -33,33 +35,32 @@ Clone the repository, add the resulting directory to your path and install depen
 
 **Dependencies**
 This release was developed under Python 3.6 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
-1. pydicom 1.0.1 (latest version in PyPi)
-2. Chris Rorden's dcm2niix - the latest version at the time of writing is v1.0.20171103 ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
+1. pydicom 1.2.2 (current PyPi version)
+2. Chris Rorden's dcm2niix - the current version at the time of writing is v1.0.20181125 ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
 ## DICOM to BIDS Conversion
 
-### Organize DICOM Data
+### Initial organization of the BIDS dataset directory
+BIDSKIT attempts to track the BIDS specification as closely as possible, and at the time of writing, we're using the BIDS directory organization described by the [BIDS Starter Kit](https://github.com/bids-standard/bids-starter-kit/wiki/The-BIDS-folder-hierarchy).
 
-Organize the source DICOM images into separate subject and subject-session directories within a root directory (`mydicom` in the example below, but the script default is simply `dicom`). The organization of DICOM files **within each subject directory** can follow a session-series heirarchy or a simple flat organization. The conversion to Nifti-1 format and JSON sidecar generation is handled by dcm2niix, so whatever works for dcm2niix will hopefully work for dcm2bids.py. A typical DICOM directory tree might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
-
+To start out, you should create a dataset folder with a semi-descriptive name (eg learning_pilot_2019) with a subfolder named sourcedata containing your raw DICOM data. The organization of DICOM image files **within each subject directory** can follow a session-series heirarchy or a simple flat organization. The conversion to Nifti-1 format and JSON sidecar generation is handled by dcm2niix, so whatever works for dcm2niix will hopefully work for dcm2bids.py. A typical DICOM directory tree might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
 <pre>
-mydicom
-└── Ra0950
-    └── first
-        ├── IM-0001-0001.dcm
-        ├── IM-0001-0002.dcm
-        ...
-    └── second
-        ...
-└── Ra0951
-    └── first
-        ├── IM-0001-0001.dcm
-        ├── IM-0001-0002.dcm
-        ...
-    └── second
-        ...
+learning_pilot_2019/
+└── sourcedata/
+    └── Ra0950/
+       └── first/
+            <DICOM Image Files>
+        └── second/
+            <DICOM Image Files>
+    └── Ra0951/
+        └── first/
+            <DICOM Image Files>
+        └── second/
+            <DICOM Image Files>
+    ...
 </pre>
 
+That's all you need to do in terms of organizing your raw DICOM data. The next phase will generate an editable file which controls the conversion of your original MRI series into a BIDS-compliant directory tree.
 
 ### First Pass Conversion
 The required command line arguments and defaults for dcm2bids.py can be displayed using:
