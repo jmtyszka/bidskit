@@ -29,13 +29,13 @@ Without Session Subdirectories:
 
 Usage
 ----
-main.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
+launcher.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
 
 Examples
 ----
-% main.py
-% main.py --no-sessions
-% main.py -i mydicom -o mybids --no-sessions
+% launcher.py
+% launcher.py --no-sessions
+% launcher.py -i mydicom -o mybids --no-sessions
 
 Authors
 ----

@@ -183,7 +183,7 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
         'console_scripts': [
-            'bidskit=bidskit:main',
+            'bidskit=bidskit.launcher:main',
         ],
     },
 

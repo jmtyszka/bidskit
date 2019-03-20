@@ -1,7 +1,7 @@
 README.md
 setup.py
 bidskit/__init__.py
-bidskit/main.py
+bidskit/launcher.py
 bidskit.egg-info/PKG-INFO
 bidskit.egg-info/SOURCES.txt
 bidskit.egg-info/dependency_links.txt
