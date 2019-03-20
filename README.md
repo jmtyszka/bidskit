@@ -1,42 +1,16 @@
-# bidskit 
-Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
+# BIDSKIT 1.2.0 
+Python utilities for converting from DICOM to BIDS neuroimaging formats
 
-[![DOI](https://zenodo.org/badge/64889181.svg)](https://zenodo.org/badge/latestdoi/64889181)
+## Documentation
+Full documentation, including installation instructions and a quick start guide can be found at 
 
-## dcm2bids.py (current version 1.2)
+## bidskit command
 Python script which takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a
 Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation tool (http://incf.github.io/bids-validator).
 
 The version numbering for bidskit follows that of the BIDS specification it implements. At the time of writing, BIDS and bidskit are at version 1.2.
 
 ## Installation
-
-There are two options available for installation and running the BIDS conversion:
-
-### Docker Image 
-(This assumes you have Docker installed on your system (https://docs.docker.com/engine/installation/)
-
-Simply pull the docker image of this app from Docker Hub and point to your DICOM folders as below:
-
-<pre> docker pull rnair07/bidskit </pre> (This downloads the bidskit docker image to your system)
-
-You could also skip the above step and directly run the command below instead and it will automatically pull the image for you + run the conversion.
-
-<pre> docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/DICOM --outdir=/mnt/BIDS </pre>
-
-where PATH_TO_YOUR_RAW_DICOM is the *root directory* containing the *mydicom* folder as shown in the file structure below. 
-
-### From Source
-Clone the repository, add the resulting directory to your path and install dependencies mentioned below (_Will upgrade this to a python setup soon_).
-
-<pre>
-% git clone https://github.com/jmtyszka/bidskit.git
-</pre>
-
-**Dependencies**
-This release was developed under Python 3.6 (os, sys, argparse, subprocess, shutil, json, glob). Other dependencies include:
-1. pydicom 1.2.2 (current PyPi version)
-2. Chris Rorden's dcm2niix - the current version at the time of writing is v1.0.20181125 ([source](https://github.com/rordenlab/dcm2niix) or [precompiled binaries](https://www.nitrc.org/frs/?group_id=889))
 
 ## DICOM to BIDS Conversion
 
