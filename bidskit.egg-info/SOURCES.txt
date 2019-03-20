@@ -1,0 +1,10 @@
+README.md
+setup.py
+bidskit/__init__.py
+bidskit/bidskit.py
+bidskit.egg-info/PKG-INFO
+bidskit.egg-info/SOURCES.txt
+bidskit.egg-info/dependency_links.txt
+bidskit.egg-info/entry_points.txt
+bidskit.egg-info/requires.txt
+bidskit.egg-info/top_level.txt

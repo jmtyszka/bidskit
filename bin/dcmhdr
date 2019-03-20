@@ -4,11 +4,11 @@ Extract useful tag values from header of a DICOM image
 
 Usage
 ----
-dcmhdr.py -i <DICOM Image File> -o <Output CSV File>
+dcmhdr -i <DICOM Image File> -o <Output CSV File>
 
 Example
 ----
-% dcmhdr.py -i IM-001.dcm -o IM-001_Header.csv
+% dcmhdr -i IM-001.dcm -o IM-001_Header.csv
 
 Authors
 ----

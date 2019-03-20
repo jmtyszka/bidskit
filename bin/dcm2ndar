@@ -4,11 +4,11 @@ Convert flat DICOM file set into an NDAR-compliant fileset
 
 Usage
 ----
-dcm2ndar.py -i <DICOM Directory> -o <NDAR Directory>
+dcm2ndar -i <DICOM Directory> -o <NDAR Directory>
 
 Example
 ----
-% dcm2ndar.py -i sub-001 -o sub-001.ndar
+% dcm2ndar -i sub-001 -o sub-001.ndar
 
 Authors
 ----
@@ -16,7 +16,7 @@ Mike Tyszka, Caltech Brain Imaging Center
 
 Dates
 ----
-2016-08-09 JMT Adapt from dcm2bids.py
+2016-08-09 JMT Adapt from bidskit.py
 
 MIT License
 
