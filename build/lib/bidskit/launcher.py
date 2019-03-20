@@ -29,13 +29,13 @@ Without Session Subdirectories:
 
 Usage
 ----
-bidskit.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
+main.py -i <DICOM Directory>[dicom] -o <BIDS Source Directory>[source] [--no-sessions] [--overwrite]
 
 Examples
 ----
-% bidskit.py
-% bidskit.py --no-sessions
-% bidskit.py -i mydicom -o mybids --no-sessions
+% main.py
+% main.py --no-sessions
+% main.py -i mydicom -o mybids --no-sessions
 
 Authors
 ----
