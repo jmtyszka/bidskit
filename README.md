@@ -1,7 +1,8 @@
 # BIDSKIT 1.2.0 
-Python utilities for converting from DICOM to BIDS and NDAR-compliant neuroimaging formats.
+Python utilities for converting from DICOM to BIDS neuroimaging formats
 
-[![DOI](https://zenodo.org/badge/64889181.svg)](https://zenodo.org/badge/latestdoi/64889181)
+## Documentation
+Full documentation, including installation instructions and a quick start guide can be found at 
 
 ## bidskit command
 Python script which takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a
