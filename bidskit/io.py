@@ -1,3 +1,7 @@
+"""
+Utility functions for handling creation, writing, reading and parsing of BIDS files
+"""
+
 import os
 import sys
 import shutil
@@ -5,7 +9,7 @@ import json
 import pydicom
 
 
-def bids_init(bids_src_dir, overwrite=False):
+def init(bids_src_dir, overwrite=False):
     """
     Initialize BIDS source directory
 
@@ -23,12 +27,12 @@ def bids_init(bids_src_dir, overwrite=False):
         'ReferencesAndLinks': "References and links for this dataset go here"})
 
     # Write JSON file
-    bids_write_json(datadesc_json, meta_dict, overwrite)
+    write_json(datadesc_json, meta_dict, overwrite)
 
     return True
 
 
-def bids_create_prot_dict(prot_dict_json, prot_dict):
+def create_prot_dict(prot_dict_json, prot_dict):
     """
     Write protocol translation dictionary template to JSON file
     :param prot_dict_json: string
@@ -60,7 +64,7 @@ def bids_create_prot_dict(prot_dict_json, prot_dict):
     return
 
 
-def bids_load_prot_dict(prot_dict_json):
+def load_prot_dict(prot_dict_json):
     """
     Read protocol translations from JSON file in DICOM directory
 
@@ -83,7 +87,7 @@ def bids_load_prot_dict(prot_dict_json):
     return prot_dict
 
 
-def bids_read_json(fname):
+def read_json(fname):
     """
     Safely read JSON sidecar file into a dictionary
     :param fname: string
@@ -102,7 +106,7 @@ def bids_read_json(fname):
     return json_dict
 
 
-def bids_write_json(fname, meta_dict, overwrite=False):
+def write_json(fname, meta_dict, overwrite=False):
     """
     Write a dictionary to a JSON file. Account for overwrite flag
     :param fname: string
@@ -132,7 +136,7 @@ def bids_write_json(fname, meta_dict, overwrite=False):
             json.dump(meta_dict, fd, indent=4, separators=(',', ':'))
 
 
-def bids_events_template(bold_fname, overwrite=False):
+def events_template(bold_fname, overwrite=False):
     """
     Create a template events file for a corresponding BOLD imaging file
 
@@ -163,20 +167,20 @@ def bids_events_template(bold_fname, overwrite=False):
             fd.close()
 
 
-def bids_dcm_info(dcm_dir):
+def dcm_info(dcm_dir):
     """
     Extract relevant subject information from DICOM header
     - Assumes only one subject present within dcm_dir
 
     :param dcm_dir: directory containing all DICOM files or DICOM subfolders
-    :return dcm_info: DICOM header information dictionary
+    :return info_dict: DICOM header information dictionary
     """
 
     # Init the DICOM structure
     ds = []
 
     # Init the subject info dictionary
-    dcm_info = dict()
+    info_dict = dict()
 
     # Walk through dcm_dir looking for valid DICOM files
     for subdir, dirs, files in os.walk(dcm_dir):
@@ -196,14 +200,14 @@ def bids_dcm_info(dcm_dir):
         # Fill dictionary
         # Note that DICOM anonymization tools sometimes clear these fields
         if hasattr(ds, 'PatientSex'):
-            dcm_info['Sex'] = ds.PatientSex
+            info_dict['Sex'] = ds.PatientSex
         else:
-            dcm_info['Sex'] = 'Unknown'
+            info_dict['Sex'] = 'Unknown'
 
         if hasattr(ds, 'PatientAge'):
-            dcm_info['Age'] = ds.PatientAge
+            info_dict['Age'] = ds.PatientAge
         else:
-            dcm_info['Age'] = 0
+            info_dict['Age'] = 0
 
     else:
 
@@ -212,7 +216,7 @@ def bids_dcm_info(dcm_dir):
         print('* Exiting')
         sys.exit(1)
 
-    return dcm_info
+    return info_dict
 
 
 def parse_dcm2niix_fname(fname):
