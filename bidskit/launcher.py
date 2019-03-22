@@ -47,12 +47,12 @@ import os
 import sys
 import argparse
 import subprocess
-import shutil
 from glob import glob
 
 import bidskit.io as bio
 import bidskit.translate as btr
 from bidskit.bidstree import BIDSTree
+from bidskit.organize import organize_series
 
 
 def main():
@@ -126,13 +126,13 @@ def main():
         print('Processing subject ' + sid)
         print('------------------------------------------------------------')
 
-        # Handle subj vs subj/session directory lists
+        # Handle subject vs subject/session directory lists
         if no_sessions:
             dcm_dir_list = [dcm_sub_dir]
         else:
             dcm_dir_list = glob(dcm_sub_dir + '/*/')
 
-        # Loop over session directories in subject directory
+        # Loop over source data session directories in subject directory
         for dcm_dir in dcm_dir_list:
 
             # BIDS subject, session and conversion directories
@@ -188,8 +188,8 @@ def main():
                 # Add line to participants TSV file
                 btr.add_participant_record(dataset_dir, sid, dcm_info['Age'], dcm_info['Sex'])
 
-            # Run dcm2niix output to BIDS source conversions
-            run_conversion(work_conv_dir, first_pass, translator, bids_ses_dir, sid, ses,
+            # Organize dcm2niix output into BIDS subject/session directories
+            organize_series(work_conv_dir, first_pass, translator, bids_ses_dir, sid, ses,
                            args.clean_conv_dir, overwrite)
 
     if first_pass:
@@ -203,133 +203,6 @@ def main():
 
     # Clean exit
     sys.exit(0)
-
-
-def run_conversion(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_conv_dir, overwrite=False):
-    """
-    Run dcm2niix output to BIDS source conversions
-
-    :param conv_dir: string
-        Working conversion directory
-    :param first_pass: boolean
-        Flag for first pass conversion
-    :param prot_dict: dictionary
-        Protocol translation dictionary
-    :param src_dir: string
-        BIDS source output subj or subj/session directory
-    :param sid: string
-        subject ID
-    :param ses: string
-        session name or number
-    :param clean_conv_dir: bool
-        clean up conversion directory
-    :param overwrite: bool
-        overwrite flag
-    :return:
-    """
-
-    # Flag for working conversion directory cleanup
-    do_cleanup = clean_conv_dir
-
-    # Proceed if conversion directory exists
-    if os.path.isdir(conv_dir):
-
-        # Get Nifti file list ordered by acquisition time
-        nii_list, json_list = btr.ordered_file_list(conv_dir)
-        
-        # Infer run numbers accounting for duplicates.
-        # Only used if run-* not present in translator BIDS filename stub
-        run_no = btr.auto_run_no(nii_list)
-
-        # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
-        for fc, src_nii_fname in enumerate(nii_list):
-
-            # Parse image filename into fields
-            info = bio.parse_dcm2niix_fname(src_nii_fname)
-
-            # Check if we're creating new protocol dictionary
-            if first_pass:
-
-                print('  Adding protocol %s to dictionary template' % info['SerDesc'])
-
-                # Add current protocol to protocol dictionary
-                # Use default EXCLUDE_* values which can be changed (or not) by the user
-                prot_dict[info['SerDesc']] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
-
-            else:
-
-                # JSON sidecar for this image
-                src_json_fname = json_list[fc]
-
-                # Warn if not found and continue
-                if not os.path.isfile(src_json_fname):
-                    print('* WARNING: JSON sidecar %s not found' % src_json_fname)
-                    continue
-
-                if info['SerDesc'] in prot_dict.keys():
-
-                    if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
-
-                        # Skip excluded protocols
-                        print('* Excluding protocol ' + str(info['SerDesc']))
-
-                    else:
-
-                        print('  Organizing ' + str(info['SerDesc']))
-
-                        # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
-                        bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
-
-                        # Safely add run-* key to BIDS suffix
-                        bids_suffix = btr.add_run_number(bids_suffix, run_no[fc])
-
-                        # Assume the IntendedFor field should aslo have a run- added
-                        prot_dict = btr.add_intended_run(prot_dict, info, run_no[fc])
-
-                        # Create BIDS purpose directory
-                        bids_purpose_dir = os.path.join(src_dir, bids_purpose)
-                        bio.safe_mkdir(bids_purpose_dir)
-
-                        # Complete BIDS filenames for image and sidecar
-                        if ses:
-                            bids_prefix = 'sub-' + sid + '_ses-' + ses + '_'
-                        else:
-                            bids_prefix = 'sub-' + sid + '_'
-
-                        # Construct BIDS source Nifti and JSON filenames
-                        bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
-                        bids_json_fname = bids_nii_fname.replace('.nii.gz', '.json')
-
-                        # Add prefix and suffix to IntendedFor values
-                        if 'UNASSIGNED' not in bids_intendedfor:
-                            if isinstance(bids_intendedfor, str):
-                                # Single linked image
-                                bids_intendedfor = btr.build_intendedfor(sid, ses, bids_intendedfor)
-                            else:
-                                # Loop over all linked images
-                                for ifc, ifstr in enumerate(bids_intendedfor):
-                                    # Avoid multiple substitutions
-                                    if '.nii.gz' not in ifstr:
-                                        bids_intendedfor[ifc] = btr.build_intendedfor(sid, ses, ifstr)
-
-                        # Special handling for specific purposes (anat, func, fmap, etc)
-                        # This function populates BIDS structure with the image and adjusted sidecar
-                        btr.purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
-                                             src_nii_fname, src_json_fname,
-                                             bids_nii_fname, bids_json_fname,
-                                             overwrite)
-                else:
-                    # Skip protocols not in the dictionary
-                    print('* Protocol ' + str(info['SerDesc']) + ' is not in the dictionary, did not convert.')
-
-        if not first_pass:
-
-            # Optional working directory cleanup after Pass 2
-            if do_cleanup:
-                print('  Cleaning up temporary files')
-                shutil.rmtree(conv_dir)
-            else:
-                print('  Preserving conversion directory')
 
 
 # This is the standard boilerplate that calls the main() function.

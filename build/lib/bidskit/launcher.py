@@ -126,13 +126,13 @@ def main():
         print('Processing subject ' + sid)
         print('------------------------------------------------------------')
 
-        # Handle subj vs subj/session directory lists
+        # Handle subject vs subject/session directory lists
         if no_sessions:
             dcm_dir_list = [dcm_sub_dir]
         else:
             dcm_dir_list = glob(dcm_sub_dir + '/*/')
 
-        # Loop over session directories in subject directory
+        # Loop over source data session directories in subject directory
         for dcm_dir in dcm_dir_list:
 
             # BIDS subject, session and conversion directories

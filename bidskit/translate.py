@@ -120,7 +120,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         if seq_name == 'EP':
 
             print('    EPI detected')
-            bio.events_template(bids_nii_fname, overwrite)
+            create_events_template(bids_nii_fname, overwrite)
 
             # Add taskname to BIDS JSON sidecar
             bids_keys = bio.parse_bids_fname(bids_nii_fname)
@@ -435,3 +435,38 @@ def fmap_echotimes(src_phase_json_fname):
         print('* Fieldmap phase difference sidecar not found : ' + src_phase_json_fname)
 
     return te1, te2
+
+
+def create_events_template(bold_fname, overwrite=False):
+    """
+    Create a template events file for a corresponding BOLD imaging file
+
+    :param bold_fname: str, BOLD imaging filename (.nii.gz)
+    :param overwrite: bool, Overwrite flag
+    :return: Nothing
+    """
+
+    # Make specific to BOLD data to avoid overwriting with SBRef info
+    if "_bold.nii.gz" in bold_fname:
+
+        events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+        events_bname = os.path.basename(events_fname)
+
+        if os.path.isfile(events_fname):
+            if overwrite:
+                print('  Overwriting previous %s' % events_bname)
+                create_file = True
+            else:
+                print('  Preserving previous %s' % events_bname)
+                create_file = False
+        else:
+            print('  Creating %s' % events_fname)
+            create_file = True
+
+        if create_file:
+            fd = open(events_fname, 'w')
+            fd.write('onset\tduration\ttrial_type\tresponse_time\n')
+            fd.close()
+
+
+

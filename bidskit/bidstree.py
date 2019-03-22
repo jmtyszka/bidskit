@@ -102,6 +102,3 @@ class BIDSTree():
             translator = dict()
 
         return translator
-
-
-

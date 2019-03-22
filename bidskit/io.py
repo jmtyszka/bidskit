@@ -58,37 +58,6 @@ def write_json(fname, meta_dict, overwrite=False):
             json.dump(meta_dict, fd, indent=4, separators=(',', ':'))
 
 
-def events_template(bold_fname, overwrite=False):
-    """
-    Create a template events file for a corresponding BOLD imaging file
-
-    :param bold_fname: str, BOLD imaging filename (.nii.gz)
-    :param overwrite: bool, Overwrite flag
-    :return: Nothing
-    """
-
-    # Can have sbref.nii.gz here and you do not want overwrite it
-    if "_bold.nii.gz" in bold_fname:
-        events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
-        events_bname = os.path.basename(events_fname)
-
-        if os.path.isfile(events_fname):
-            if overwrite:
-                print('  Overwriting previous %s' % events_bname)
-                create_file = True
-            else:
-                print('  Preserving previous %s' % events_bname)
-                create_file = False
-        else:
-            print('  Creating %s' % events_fname)
-            create_file = True
-
-        if create_file:
-            fd = open(events_fname, 'w')
-            fd.write('onset\tduration\ttrial_type\tresponse_time\n')
-            fd.close()
-
-
 def dcm_info(dcm_dir):
     """
     Extract relevant subject information from DICOM header
@@ -106,12 +75,14 @@ def dcm_info(dcm_dir):
 
     # Walk through dcm_dir looking for valid DICOM files
     for subdir, dirs, files in os.walk(dcm_dir):
+
         for file in files:
 
             try:
                 ds = pydicom.read_file(os.path.join(subdir, file))
-            except IOError:
-                pass
+            except Exception as err:
+                # Silently skip problem files in DICOM directory
+                continue
 
             # Break out if valid DICOM read
             if ds:
