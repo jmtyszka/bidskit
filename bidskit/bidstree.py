@@ -1,14 +1,37 @@
 """
 Class for creating and managing BIDS directory tree and essential files
+
+MIT License
+
+Copyright (c) 2017-2019 Mike Tyszka
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
+
+__version__ = '1.2.0a2'
 
 import os
 import json
 import bidskit.io as bio
-from datetime import datetime as dt
 
 
-class BIDSTree():
+class BIDSTree:
 
     def __init__(self, dataset_dir, overwrite=False):
 
@@ -32,24 +55,54 @@ class BIDSTree():
         # README file
         self.readme_file = os.path.join(dataset_dir, 'README')
         with open(self.readme_file, 'w') as fd:
-            fd.writelines('Useful information about this dataset')
+            fd.writelines('Useful information about this dataset\n')
 
         # CHANGES changelog file
         self.changes_file = os.path.join(dataset_dir, 'CHANGES')
         with open(self.changes_file, 'w') as fd:
-            fd.writelines('Dataset directory created %s' % str(dt.now()))
+            fd.writelines(['1.0.0 YYYY-MM-DD\n', ' - Initial release\n'])
 
-        # Create template JSON dataset description (must comply with BIDS spec)
-        datadesc_json = os.path.join(self.bids_dir, 'dataset_description.json')
+        # Create template JSON dataset description (must comply with BIDS 1.2 spec)
+        self.datadesc_json = os.path.join(self.bids_dir, 'dataset_description.json')
         meta_dict = dict({
-            'BIDSVersion': "1.2",
-            'License': "This data is made available under the Creative Commons BY-SA 4.0 International License.",
-            'Name': "The dataset name goes here",
-            'ReferencesAndLinks': "References and links for this dataset go here"})
+            'Name': 'Descriptive name for this dataset',
+            'BIDSVersion': '1.2',
+            'License': 'This data is made available under the Creative Commons BY-SA 4.0 International License.',
+            'Authors': ['First Author', 'Second Author'],
+            'Acknowledgments': 'Thanks to everyone for all your help',
+            'HowToAcknowledge': 'Please cite: Author AB, Seminal Paper Title, High Impact Journal, 2019',
+            'Funding': ['First Grant', 'Second Grant'],
+            'ReferencesAndLinks': ['A Reference', 'Another Reference', 'A Link'],
+            'DatasetDOI': '10.0.1.2/abcd.10'
+        })
+        bio.write_json(self.datadesc_json, meta_dict, overwrite)
 
-        # Write JSON file
-        bio.write_json(datadesc_json, meta_dict, overwrite)
+        # Create participants JSON file defining columns in participants.tsv
+        # See
+        self.participants_json = os.path.join(self.bids_dir, 'participants.json')
+        meta_dict = dict({
+            'age': {
+                'Description': 'Age of participant',
+                'Units': 'years'
+            },
+            'sex': {
+                'Description': 'Sex of participant',
+                'Levels': {
+                    'M': 'male',
+                    'F': 'female',
+                    'T': 'transgender'
+                }
+            },
+            'group': {
+                'Description': 'participant group assignment'
+            },
+        })
+        bio.write_json(self.participants_json, meta_dict, overwrite)
 
+        # Create .bidsignore file to skip work/ during validation
+        self.ignore_file = os.path.join(dataset_dir, '.bidsignore')
+        with open(self.ignore_file, 'w') as fd:
+            fd.writelines('work/\n')
 
     def write_translator(self, translator):
         """
@@ -80,14 +133,11 @@ class BIDSTree():
 
         return
 
-
     def read_translator(self):
         """
         Read protocol translations from JSON file in DICOM directory
 
-        :param prot_dict_json: string
-            JSON protocol translation dictionary filename
-        :return:
+        :return: translator: dictionary
         """
 
         if os.path.isfile(self.translator_file):
@@ -102,3 +152,18 @@ class BIDSTree():
             translator = dict()
 
         return translator
+
+    def validate(self):
+        """
+        Run BIDS tree through the command line BIDS validator
+
+        :return:
+        """
+
+        import subprocess
+
+        print('\n----------------------')
+        print('Running BIDS validator')
+        print('----------------------\n')
+
+        subprocess.run(['bids-validator', self.bids_dir])

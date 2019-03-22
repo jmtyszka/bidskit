@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Convert flat DICOM file set into a BIDS-compliant Nifti structure
+Convert DICOM neuroimaging data into a BIDS dataset with validation
 
 Authors
 ----
@@ -17,6 +17,7 @@ Dates
                Migrated to pydicom v1.0.1 (note namespace change to pydicom)
 2019-02-25 JMT Fixed arbitrary run ordering (sorted glob)
 2019-03-20 JMT Restructure as PyPI application with BIDS 1.2 compliance
+2019-03-22 JMT Add BIDS validation
 
 MIT License
 
@@ -41,7 +42,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2'
+__version__ = '1.2.0a2'
 
 import os
 import sys
@@ -84,8 +85,7 @@ def main():
     # Creates directory
     btree = BIDSTree(dataset_dir, overwrite)
 
-    print('')
-    print('------------------------------------------------------------')
+    print('\n------------------------------------------------------------')
     print('DICOM to BIDS Converter')
     print('------------------------------------------------------------')
     print('Software Version           : %s' % __version__)
@@ -101,14 +101,15 @@ def main():
     translator = btree.read_translator()
 
     if translator and os.path.isdir(btree.work_dir):
-        print('')
-        print('------------------------------------------------------------')
+
+        print('\n------------------------------------------------------------')
         print('Pass 2 : Populating BIDS directory')
         print('------------------------------------------------------------')
         first_pass = False
+
     else:
-        print('')
-        print('------------------------------------------------------------')
+
+        print('\n------------------------------------------------------------')
         print('Pass 1 : DICOM to Nifti conversion and translator creation')
         print('------------------------------------------------------------')
         first_pass = True
@@ -121,8 +122,7 @@ def main():
         sid = os.path.basename(dcm_sub_dir.strip('/'))
         subject_dir_list.append(dataset_dir + "/sub-" + sid)
 
-        print('')
-        print('------------------------------------------------------------')
+        print('\n------------------------------------------------------------')
         print('Processing subject ' + sid)
         print('------------------------------------------------------------')
 
@@ -193,13 +193,20 @@ def main():
                            args.clean_conv_dir, overwrite)
 
     if first_pass:
+
         # Create a template protocol dictionary
         btree.write_translator(translator)
 
     if not args.skip_if_pruning:
-        print("Subject directories to prune:  " + ", ".join(subject_dir_list))
+
+        print("\nSubject directories to prune:  " + ", ".join(subject_dir_list))
+
         for bids_subj_dir in subject_dir_list:
             btr.prune_intendedfors(bids_subj_dir, True)
+
+    # Finally validate that all is well with the BIDS dataset
+    if not first_pass:
+        btree.validate()
 
     # Clean exit
     sys.exit(0)
