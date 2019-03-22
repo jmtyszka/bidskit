@@ -52,6 +52,7 @@ from glob import glob
 
 import bidskit.io as bio
 import bidskit.translate as btr
+from bidskit.bidstree import BIDSTree
 
 
 def main():
@@ -59,11 +60,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
 
-    parser.add_argument('-i', '--indir', default='dicom',
-                        help='DICOM input directory with Subject/Session/Image organization [dicom]')
-
-    parser.add_argument('-o', '--outdir', default='source',
-                        help='Output BIDS source directory [source]')
+    parser.add_argument('-d', '--dataset', default='.', help='BIDS dataset directory containing sourcedata subdirectory')
 
     parser.add_argument('--no-sessions', action='store_true', default=False,
                         help='Do not use session sub-directories')
@@ -79,30 +76,21 @@ def main():
 
     # Parse command line arguments
     args = parser.parse_args()
-    dcm_root_dir = os.path.realpath(args.indir)
+    dataset_dir = os.path.realpath(args.dataset)
     no_sessions = args.no_sessions
     overwrite = args.overwrite
 
-    # Place derivatives and working directories in parent of BIDS source directory
-    bids_src_dir = os.path.realpath(args.outdir)
-    bids_root_dir = os.path.dirname(bids_src_dir)
-    bids_deriv_dir = os.path.join(bids_root_dir, 'derivatives', 'conversion')
-    work_dir = os.path.join(bids_root_dir, 'work', 'conversion')
-
-    # Safely create the BIDS working, source and derivatives directories
-    bio.safe_mkdir(work_dir)
-    bio.safe_mkdir(bids_src_dir)
-    bio.safe_mkdir(bids_deriv_dir)
+    # Create a BIDS directory tree object to handle file locations
+    # Creates directory
+    btree = BIDSTree(dataset_dir, overwrite)
 
     print('')
     print('------------------------------------------------------------')
     print('DICOM to BIDS Converter')
     print('------------------------------------------------------------')
     print('Software Version           : %s' % __version__)
-    print('DICOM Root Directory       : %s' % dcm_root_dir)
-    print('BIDS Source Directory      : %s' % bids_src_dir)
-    print('BIDS Derivatives Directory : %s' % bids_deriv_dir)
-    print('Working Directory          : %s' % work_dir)
+    print('Source data directory      : %s' % btree.sourcedata_dir)
+    print('Working Directory          : %s' % btree.work_dir)
     print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes'))
     print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No'))
 
@@ -110,33 +98,28 @@ def main():
     # If no translator is present, prot_dict is an empty dictionary
     # and a template will be created in the derivatives/conversion directory.
     # This template should be completed by the user and the conversion rerun.
-    prot_dict_json = os.path.join(bids_deriv_dir, 'Protocol_Translator.json')
-    prot_dict = bio.load_prot_dict(prot_dict_json)
+    translator = btree.read_translator()
 
-    if prot_dict and os.path.isdir(work_dir):
+    if translator and os.path.isdir(btree.work_dir):
         print('')
         print('------------------------------------------------------------')
-        print('Pass 2 : Populating BIDS source directory')
+        print('Pass 2 : Populating BIDS directory')
         print('------------------------------------------------------------')
         first_pass = False
     else:
         print('')
         print('------------------------------------------------------------')
-        print('Pass 1 : DICOM to Nifti conversion and dictionary creation')
+        print('Pass 1 : DICOM to Nifti conversion and translator creation')
         print('------------------------------------------------------------')
         first_pass = True
-
-    # Initialize BIDS source directory contents
-    if not first_pass:
-        bio.init(bids_src_dir, overwrite)
 
     subject_dir_list = []
 
     # Loop over subject directories in DICOM root
-    for dcm_sub_dir in glob(dcm_root_dir + '/*/'):
+    for dcm_sub_dir in glob(btree.sourcedata_dir + '/*/'):
 
         sid = os.path.basename(dcm_sub_dir.strip('/'))
-        subject_dir_list.append(bids_src_dir + "/sub-" + sid)
+        subject_dir_list.append(dataset_dir + "/sub-" + sid)
 
         print('')
         print('------------------------------------------------------------')
@@ -166,21 +149,21 @@ def main():
                 print('  Processing session ' + ses)
 
             # Working conversion directories
-            work_subj_dir = os.path.join(work_dir, sub_prefix)
+            work_subj_dir = os.path.join(btree.work_dir, sub_prefix)
             work_conv_dir = os.path.join(work_subj_dir, ses_prefix)
 
             # BIDS source directory directories
-            bids_src_subj_dir = os.path.join(bids_src_dir, sub_prefix)
-            bids_src_ses_dir = os.path.join(bids_src_subj_dir, ses_prefix)
+            bids_subj_dir = os.path.join(dataset_dir, sub_prefix)
+            bids_ses_dir = os.path.join(bids_subj_dir, ses_prefix)
 
-            print('  BIDS working subject directory : %s' % work_subj_dir)
+            print('  Working subject directory : %s' % work_subj_dir)
             if not no_sessions:
-                print('  BIDS working session directory : %s' % work_conv_dir)
-            print('  BIDS source subject directory  : %s' % bids_src_subj_dir)
+                print('  Working session directory : %s' % work_conv_dir)
+            print('  BIDS subject directory  : %s' % bids_subj_dir)
             if not no_sessions:
-                print('  BIDS source session directory  : %s' % bids_src_ses_dir)
+                print('  BIDS session directory  : %s' % bids_ses_dir)
 
-            # Safely create BIDS working directory
+            # Safely create working directory for current subject
             # Flag for conversion if no working directory existed
             if not os.path.isdir(work_conv_dir):
                 os.makedirs(work_conv_dir)
@@ -203,15 +186,15 @@ def main():
                 dcm_info = bio.dcm_info(dcm_dir)
 
                 # Add line to participants TSV file
-                btr.add_participant_record(bids_src_dir, sid, dcm_info['Age'], dcm_info['Sex'])
+                btr.add_participant_record(dataset_dir, sid, dcm_info['Age'], dcm_info['Sex'])
 
             # Run dcm2niix output to BIDS source conversions
-            run_conversion(work_conv_dir, first_pass, prot_dict, bids_src_ses_dir, sid, ses,
+            run_conversion(work_conv_dir, first_pass, translator, bids_ses_dir, sid, ses,
                            args.clean_conv_dir, overwrite)
 
     if first_pass:
         # Create a template protocol dictionary
-        bio.create_prot_dict(prot_dict_json, prot_dict)
+        btree.write_translator(translator)
 
     if not args.skip_if_pruning:
         print("Subject directories to prune:  " + ", ".join(subject_dir_list))
@@ -251,19 +234,15 @@ def run_conversion(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_con
     # Proceed if conversion directory exists
     if os.path.isdir(conv_dir):
 
-        # glob returns the full relative path from the tmp dir
-        # Note that glob returns arbitrarily ordered filenames, which must be sorted according to serNo
-        # for the run ordering below to work correctly.
-        filelisttmp = glob(os.path.join(conv_dir, '*.nii*'))
-        sernolist = [int(bio.parse_dcm2niix_fname(file)['SerNo']) for file in filelisttmp]
-        filelist = [file for _, file in sorted(zip(sernolist, filelisttmp))]
+        # Get Nifti file list ordered by acquisition time
+        nii_list, json_list = btr.ordered_file_list(conv_dir)
         
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
-        run_no = btr.auto_run_no(filelist)
+        run_no = btr.auto_run_no(nii_list)
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
-        for fc, src_nii_fname in enumerate(filelist):
+        for fc, src_nii_fname in enumerate(nii_list):
 
             # Parse image filename into fields
             info = bio.parse_dcm2niix_fname(src_nii_fname)
@@ -279,16 +258,9 @@ def run_conversion(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_con
 
             else:
 
-                # Replace Nifti extension ('.nii.gz' or '.nii') with '.json'
-                if '.nii.gz' in src_nii_fname:
-                    src_json_fname = src_nii_fname.replace('.nii.gz', '.json')
-                elif 'nii' in src_nii_fname:
-                    src_json_fname = src_nii_fname.replace('.nii', '.json')
-                else:
-                    print('* Unknown extension: %s' % src_nii_fname)
-                    break
-
                 # JSON sidecar for this image
+                src_json_fname = json_list[fc]
+
                 # Warn if not found and continue
                 if not os.path.isfile(src_json_fname):
                     print('* WARNING: JSON sidecar %s not found' % src_json_fname)

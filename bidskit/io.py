@@ -9,84 +9,6 @@ import json
 import pydicom
 
 
-def init(bids_src_dir, overwrite=False):
-    """
-    Initialize BIDS source directory
-
-    :param bids_src_dir: str, BIDS source directory
-    :param overwrite: bool, Overwrite flag
-    :return True
-    """
-
-    # Create template JSON dataset description (must comply with BIDS spec)
-    datadesc_json = os.path.join(bids_src_dir, 'dataset_description.json')
-    meta_dict = dict({
-        'BIDSVersion': "1.0.0",
-        'License': "This data is made available under the Creative Commons BY-SA 4.0 International License.",
-        'Name': "The dataset name goes here",
-        'ReferencesAndLinks': "References and links for this dataset go here"})
-
-    # Write JSON file
-    write_json(datadesc_json, meta_dict, overwrite)
-
-    return True
-
-
-def create_prot_dict(prot_dict_json, prot_dict):
-    """
-    Write protocol translation dictionary template to JSON file
-    :param prot_dict_json: string
-        JSON filename
-    :param prot_dict: dictionary
-        Dictionary to write
-    :return:
-    """
-
-    if os.path.isfile(prot_dict_json):
-
-        print('* Protocol dictionary already exists : ' + prot_dict_json)
-        print('* Skipping creation of new dictionary')
-
-    else:
-
-        json_fd = open(prot_dict_json, 'w')
-        json.dump(prot_dict, json_fd, indent=4, separators=(',', ':'))
-        json_fd.close()
-
-        print('')
-        print('---')
-        print('New protocol dictionary created : %s' % prot_dict_json)
-        print('Remember to replace "EXCLUDE" values in dictionary with an appropriate image description')
-        print('For example "MP-RAGE T1w 3D structural" or "MB-EPI BOLD resting-state')
-        print('---')
-        print('')
-
-    return
-
-
-def load_prot_dict(prot_dict_json):
-    """
-    Read protocol translations from JSON file in DICOM directory
-
-    :param prot_dict_json: string
-        JSON protocol translation dictionary filename
-    :return:
-    """
-
-    if os.path.isfile(prot_dict_json):
-
-        # Read JSON protocol translator
-        json_fd = open(prot_dict_json, 'r')
-        prot_dict = json.load(json_fd)
-        json_fd.close()
-
-    else:
-
-        prot_dict = dict()
-
-    return prot_dict
-
-
 def read_json(fname):
     """
     Safely read JSON sidecar file into a dictionary
@@ -222,10 +144,9 @@ def dcm_info(dcm_dir):
 def parse_dcm2niix_fname(fname):
     """
     Parse dcm2niix filename into values
-    Filename format is '%n--%d--%q--%s' ie '<name>--<description>--<sequence>--<series #>'
+    Filename format is '%n--%d--%q--%t' ie '<name>--<description>--<sequence>--<time>'
 
-    :param fname: str
-        BIDS-style image or sidecar filename
+    :param fname: str, BIDS-style image or sidecar filename
     :return info: dict
     """
 
@@ -241,16 +162,16 @@ def parse_dcm2niix_fname(fname):
     info['SubjName'] = vals[0]
     info['SerDesc'] = vals[1]
     info['SeqName'] = vals[2]
+    info['AcqTime'] = vals[3]
 
-    # Parse series string
-    # eg '10' or '10_e2' or '10_e2_ph'
-    ser_vals = vals[3].split('_')
-
-    info['SerNo'] = ser_vals[0]
-    if len(ser_vals) > 1:
-        info['EchoNo'] = ser_vals[1]
-    if len(ser_vals) > 2:
-        info['IsPhase'] = True
+    # # Parse time string
+    # ser_vals = vals[3].split('_')
+    #
+    # info['SerNo'] = ser_vals[0]
+    # if len(ser_vals) > 1:
+    #     info['EchoNo'] = ser_vals[1]
+    # if len(ser_vals) > 2:
+    #     info['IsPhase'] = True
 
     return info
 
@@ -355,3 +276,21 @@ def strip_extensions(fname):
     if fext == '.gz':
         fstub, fext = os.path.splitext(fstub)
     return fstub
+
+
+def nii_to_json(nii_fname):
+    """
+    Replace Nifti extension ('.nii.gz' or '.nii') with '.json'
+
+    :param nii_fname:
+    :return: json_fname
+    """
+    if '.nii.gz' in nii_fname:
+        json_fname = nii_fname.replace('.nii.gz', '.json')
+    elif 'nii' in nii_fname:
+        json_fname = nii_fname.replace('.nii', '.json')
+    else:
+        print('* Unknown extension for %s' % nii_fname)
+        json_fname = nii_fname + '.json'
+
+    return json_fname

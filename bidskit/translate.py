@@ -6,6 +6,45 @@ import os
 import json
 import bidskit.io as bio
 import numpy as np
+from glob import glob
+
+
+def ordered_file_list(conv_dir):
+    """
+    Generated list of dcm2niix Nifti output files ordered by acquisition time
+
+    :param conv_dir: str, working conversion directory
+    :return:
+    """
+
+    # Get Nifti image list from conversion directory
+    nii_list = glob(os.path.join(conv_dir, '*.nii*'))
+
+    # Derive JSON sidecar list
+    json_list = [bio.nii_to_json(nii_file) for nii_file in nii_list]
+
+    # Pull acquisition times for each Nifti image from JSON sidecar
+    acq_time = [get_acq_time(json_file) for json_file in json_list]
+
+    # Sort Nifti and JSON file lists by acquisition time
+    nii_sorted = [file for _, file in sorted(zip(acq_time, nii_list))]
+    json_sorted = [file for _, file in sorted(zip(acq_time, json_list))]
+
+    return nii_sorted, json_sorted
+
+
+def get_acq_time(json_file):
+    """
+    Extract acquisition time from JSON sidecar of Nifti file
+
+    :param nii_file: str, Nifti filename
+    :return: acq_time: int, integer datetime
+    """
+
+    info = bio.read_json(json_file)
+    t = info['AcquisitionTime']
+
+    return
 
 
 def prune_intendedfors(bids_subj_dir, fmap_only):
