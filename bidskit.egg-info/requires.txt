@@ -1,2 +1,2 @@
-pydicom
-numpy
+pydicom>=1.2.2
+numpy>=1.15.2

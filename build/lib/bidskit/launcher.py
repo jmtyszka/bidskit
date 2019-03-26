@@ -85,7 +85,7 @@ def main():
     print('BIDSKIT %s' % __version__)
     print('------------------------------------------------------------')
 
-    # Check for correct dcm2niix version
+    # Check for minimum dcm2niix version (mostly for multirecon suffix handling)
     btr.check_dcm2niix_version('v1.0.20181125')
 
     # Create a BIDS directory tree object to handle file locations
