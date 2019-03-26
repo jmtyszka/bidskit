@@ -24,10 +24,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.0a2'
+__version__ = '1.2.0a3'
 
 import os
+import sys
 import json
+import re
+import subprocess
 import bidskit.io as bio
 import numpy as np
 from glob import glob
@@ -54,7 +57,10 @@ def ordered_file_list(conv_dir):
     nii_sorted = [file for _, file in sorted(zip(acq_time, nii_list))]
     json_sorted = [file for _, file in sorted(zip(acq_time, json_list))]
 
-    return nii_sorted, json_sorted
+    # Finally sort acquisition times
+    acq_sorted = sorted(acq_time)
+
+    return nii_sorted, json_sorted, acq_sorted
 
 
 def get_acq_time(json_file):
@@ -135,7 +141,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     bids_bvec_fname = []
 
     # Load the JSON sidecar
-    info = bio.read_json(work_json_fname)
+    bids_info = bio.read_json(work_json_fname)
 
     if bids_purpose == 'func':
 
@@ -147,60 +153,69 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
             # Add taskname to BIDS JSON sidecar
             bids_keys = bio.parse_bids_fname(bids_nii_fname)
             if 'task' in bids_keys:
-                info['TaskName'] = bids_keys['task']
+                bids_info['TaskName'] = bids_keys['task']
             else:
-                info['TaskName'] = 'unknown'
+                bids_info['TaskName'] = 'unknown'
 
     elif bids_purpose == 'fmap':
 
         # Add IntendedFor field if requested through protocol translator
         if 'UNASSIGNED' not in bids_intendedfor:
-            info['IntendedFor'] = bids_intendedfor
+            bids_info['IntendedFor'] = bids_intendedfor
 
         # Check for MEGE vs SE-EPI fieldmap images
         # MEGE will have a 'GR' sequence, SE-EPI will have 'EP'
 
         print('    Identifying fieldmap image type')
+
         if seq_name == 'GR':
 
             print('    GRE detected')
             print('    Identifying magnitude and phase images')
 
-            # For Siemens dual gradient echo fieldmaps, three Nifti/JSON pairs are generated from two series
-            # Requires dcm2nixx v1.0.20180404 or later for echo number suffix
-            # *--GR--<serno>_e1.<ext> : magnitude image from echo 1 (EchoNumber unset, ImageType[2] = "M")
-            # *--GR--<serno>_e2.<ext> : magnitude image from echo 2 (EchoNumber = 2, ImageType[2] = "M")
-            # *--GR--<serno+1>_e2_ph.<ext> : inter-echo phase difference (EchoNumber = 2, ImageType[2] = "P")
+            # Siemens: Dual gradient echo fieldmaps reconstruct to three series
+            # (Requires dcm2nixx v1.0.20180404 or later for echo number suffix)
+            # *--GR--<serno>_e1.<ext> : magnitude image from echo 1
+            # *--GR--<serno>_e2.<ext> : magnitude image from echo 2
+            # *--GR--<serno+1>_ph.<ext> : inter-echo phase difference
 
-            if 'EchoNumber' in info:
+            # Pull dcm2niix filename info
+            work_info = bio.parse_dcm2niix_fname(work_nii_fname)
 
-                if info['EchoNumber'] == 2:
+            if 'e1' in work_info['Suffix']:
 
-                    if 'P' in info['ImageType'][2]:
+                print('    Echo 1 magnitude detected')
 
-                        print('    Interecho phase difference detected')
+                # Replace existing contrast suffix (if any) with '_magnitude1'
+                bids_nii_fname = replace_contrast(bids_nii_fname, 'magnitude1')
+                bids_json_fname = []  # Do not copy sidecar
 
-                        # Read phase meta data
-                        bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_phasediff.nii.gz')
-                        bids_json_fname = bids_json_fname.replace('.json', '_phasediff.json')
+            elif 'e2' in work_info['Suffix']:
 
-                        # Extract TE1 and TE2 from mag and phase JSON sidecars
-                        te1, te2 = fmap_echotimes(work_json_fname)
-                        info['EchoTime1'] = te1
-                        info['EchoTime2'] = te2
+                print('    Echo 2 magnitude detected')
 
-                    else:
+                # Replace existing contrast suffix (if any) with '_magnitude1'
+                bids_nii_fname = replace_contrast(bids_nii_fname, 'magnitude2')
+                bids_json_fname = []  # Do not copy sidecar
 
-                        # Echo 2 magnitude - discard
-                        print('    Echo 2 magnitude detected - discarding')
-                        bids_nii_fname = []  # Discard image
-                        bids_json_fname = []  # Discard sidecar
+            elif 'ph' in work_info['Suffix']:
+
+                print('    Interecho phase difference detected')
+
+                # Replace existing contrast suffix (if any) with '_phasediff'
+                bids_nii_fname = replace_contrast(bids_nii_fname, 'phasediff')
+                bids_json_fname = replace_contrast(bids_json_fname, 'phasediff')
+
+                # Extract TE1 and TE2 from mag and phase JSON sidecars
+                te1, te2 = fmap_echotimes(work_json_fname)
+                bids_info['EchoTime1'] = te1
+                bids_info['EchoTime2'] = te2
 
             else:
 
-                print('    Echo 1 magnitude detected')
-                bids_nii_fname = bids_nii_fname.replace('.nii.gz', '_magnitude.nii.gz')
-                bids_json_fname = []  # Discard sidecar only
+                print('*   Magnitude or phase image not found - skipping')
+                bids_nii_fname = []
+                bids_json_fname = []
 
         elif seq_name == 'EP':
 
@@ -241,7 +256,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         bio.safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
 
     if bids_json_fname:
-        bio.write_json(bids_json_fname, info, overwrite)
+        bio.write_json(bids_json_fname, bids_info, overwrite)
 
     if bids_bval_fname:
         bio.safe_copy(work_bval_fname, bids_bval_fname, overwrite)
@@ -315,28 +330,44 @@ def add_run_number(bids_suffix, run_no):
 def auto_run_no(file_list):
     """
     Search for duplicate series names in dcm2niix output file list
-    Return inferred run numbers accounting for duplication
+    Return inferred run numbers accounting for duplication and multiple recons from single acquisition
 
-    :param file_list: list of str
+    NOTES:
+    - Multiple recons generated by single acquisition (eg multiecho fieldmaps, localizers, etc) are
+      handled through the dcm2niix extensions (_e1, _ph, _i00001, etc).
+    - Series number resets following subject re-landmarking make the SerNo useful only for
+      determining series uniqueness and not for ordering or run numbering.
+
+    :param file_list: list of str, Nifti file name list
+    :param acq_times, list of str, acquisition time strings
     :return: run_num, array of int
     """
 
     # Construct list of series descriptions and original numbers from file names
-    ser_desc_list = []
+    desc_list = []
+
     for fname in file_list:
+
+        # Parse dcm2niix filename into relevant keys, including suffix
         info = bio.parse_dcm2niix_fname(fname)
-        ser_desc_list.append(info['SerDesc'])
+
+        # Construct a unique series description using multirecon suffix
+        ser_suffix = info['SerDesc'] + '_' + info['Suffix']
+
+        # Add to list
+        desc_list.append(ser_suffix)
 
     # Find unique ser_desc entries using sets
-    unique_descs = set(ser_desc_list)
+    unique_descs = set(desc_list)
 
     run_no = np.zeros(len(file_list))
-    for desc in unique_descs:
-        n = 1
-        for i, ser_desc in enumerate(ser_desc_list):
-            if ser_desc == desc:
-                run_no[i] = n
-                n += 1
+
+    for unique_desc in unique_descs:
+        run_count = 1
+        for i, desc in enumerate(desc_list):
+            if desc == unique_desc:
+                run_no[i] = run_count
+                run_count += 1
 
     return run_no
 
@@ -414,6 +445,26 @@ def add_intended_run(prot_dict, info, run_no):
     return prot_dict
 
 
+def replace_contrast(fname, new_contrast):
+    """
+    Replace contrast suffix (if any) of BIDS filename
+
+    :param fname: str, original BIDS Nifti or JSON filename
+    :param new_contrast: str, replacement contrast suffix
+    :return: new_fname: str, modified BIDS filename
+    """
+
+    bids_keys = bio.parse_bids_fname(fname)
+
+    if 'contrast' in bids_keys:
+        new_fname = fname.replace(bids_keys['contrast'], new_contrast)
+    else:
+        fstub, fext = bio.strip_extensions(fname)
+        new_fname = fstub + '_' + new_contrast + fext
+
+    return new_fname
+
+
 def fmap_echotimes(src_phase_json_fname):
     """
     Extract TE1 and TE2 from mag and phase MEGE fieldmap pairs
@@ -433,7 +484,7 @@ def fmap_echotimes(src_phase_json_fname):
         # Populate series info dictionary from dcm2niix output filename
         info = bio.parse_dcm2niix_fname(src_phase_json_fname)
 
-        # Magnitude 1 series number is one less than phasediff series number
+        # Siemens: Magnitude 1 series number is one less than phasediff series number
         mag1_ser_no = str(int(info['SerNo']) - 1)
 
         # Construct dcm2niix mag1 JSON filename
@@ -489,3 +540,44 @@ def create_events_template(bold_fname, overwrite=False):
             fd = open(events_fname, 'w')
             fd.write('onset\tduration\ttrial_type\tresponse_time\n')
             fd.close()
+
+
+def check_subject_session(sname):
+    """
+    Check that subject or session ID does not contain '-' or '_'
+
+    :param sname:
+    :return: None
+    """
+
+    if '-' in sname or '_' in sname:
+        print('* Looking at %s' % sname)
+        print('* Subject/session names cannot contain "-" or "_"')
+        print('* Please rename the subject/session folder in the sourcedata directory and rerun bidskit')
+        sys.exit(1)
+
+
+def check_dcm2niix_version(min_version='v1.0.20181125'):
+
+    output = subprocess.check_output('dcm2niix')
+
+    # Search for version in output
+    match = re.findall(b'v\d.\d.\d+', output)
+
+    if match:
+
+        version = match[0].decode('utf-8')
+        print('\ndcm2niix version %s detected' % version)
+
+        if version < min_version:
+            print('* please update to dcm2niix version %s or later' % min_version)
+            sys.exit(1)
+
+    else:
+
+        print('* dcm2niix version not detected')
+        print('* check that dcm2niix %s or later is installed correctly' % min_version)
+        sys.exit(1)
+
+
+

@@ -42,7 +42,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.0a2'
+__version__ = '1.2.0a3'
 
 import os
 import sys
@@ -81,15 +81,18 @@ def main():
     no_sessions = args.no_sessions
     overwrite = args.overwrite
 
+    print('\n------------------------------------------------------------')
+    print('BIDSKIT %s' % __version__)
+    print('------------------------------------------------------------')
+
+    # Check for correct dcm2niix version
+    btr.check_dcm2niix_version('v1.0.20181125')
+
     # Create a BIDS directory tree object to handle file locations
     # Creates directory
     btree = BIDSTree(dataset_dir, overwrite)
 
-    print('\n------------------------------------------------------------')
-    print('DICOM to BIDS Converter')
-    print('------------------------------------------------------------')
-    print('Software Version           : %s' % __version__)
-    print('Source data directory      : %s' % btree.sourcedata_dir)
+    print('\nSource data directory      : %s' % btree.sourcedata_dir)
     print('Working Directory          : %s' % btree.work_dir)
     print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes'))
     print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No'))
@@ -120,6 +123,10 @@ def main():
     for dcm_sub_dir in glob(btree.sourcedata_dir + '/*/'):
 
         sid = os.path.basename(dcm_sub_dir.strip('/'))
+
+        # Check that subject ID is legal
+        btr.check_subject_session(sid)
+
         subject_dir_list.append(dataset_dir + "/sub-" + sid)
 
         print('\n------------------------------------------------------------')
@@ -139,12 +146,19 @@ def main():
             sub_prefix = 'sub-' + sid
 
             if no_sessions:
+
                 # If session subdirs aren't being used, *_ses_dir = *sub_dir
                 # Use an empty ses_prefix with os.path.join to achieve this
                 ses = ''
                 ses_prefix = ''
+
             else:
+
                 ses = os.path.basename(dcm_dir.strip('/'))
+
+                # Check that session ID is legal
+                btr.check_subject_session(ses)
+
                 ses_prefix = 'ses-' + ses
                 print('  Processing session ' + ses)
 

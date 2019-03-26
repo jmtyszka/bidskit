@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.0a2'
+__version__ = '1.2.0a3'
 
 import os
 import shutil
@@ -62,7 +62,7 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
     if os.path.isdir(conv_dir):
 
         # Get Nifti file list ordered by acquisition time
-        nii_list, json_list = btr.ordered_file_list(conv_dir)
+        nii_list, json_list, acq_times = btr.ordered_file_list(conv_dir)
 
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
