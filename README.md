@@ -7,11 +7,9 @@ Brain Imaging Data Structure (BIDS) which should pass the online BIDS validation
 The version numbering for bidskit follows that of the BIDS specification it implements. At the time of writing, BIDS and bidskit are at version 1.2.
 
 ## Documentation
-Full documentation, including installation instructions and a quick start guide can be found at 
+#### [Installation Instructions](docs/Installation.md)
+#### [Quick Start Guide](docs/QuickStart.md)
 
-## Installation
-
-## Quick Start Guide
-
-## Bugs, Feature Requests and Comments 
-Please use the GitHub Issues feature to raise issues with the bidskit repository (https://github.com/jmtyszka/bidskit/issues)
+## Bugs and Feature Requests 
+Let us know about bugs and feature requests through this repo's
+[GitHub Issues](https://github.com/jmtyszka/bidskit/issues) page.

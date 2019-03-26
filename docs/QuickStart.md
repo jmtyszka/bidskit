@@ -3,97 +3,106 @@
 ## DICOM to BIDS Conversion
 
 ### Initial organization of the BIDS dataset directory
-BIDSKIT attempts to track the BIDS specification as closely as possible, and at the time of writing, we're using the BIDS directory organization described by the [BIDS Starter Kit](https://github.com/bids-standard/bids-starter-kit/wiki/The-BIDS-folder-hierarchy).
+BIDSKIT attempts to track the
+[BIDS Specification](https://bids-specification.readthedocs.io/en/stable/)
+as closely as possible.
+We recommend checking out the
+[BIDS Starter Kit](https://github.com/bids-standard/bids-starter-kit/wiki/The-BIDS-folder-hierarchy)
+for concrete examples of BIDS formatted datasets.
 
-To start out, you should create a dataset folder with a semi-descriptive name (eg learning_pilot_2019) with a subfolder named sourcedata containing your raw DICOM data. The organization of DICOM image files **within each subject directory** can follow a session-series heirarchy or a simple flat organization. The conversion to Nifti-1 format and JSON sidecar generation is handled by dcm2niix, so whatever works for dcm2niix will hopefully work for dcm2bids.py. A typical DICOM directory tree might look something like the following (where "Ra0950" and "Ra0951" are subject IDs and "first", "second" are session names for each subject):
+To start out, you should create a dataset folder with a semi-descriptive name (eg learning_pilot_2019)
+with a sourcedata/ subfolder containing your raw DICOM data, organized by subject, or by subject and session.
+A typical DICOM directory tree might look something like the following, where *Cc0001*, *Cc0002* are subject IDs
+and *first*, "second" are session names.
+
 <pre>
 learning_pilot_2019/
-└── sourcedata/
-    └── Ra0950/
-       └── first/
-            <DICOM Image Files>
-        └── second/
-            <DICOM Image Files>
-    └── Ra0951/
-        └── first/
-            <DICOM Image Files>
-        └── second/
-            <DICOM Image Files>
-    ...
+├── sourcedata
+│   ├── Cc0001
+│   │   ├── first
+│   │   │   └── [DICOM Images]
+│   │   └── second
+│   │       └── [DICOM Images]
+│   └── Cc0002
+│   │   ├── first
+│   │   │   └── [DICOM Images]
+│   │   └── second
+│   │       └── [DICOM Images]
+...
 </pre>
 
-That's all you need to do in terms of organizing your raw DICOM data. The next phase will generate an editable file which controls the conversion of your original MRI series into a BIDS-compliant directory tree.
+DICOM image files within each session directory can be in a simple flat organization or within individual series subfolders.
+
+That's all you need to do in terms of organizing your raw DICOM data. The next phase will generate an editable translator file
+which controls the conversion of your original MRI series into a BIDS-compliant directory tree.
 
 ### First Pass Conversion
-The required command line arguments and defaults for dcm2bids.py can be displayed using:
-<pre>
-% dcm2bids.py -h
-usage: dcm2bids.py [-h] [-i INDIR] [-o OUTDIR] [--no-sessions]
-
-Convert DICOM files to BIDS-compliant Nifty structure
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -i INDIR, --indir INDIR
-                        DICOM input directory with Subject/Session/Image
-                        organization [dicom]
-  -o OUTDIR, --outdir OUTDIR
-                        Output BIDS source directory [source]
-  --no-sessions         Do not use session sub-directories
-</pre>
-
-Note that the defaults for the input DICOM and output BIDS directories are `dicom` and `source` respectively. So the simplest possible setup would be to place subject DICOM folders within a directory called `dicom` and run dcm2bids.py from the parent directory of `dicom`. This would generate a BIDS source directory called `source`, a BIDS derivatives directory called `derivatives` with a `conversion` subdirectory containing a protocol translator JSON file and a working directory called `work`.
 
 If you're using the Docker image, run the following:
 <pre>
-docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/dicom --outdir=/mnt/source
+docker run -it -v /PATH_TO_YOUR_DATASET_FOLDER/:/dataset rnair07/bidskit -d /dataset
 </pre>
 
-If you're running dcm2bids.py locally from source, you can use any of the following:
+If you're running bidskit from the shell you can either run bidskit without arguments from within the dataset root
 <pre>
-% dcm2bids.py
-% dcm2bids.py -i mydicom
-% dcm2bids.py -i mydicom -o mysource
+% cd /PATH_TO_YOUR_DATASET_FOLDER/
+% bidskit
 </pre>
 
-The first pass conversion will create new translator dictionary (Protocol_Translator.json) in the root DICOM folder. This has been prefilled with the protocol series names from the DICOM header of all unique series detected in the original DICOM files. The command will also create the new BIDS directory containing a single temporary conversion directory containing Nifti images and JSON sidecars for all series in the source DICOM folder:
+or alternatively
 
 <pre>
-derivatives/
-└── conversion/
-    ├── Protocol_Translator.json
-dicom/
-└── Ra0950
-    └── first/
-        └── ...    
-    └── second/
-        └── ...    
-└── Ra0951
-    └── first/
-        └── ...    
-    └── second/
-        └── ...    
-source/
-work/
-└── conversion/
-    └── sub-Ra0950/
-        └── ses-first/
-            ├── sub-Ra0950_ses-first_....nii.gz
-            ├── sub-Ra0950_ses-first_....json
+% bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/ 
+</pre>
 
-            
+
+The first pass conversion constructs a BIDS-compliant directory tree around sourcedata/ with required text files,
+including a translator dictionary (Protocol_Translator.json) in the code/ subdirectory:
+
+#### BIDS Dataset after First Pass Conversion
+<pre>
+learning_pilot_2019/
+├── CHANGES
+├── README
+├── code
+│   └── Protocol_Translator.json
+├── dataset_description.json
+├── derivatives
+├── participants.json
+├── participants.tsv
+├── sourcedata
+│   ├── Cc0001
+│   │   ├── first
+│   ...
+│   
+│   └── Cc0002
+│   ...
+│   
+└── work
+    ├── sub-Cc0001
+    │   ├── ses-first
+    │   └── ses-second
+    └── sub-Cc0002
+        ├── ses-first
+        └── ses-second         
 </pre>
 
 #### Conversion without Sessions
 You can omit the use of session subdirectories if you only have one session per subject. Use the --no-sessions command line flag to achieve this (this feature is switched off by default):
 <pre>
-% dcm2bids.py --no-sessions -i mydicom -o mybids
+% bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/ --no-sessions
 </pre>
 
-### Edit Translator Dictionary
+### Editing the Translator Dictionary
 
-dcm2bids.py creates a JSON series name translator in the derivatives/conversion folder. You'll use this file to specific how you want individual series data to be renamed into the output BIDS source directory. Open the Protocol_Translator.json file in a text editor. Initially it will look something like the following, with the BIDS directory, filename suffix and IntendedFor fields set to their default values of "EXCLUDE_BIDS_Name", "EXCLUDE_BIDS_Directory" and 
-"UNASSIGNED" (the double quotes are a JSON requirement):
+Before diving into editing the translator dictionary we recommend a passing familiarity with the
+[BIDS Specification](https://bids-specification.readthedocs.io/en/stable/)
+and [BIDS Starter Kit](https://github.com/bids-standard/bids-starter-kit/wiki/The-BIDS-folder-hierarchy)
+
+The Protocol_Translator.json file lets *bidskit* know how you want to map individual series data to the BIDS format.
+Open Protocol_Translator.json file in your favorit text editor. Initially it will look something
+like the following, with the BIDS directory, filename suffix and IntendedFor fields set to their default values
+of "EXCLUDE_BIDS_Name", "EXCLUDE_BIDS_Directory" and "UNASSIGNED" (the double quotes are a JSON requirement):
 
 <pre>
 {
@@ -121,9 +130,12 @@ dcm2bids.py creates a JSON series name translator in the derivatives/conversion 
 }
 </pre>
 
-The IntendedFor field is only relevant for fieldmap series and links the fieldmap to one or more EPI series for distortion correction.
+The IntendedFor field is only relevant for fieldmap series and specifies which EPI series (BOLD, DWI, etc) are to be
+distortion corrected by given fieldmap data.
 
-Edit the BIDS directory and filename suffix entries for each series with the BIDS-compliant filename suffix (excluding the sub-xxxx_ses-xxxx_ prefix and any file extensions) and the BIDS purpose directory name (anat, func, fmap, etc). In the example above, this might look something like the following:
+Edit the BIDS directory and filename suffix entries for each series with the BIDS-compliant filename suffix
+(excluding the sub-xxxx_ses-xxxx_ prefix and any file extensions) and the BIDS purpose directory name
+(anat, func, fmap, etc). In the example above, this might look something like the following:
 
 <pre>
 {
@@ -151,45 +163,64 @@ Edit the BIDS directory and filename suffix entries for each series with the BID
 }
 </pre>
 
-Complete documentation for the BIDS standard, including appropriate filenaming conventions, can be found at http://bids.neuroimaging.io
-
 ### Second Pass Conversion
-The bidskit now has enough information to correctly organize the converted Nifti images and JSON sidecars into a BIDS directory tree. Any protocol series with a BIDS name or directory begining with "EXCLUDE" will be skipped (useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory). Rerun the docker command or dcm2bids.py (use the same command as in the first pass):
+*bidskit* now has enough information to organize the converted Nifti images and JSON sidecars in the work/ folder
+according to the BIDS specification.
+Any protocol series in Protocol_Translator.json with a BIDS name or directory begining with "EXCLUDE" will be skipped
+(useful for excluding localizers, teleradiology acquisitions, etc from the final BIDS directory).
 
-If your using the Docker image, run the following:
+You can simply run the same *bidskit* or *docker* command used for the first pass.
+*bidskit* will detect the protocol translator and the converted image data in the work/ folder from the first pass above.
+This will populate the *sub-* directories and participants.tsv file at the dataset root level:
+
+#### BIDS Dataset after Second Pass Conversion
 <pre>
-% docker run -it -v /PATH_TO_YOUR_RAW_DICOM_FOLDER/:/mnt rnair07/bidskit --indir=/mnt/dicom --outdir=/mnt/source
-</pre>
-
-If you're running the script locally, run something similar to the following depending on the command that was run for Phase 1:
-<pre>
-% dcm2bids.py -i mydicom -o mysource
-</pre>
-
-This will populate the BIDS source directory from the working conversion directory:
-
-<pre>
-source
+learning_pilot_2019/
+├── CHANGES
+├── README
+├── code
+│   └── Protocol_Translator.json
 ├── dataset_description.json
+├── derivatives
+├── participants.json
 ├── participants.tsv
-└── sub-Ra0950
-    └── ses-first
-        ├── anat
-        │   ├── sub-Ra0950_run-01_T1w.json
-        │   ├── sub-Ra0950_run-01_T1w.nii.gz
-        │   ├── sub-Ra0950_run-02_T1w.json
-        │   └── sub-Ra0950_run-02_T1w.nii.gz
-        ├── fmap
-        │   ├── sub-Ra0950_acq-fmap_magnitude1.nii.gz
-        │   ├── sub-Ra0950_acq-fmap_phasediff.json
-        │   └── sub-Ra0950_acq-fmap_phasediff.nii.gz
-        └── func
-            ├── sub-Ra0950_task-rest_acq-MB_run-01_bold.json
-            ├── sub-Ra0950_task-rest_acq-MB_run-01_bold.nii.gz
-            ├── sub-Ra0950_task-rest_acq-MB_run-01_events.tsv
-            ├── sub-Ra0950_task-rest_acq-MB_run-02_bold.json
-            ├── sub-Ra0950_task-rest_acq-MB_run-02_bold.nii.gz
-            └── sub-Ra0950_task-rest_acq-MB_run-02_events.tsv
+├── sourcedata
+│   ├── Cc0001
+│   │   ├── first
+│   ...
+│   
+│   └── Cc0002
+│   ...
+│   
+├── sub-Cc0001
+│   ├── ses-first
+│   │   ├── anat
+│   │   ├── dwi
+│   │   ├── fmap
+│   │   └── func
+│   └── ses-second
+│   ...
+│   
+├── sub-Cc0002
+│   ├── ses-first
+│   ...
+│   
+└── work
+    ├── sub-Cc0001
+    │   ├── ses-first
+    │   └── ses-second
+    └── sub-Cc0002
+        ├── ses-first
+        └── ses-second
 </pre>
 
-bidskit attempts to sort the fieldmap data appropriately into magnitude and phase images (for multi-echo GRE fieldmaps), or phase-encoding reversed pairs (for SE-EPI fieldmapping). The resulting dataset_description.json and functional event timing files (func/*_events.tsv) will need to be edited by the user, since the DICOM data contains no information about the design or purpose of the experiment.
+### Loose Ends
+Only so much information can be extracted from the DICOM image files and there are some pieces of infomation that only
+the user can provide. For example *dataset_description.json* and task timing files (*func/..._events.tsv*) are
+just templates and must be completed by the user. Again, you should refer to the
+[BIDS Specification](https://bids-specification.readthedocs.io/en/stable/) for full details of the expected format of
+these files.
+
+## Bugs and Feature Requests 
+Good luck and let us know about bugs and feature requests through this repo's
+[GitHub Issues](https://github.com/jmtyszka/bidskit/issues) page.
