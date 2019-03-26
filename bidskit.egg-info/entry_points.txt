@@ -1,3 +1,0 @@
-[console_scripts]
-bidskit = bidskit.launcher:main
-
