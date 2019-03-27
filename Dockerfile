@@ -1,4 +1,4 @@
-# BIDSKIT v1.3
+# BIDSKIT v1.2.0
 # MAINTAINER: rnair@caltech.edu | feel free to copy and adapt as needed.
 FROM ubuntu:trusty
 

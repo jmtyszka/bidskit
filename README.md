@@ -13,3 +13,7 @@ The version numbering for bidskit follows that of the BIDS specification it impl
 ## Bugs and Feature Requests 
 Let us know about bugs and feature requests through this repo's
 [GitHub Issues](https://github.com/jmtyszka/bidskit/issues) page.
+
+## Related Projects
+- [heudiconv](https://github.com/nipy/heudiconv) General purpose heuristic DICOM converter
+- [dcm2bids](https://github.com/cbedetti/Dcm2Bids) Christophe Beddetti's DICOM to BIDS converter 
