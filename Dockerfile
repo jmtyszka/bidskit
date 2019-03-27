@@ -1,12 +1,16 @@
 # BIDSKIT v1.2.0
 # MAINTAINER: rnair@caltech.edu | feel free to copy and adapt as needed.
-FROM ubuntu:trusty
+FROM ubuntu:bionic
 
 # Install updates, Python3 for BIDS conversion script, Pip3 for Python to pull the pydicom module
 # git and make for building DICOM convertor from source + related dependencies
 # Clean up after to keep image size compact!
-RUN apt-get update && apt-get upgrade -y && apt-get install -y build-essential libjpeg-dev python3 python3-pip git cmake pkg-config pigz && \
-        apt-get clean -y && apt-get autoclean -y && apt-get autoremove -y
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y build-essential libjpeg-dev python3 python3-pip git cmake pkg-config pigz && \
+    apt-get clean -y && \
+    apt-get autoclean -y && \
+    apt-get autoremove -y
 
 # Pull Chris Rorden's dcm2niix latest version from github and compile from source
 # - dcm2niix is installed in /usr/local/bin within the container

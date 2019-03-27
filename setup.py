@@ -99,8 +99,8 @@ setup(
         'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
-        'Intended Audience :: Researchers',
-        'Topic :: Neuroimaging :: Conversion Tools',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering',
 
         # Pick your license as you wish
         'License :: OSI Approved :: MIT License',
