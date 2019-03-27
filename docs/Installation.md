@@ -6,8 +6,9 @@ BIDSKIT can be installed from GitHub source or from PyPI using the pip command
 *bidskit* was developed for Python 3.7 and depends on several popular packages including *numpy* and *pydicom*.
 Python dependencies are handled through setuptools (setup.py) during installation.
 
-*bidskit* also requires that *dcm2nixx* version 1.0.20181124 or later.
-See [Chris Rorden's GitHub repository](https://github.com/rordenlab/dcm2niix) for detailed installation instructions. 
+#### dcm2niix
+*bidskit* also requires that *dcm2nixx* version 1.0.20181125 or later.
+See [Chris Rorden's GitHub repository](https://github.com/rordenlab/dcm2niix) for detailed installation instructions.
 
 ### GitHub Installation
 
@@ -27,3 +28,15 @@ See [Chris Rorden's GitHub repository](https://github.com/rordenlab/dcm2niix) fo
     ```
     % [sudo] pip3 install bidskit
     ```
+    
+
+### Optional Extensions
+#### bids-validator
+We recommend installing the Node.js application [bids-validator](https://github.com/bids-standard/bids-validator)
+for post-conversion validation from within *bidskit*.
+
+1. Install [Node.js](https://nodejs.org/en/) (version 8.0 or later)
+2. Install *bids-validator*
+    ```
+    % npm install -g bids-validator
+    ```  
