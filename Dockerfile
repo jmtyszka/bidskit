@@ -1,6 +1,11 @@
 # BIDSKIT v1.2.0
-# MAINTAINER: rnair@caltech.edu | feel free to copy and adapt as needed.
+# MAINTAINER: jmt@caltech.edu
+
+# Install Ubuntu 18.04 LTS Bionic Beaver
 FROM ubuntu:bionic
+
+# Install Node.js version 8
+FROM node:8
 
 # Install updates, Python3 for BIDS conversion script, Pip3 for Python to pull the pydicom module
 # git and make for building DICOM convertor from source + related dependencies
@@ -11,6 +16,9 @@ RUN apt-get update && \
     apt-get clean -y && \
     apt-get autoclean -y && \
     apt-get autoremove -y
+
+# Install Node.js bids-validator
+RUN npm install -g bids-validator
 
 # Pull Chris Rorden's dcm2niix latest version from github and compile from source
 # - dcm2niix is installed in /usr/local/bin within the container
