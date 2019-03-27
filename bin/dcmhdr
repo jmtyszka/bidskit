@@ -4,11 +4,11 @@ Extract useful tag values from header of a DICOM image
 
 Usage
 ----
-dcmhdr.py -i <DICOM Image File> -o <Output CSV File>
+dcmhdr -i <DICOM Image File> -o <Output CSV File>
 
 Example
 ----
-% dcmhdr.py -i IM-001.dcm -o IM-001_Header.csv
+% dcmhdr -i IM-001.dcm -o IM-001_Header.csv
 
 Authors
 ----
@@ -47,11 +47,7 @@ __version__ = '0.9.1'
 import os
 import sys
 import argparse
-import subprocess
-import shutil
-import json
-import dicom
-import glob
+import pydicom
 from datetime import datetime as dt
 
 
@@ -59,8 +55,8 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Extract useful fields from DICOM headers')
-    parser.add_argument('-i','--input', required=True, nargs='+', help='List of DICOM filenames')
-    parser.add_argument('-o','--output', help='Output CSV file name')
+    parser.add_argument('-i', '--input', required=True, nargs='+', help='List of DICOM filenames')
+    parser.add_argument('-o', '--output', help='Output CSV file name')
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -76,10 +72,9 @@ def main():
     # Open output CSV file
     try:
         csv_fd = open(csv_fname, 'w')
-    except:
+    except IOError:
         print('* Problem opening output CSV file')
         sys.exit(1)
-
 
     # Write header row to CSV file
     hdr_str = 'Filename, PatName, Sex, Age, SerNo, SerDesc, AcqDateTime\n'
@@ -128,9 +123,9 @@ def dcm_hdr(dcm_fname):
     """
 
     try:
-        ds = dicom.read_file(dcm_fname, force=True)
-    except:
-        print("Unexpected error:", sys.exc_info()[0])
+        ds = pydicom.read_file(dcm_fname, force=True)
+    except IOError:
+        print("* Problem opening %s" % dcm_fname)
         raise
 
     # Init a new dictionary
@@ -148,11 +143,10 @@ def dcm_hdr(dcm_fname):
 
     else:
 
-        print('* No DICOM header information found in %s' % dcm_dir)
+        print('* No DICOM header information found in %s' % dcm_fname)
         print('* Confirm that this DICOM image is uncompressed')
         print('* Exiting')
         sys.exit(1)
-
 
     return hdr
 
@@ -165,6 +159,7 @@ def dcm_date_time(dcm_date, dcm_time):
     d = dt.strptime(dcm_date + dcm_time, '%Y%m%d%H%M%S.%f')
 
     return str(d)
+
 
 # This is the standard boilerplate that calls the main() function.
 if __name__ == '__main__':

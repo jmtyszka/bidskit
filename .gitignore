@@ -1,3 +1,9 @@
+# setuptools directories #
+##########################
+build/
+dist/
+*.egg-info/
+
 # PyCharm configurations #
 ##########################
 .idea/*
