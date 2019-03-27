@@ -24,10 +24,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.0a3'
+__version__ = '1.2.1'
 
 import os
+import sys
 import json
+import subprocess
+
 import bidskit.io as bio
 
 
@@ -160,10 +163,18 @@ class BIDSTree:
         :return:
         """
 
-        import subprocess
+        # Check for bids-validator installation
+        try:
+            output = subprocess.check_output(['bids-validator', '-v'])
+        except FileNotFoundError:
+            print('')
+            print('* Optional external bids-validator not found')
+            print('* Please see https://github.com/jmtyszka/bidskit/blob/master/docs/Installation.md for more information')
+            sys.exit(0)
 
         print('\n----------------------')
         print('Running BIDS validator')
         print('----------------------\n')
 
+        # Run bids-validator on BIDS dataset
         subprocess.run(['bids-validator', self.bids_dir])
