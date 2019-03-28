@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 import os
 import shutil
@@ -67,7 +67,7 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
         if not first_pass:
-            run_no = btr.auto_run_no(nii_list,prot_dict)
+            run_no = btr.auto_run_no(nii_list, prot_dict)
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
         for fc, src_nii_fname in enumerate(nii_list):

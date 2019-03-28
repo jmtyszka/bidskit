@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 import os
 import sys
@@ -327,7 +327,7 @@ def add_run_number(bids_suffix, run_no):
     return new_bids_suffix
 
 
-def auto_run_no(file_list,prot_dict):
+def auto_run_no(file_list, prot_dict):
     """
     Search for duplicate series names in dcm2niix output file list
     Return inferred run numbers accounting for duplication and multiple recons from single acquisition
@@ -352,7 +352,7 @@ def auto_run_no(file_list,prot_dict):
 
         # Parse dcm2niix filename into relevant keys, including suffix
         info = bio.parse_dcm2niix_fname(fname)
-        _, bids_suffix, _  = prot_dict[info['SerDesc']]
+        _, bids_suffix, _ = prot_dict[info['SerDesc']]
         
         # Construct a unique series description using multirecon suffix
         ser_suffix = bids_suffix + '_' + info['Suffix']
@@ -581,6 +581,3 @@ def check_dcm2niix_version(min_version='v1.0.20181125'):
         print('* dcm2niix version not detected')
         print('* check that dcm2niix %s or later is installed correctly' % min_version)
         sys.exit(1)
-
-
-
