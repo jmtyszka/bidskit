@@ -327,7 +327,7 @@ def add_run_number(bids_suffix, run_no):
     return new_bids_suffix
 
 
-def auto_run_no(file_list):
+def auto_run_no(file_list,prot_dict):
     """
     Search for duplicate series names in dcm2niix output file list
     Return inferred run numbers accounting for duplication and multiple recons from single acquisition
@@ -338,8 +338,10 @@ def auto_run_no(file_list):
     - Series number resets following subject re-landmarking make the SerNo useful only for
       determining series uniqueness and not for ordering or run numbering.
 
-    :param file_list: list of str, Nifti file name list
-    :param acq_times, list of str, acquisition time strings
+    :param file_list: list of str
+        Nifti file name list
+    :param prot_dict: dictionary
+        Protocol translation dictionary
     :return: run_num, array of int
     """
 
@@ -350,9 +352,10 @@ def auto_run_no(file_list):
 
         # Parse dcm2niix filename into relevant keys, including suffix
         info = bio.parse_dcm2niix_fname(fname)
-
+        _, bids_suffix, _  = prot_dict[info['SerDesc']]
+        
         # Construct a unique series description using multirecon suffix
-        ser_suffix = info['SerDesc'] + '_' + info['Suffix']
+        ser_suffix = bids_suffix + '_' + info['Suffix']
 
         # Add to list
         desc_list.append(ser_suffix)
