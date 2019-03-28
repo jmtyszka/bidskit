@@ -40,16 +40,16 @@ which controls the conversion of your original MRI series into a BIDS-compliant 
 
 If you're using the Docker image, run the following:
 <pre>
-docker run -it -v /PATH_TO_YOUR_DATASET_FOLDER/:/dataset rnair07/bidskit -d /dataset
+docker run -it -v /PATH_TO_YOUR_DATASET_FOLDER/:/dataset jmtyszka/bidskit -d /dataset
 </pre>
 
-If you're running bidskit from the shell you can either run bidskit without arguments from within the dataset root
+If you're running *bidskit* from the shell you can either run *bidskit* without arguments from within the dataset root
 <pre>
 % cd /PATH_TO_YOUR_DATASET_FOLDER/
 % bidskit
 </pre>
 
-or alternatively
+or from another folder by specifying the BIDS dataset directory
 
 <pre>
 % bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/ 
