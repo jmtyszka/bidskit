@@ -1,6 +1,11 @@
 # BIDSKIT Changelog
 
-## Version 1.2
+## Version 1.2.3
+
+## Version 1.2.2
+- Fixed auto run number issue #55
+
+## Version 1.2.1
 
 - Bring output directory structure into compliance with BIDS v1.2
 - Old source/ directory contents raised to top level of BIDS dataset directory

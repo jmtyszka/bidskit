@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.2'
-
 import os
 import sys
 import shutil
@@ -46,7 +44,12 @@ def read_json(fname):
         json_dict = json.load(fd)
         fd.close()
     except IOError:
+        print('*** {}'.format(fname))
         print('*** JSON sidecar not found - returning empty dictionary')
+        json_dict = dict()
+    except json.decoder.JSONDecodeError:
+        print('*** {}'.format(fname))
+        print('*** JSON sidecar decoding error - returning empty dictionary')
         json_dict = dict()
 
     return json_dict
