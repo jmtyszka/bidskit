@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.2'
-
 import os
 import sys
 import json
@@ -72,7 +70,14 @@ def get_acq_time(json_file):
     """
 
     info = bio.read_json(json_file)
-    return info['AcquisitionTime']
+
+    if 'AcquisitionTime' in info:
+        acq_time = info['AcquisitionTime']
+    else:
+        print('* AcquisitionTime not found in {}'.format(json_file))
+        acq_time = "00:00:00.00"
+
+    return acq_time
 
 
 def prune_intendedfors(bids_subj_dir, fmap_only):
