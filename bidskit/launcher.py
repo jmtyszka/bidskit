@@ -66,6 +66,9 @@ def main():
     parser.add_argument('--no-sessions', action='store_true', default=False,
                         help='Do not use session sub-directories')
 
+    parser.add_argument('--no-anon', action='store_true', default=False,
+                        help='Do not anonymize BIDS output (eg for phantom data)')
+
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Overwrite existing files')
 
@@ -79,6 +82,7 @@ def main():
     args = parser.parse_args()
     dataset_dir = os.path.realpath(args.dataset)
     no_sessions = args.no_sessions
+    no_anon = args.no_anon
     overwrite = args.overwrite
 
     print('\n------------------------------------------------------------')
@@ -96,6 +100,7 @@ def main():
     print('Working Directory          : %s' % btree.work_dir)
     print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes'))
     print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No'))
+    print('Anonymize BIDS Output      : %s' % ('No' if no_anon else 'Yes'))
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -190,9 +195,21 @@ def main():
                 # Run dcm2niix conversion into working conversion directory
                 print('  Converting all DICOM images in %s' % dcm_dir)
                 devnull = open(os.devnull, 'w')
-                subprocess.call(['dcm2niix', '-b', 'y', '-z', 'y', '-f', '%n--%d--%q--%s',
-                                 '-o', work_conv_dir, dcm_dir],
-                                stdout=devnull, stderr=subprocess.STDOUT)
+
+                # BIDS anonymization flag - default 'y'
+                anon = 'n' if no_anon else 'y'
+
+                # Compose command
+                cmd = ['dcm2niix',
+                       '-b', 'y',
+                       '-ba', anon,
+                       '-z','y',
+                       '-f', '%n--%d--%q--%s',
+                       '-o', work_conv_dir,
+                       dcm_dir]
+
+                with open(os.devnull, 'w') as devnull:
+                    subprocess.run(cmd, stdout=devnull, stderr=devnull)
 
             if not first_pass:
 
