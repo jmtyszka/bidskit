@@ -29,9 +29,20 @@ import sys
 import json
 import re
 import subprocess
-import bidskit.io as bio
+import datetime as dt
 import numpy as np
+
 from glob import glob
+from bids import BIDSLayout
+
+from .io import (nii_to_json,
+                 read_json,
+                 parse_bids_fname,
+                 parse_dcm2niix_fname,
+                 safe_copy,
+                 write_json,
+                 strip_extensions,
+                 create_file_if_missing)
 
 
 def ordered_file_list(conv_dir):
@@ -46,7 +57,7 @@ def ordered_file_list(conv_dir):
     nii_list = glob(os.path.join(conv_dir, '*.nii*'))
 
     # Derive JSON sidecar list
-    json_list = [bio.nii_to_json(nii_file) for nii_file in nii_list]
+    json_list = [nii_to_json(nii_file) for nii_file in nii_list]
 
     # Pull acquisition times for each Nifti image from JSON sidecar
     acq_time = [get_acq_time(json_file) for json_file in json_list]
@@ -69,7 +80,7 @@ def get_acq_time(json_file):
     :return: acq_time: int, integer datetime
     """
 
-    info = bio.read_json(json_file)
+    info = read_json(json_file)
 
     if 'AcquisitionTime' in info:
         acq_time = info['AcquisitionTime']
@@ -80,15 +91,39 @@ def get_acq_time(json_file):
     return acq_time
 
 
+def intendedfor_nearest_fieldmap(bids_dir):
+    """
+
+    :param bids_dir: str
+        BIDS root directory
+    :return:
+    """
+
+    layout = BIDSLayout(bids_dir,
+                        absolute_paths=True,
+                        ignore=['sourcedata', 'work', 'derivatives', 'exclude'])
+
+    for subj in layout.get_subjects():
+
+        # Find all JSON sidecars in bold and fmap folders
+        bold_json = layout.get(return_type='file', extensions=['.json'], subject=subj, suffix='bold')
+        fmap_json = layout.get(return_type='file', extensions=['.json'], subject=subj, suffix='json')
+
+        print(bold_json)
+        print(fmap_json)
+
+
 def prune_intendedfors(bids_subj_dir, fmap_only):
     """
     Prune out all "IntendedFor" entries pointing to nonexistent files from all json files in given directory tree
 
     :param bids_subj_dir: string
-        Subject directory
+        BIDS subject directory (sub-*)
     :param fmap_only: boolean
         Only looks at json files in an fmap directory
     """
+
+    # TODO: Switch to pybids layout
 
     # Traverse through all directories in bids_subj_dir
     for root, dirs, files in os.walk(bids_subj_dir):
@@ -146,7 +181,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     bids_bvec_fname = []
 
     # Load the JSON sidecar
-    bids_info = bio.read_json(work_json_fname)
+    bids_info = read_json(work_json_fname)
 
     if bids_purpose == 'func':
 
@@ -156,7 +191,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
             create_events_template(bids_nii_fname, overwrite)
 
             # Add taskname to BIDS JSON sidecar
-            bids_keys = bio.parse_bids_fname(bids_nii_fname)
+            bids_keys = parse_bids_fname(bids_nii_fname)
             if 'task' in bids_keys:
                 bids_info['TaskName'] = bids_keys['task']
             else:
@@ -185,7 +220,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
             # *--GR--<serno+1>_ph.<ext> : inter-echo phase difference
 
             # Pull dcm2niix filename info
-            work_info = bio.parse_dcm2niix_fname(work_nii_fname)
+            work_info = parse_dcm2niix_fname(work_nii_fname)
 
             if 'e1' in work_info['Suffix']:
 
@@ -258,16 +293,16 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
     print('  Populating BIDS source directory')
 
     if bids_nii_fname:
-        bio.safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
+        safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
 
     if bids_json_fname:
-        bio.write_json(bids_json_fname, bids_info, overwrite)
+        write_json(bids_json_fname, bids_info, overwrite)
 
     if bids_bval_fname:
-        bio.safe_copy(work_bval_fname, bids_bval_fname, overwrite)
+        safe_copy(work_bval_fname, bids_bval_fname, overwrite)
 
     if bids_bvec_fname:
-        bio.safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
+        safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
 def add_participant_record(studydir, subject, age, sex):
@@ -284,7 +319,7 @@ def add_participant_record(studydir, subject, age, sex):
     participants_tsv = os.path.join(studydir, 'participants.tsv')
     participant_id = 'sub-%s' % subject
 
-    if not bio.create_file_if_missing(participants_tsv, '\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
+    if not create_file_if_missing(participants_tsv, '\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
 
         # Check if subject record already exists
         with open(participants_tsv) as f:
@@ -356,7 +391,7 @@ def auto_run_no(file_list, prot_dict):
     for fname in file_list:
 
         # Parse dcm2niix filename into relevant keys, including suffix
-        info = bio.parse_dcm2niix_fname(fname)
+        info = parse_dcm2niix_fname(fname)
         _, bids_suffix, _ = prot_dict[info['SerDesc']]
         
         # Construct a unique series description using multirecon suffix
@@ -462,12 +497,12 @@ def replace_contrast(fname, new_contrast):
     :return: new_fname: str, modified BIDS filename
     """
 
-    bids_keys = bio.parse_bids_fname(fname)
+    bids_keys = parse_bids_fname(fname)
 
     if 'contrast' in bids_keys:
         new_fname = fname.replace(bids_keys['contrast'], new_contrast)
     else:
-        fstub, fext = bio.strip_extensions(fname)
+        fstub, fext = strip_extensions(fname)
         new_fname = fstub + '_' + new_contrast + fext
 
     return new_fname
@@ -487,10 +522,10 @@ def fmap_echotimes(src_phase_json_fname):
     if os.path.isfile(src_phase_json_fname):
 
         # Read phase image metadata
-        phase_dict = bio.read_json(src_phase_json_fname)
+        phase_dict = read_json(src_phase_json_fname)
 
         # Populate series info dictionary from dcm2niix output filename
-        info = bio.parse_dcm2niix_fname(src_phase_json_fname)
+        info = parse_dcm2niix_fname(src_phase_json_fname)
 
         # Siemens: Magnitude 1 series number is one less than phasediff series number
         mag1_ser_no = str(int(info['SerNo']) - 1)
@@ -502,7 +537,7 @@ def fmap_echotimes(src_phase_json_fname):
         src_mag1_json_path = os.path.join(os.path.dirname(src_phase_json_fname), src_mag1_json_fname)
 
         # Read mag1 metadata
-        mag1_dict = bio.read_json(src_mag1_json_path)
+        mag1_dict = read_json(src_mag1_json_path)
 
         # Add te1 key and rename TE2 key
         if mag1_dict:
