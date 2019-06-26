@@ -8,17 +8,6 @@ Mike Tyszka, Caltech Brain Imaging Center
 Remya Nair, Caltech Brain Imaging Center
 Julien Dubois, Caltech and Cedars Sinai Medical Center
 
-Dates
-----
-2016-08-03 JMT From scratch
-2016-11-04 JMT Add session directory to DICOM heirarchy
-2017-11-09 JMT Added support for DWI, no sessions, IntendedFor and TaskName
-2018-03-09 JMT Fixed IntendedFor handling (#20, #27) and run-number issues (#28)
-               Migrated to pydicom v1.0.1 (note namespace change to pydicom)
-2019-02-25 JMT Fixed arbitrary run ordering (sorted glob)
-2019-03-20 JMT Restructure as PyPI application with BIDS 1.2 compliance
-2019-03-22 JMT Add BIDS validation
-
 MIT License
 
 Copyright (c) 2017-2019 Mike Tyszka
@@ -42,12 +31,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = '1.2.3'
-
 import os
 import sys
 import argparse
 import subprocess
+import pkg_resources
 from glob import glob
 
 import bidskit.io as bio
@@ -78,15 +66,23 @@ def main():
     parser.add_argument('--clean_conv_dir', action='store_true', default=False,
                         help='Clean up conversion directory')
 
+    parser.add_argument('--nearest_fmap', action='store_true', default=False,
+                        help='Associate BOLD series with nearest fieldmap in time to series start')
+
     # Parse command line arguments
     args = parser.parse_args()
     dataset_dir = os.path.realpath(args.dataset)
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
+    nearest_fmap = args.nearest_fmap
 
-    print('\n------------------------------------------------------------')
-    print('BIDSKIT %s' % __version__)
+    # Read version from setup.py
+    ver = pkg_resources.get_distribution('cbicqc').version
+
+    print('')
+    print('------------------------------------------------------------')
+    print('BIDSKIT {}'.format(ver))
     print('------------------------------------------------------------')
 
     # Check for minimum dcm2niix version (mostly for multirecon suffix handling)
@@ -96,11 +92,13 @@ def main():
     # Creates directory
     btree = BIDSTree(dataset_dir, overwrite)
 
-    print('\nSource data directory      : %s' % btree.sourcedata_dir)
-    print('Working Directory          : %s' % btree.work_dir)
-    print('Use Session Directories    : %s' % ('No' if no_sessions else 'Yes'))
-    print('Overwrite Existing Files   : %s' % ('Yes' if overwrite else 'No'))
-    print('Anonymize BIDS Output      : %s' % ('No' if no_anon else 'Yes'))
+    print('')
+    print('Source data directory      : {}'.format(btree.sourcedata_dir))
+    print('Working Directory          : {}'.format(btree.work_dir))
+    print('Use Session Directories    : {}'.format('No' if no_sessions else 'Yes'))
+    print('Overwrite Existing Files   : {}'.format('Yes' if overwrite else 'No'))
+    print('Anonymize BIDS Output      : {}'.format('No' if no_anon else 'Yes'))
+    print('Use Nearest Fieldmap       : {}'.format('Yes' if nearest_fmap else 'No'))
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -110,14 +108,16 @@ def main():
 
     if translator and os.path.isdir(btree.work_dir):
 
-        print('\n------------------------------------------------------------')
+        print('')
+        print('------------------------------------------------------------')
         print('Pass 2 : Populating BIDS directory')
         print('------------------------------------------------------------')
         first_pass = False
 
     else:
 
-        print('\n------------------------------------------------------------')
+        print('')
+        print('------------------------------------------------------------')
         print('Pass 1 : DICOM to Nifti conversion and translator creation')
         print('------------------------------------------------------------')
         first_pass = True
@@ -134,7 +134,8 @@ def main():
 
         subject_dir_list.append(dataset_dir + "/sub-" + sid)
 
-        print('\n------------------------------------------------------------')
+        print('')
+        print('------------------------------------------------------------')
         print('Processing subject ' + sid)
         print('------------------------------------------------------------')
 
@@ -230,10 +231,19 @@ def main():
 
     if not args.skip_if_pruning:
 
-        print("\nSubject directories to prune:  " + ", ".join(subject_dir_list))
+        print('')
+        print('Subject directories to prune:  ' + ', '.join(subject_dir_list))
 
         for bids_subj_dir in subject_dir_list:
             btr.prune_intendedfors(bids_subj_dir, True)
+
+    if not first_pass:
+
+        if args.nearest_fmap:
+
+            print('')
+            print('Assigning nearest fieldmap to each BOLD series')
+            btr.intendedfor_nearest_fieldmap(bids_subj_dir)
 
     # Finally validate that all is well with the BIDS dataset
     if not first_pass:
