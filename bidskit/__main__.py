@@ -125,14 +125,14 @@ def main():
     subject_dir_list = []
 
     # Loop over subject directories in DICOM root
-    for dcm_sub_dir in glob(btree.sourcedata_dir + '/*/'):
+    for dcm_sub_dir in glob(btree.sourcedata_dir + os.sep + '*' + os.sep):
 
-        sid = os.path.basename(dcm_sub_dir.strip('/'))
+        sid = os.path.basename(os.path.normpath(dcm_sub_dir))
 
         # Check that subject ID is legal
         btr.check_subject_session(sid)
 
-        subject_dir_list.append(dataset_dir + "/sub-" + sid)
+        subject_dir_list.append(os.path.join(dataset_dir, 'sub-' + sid))
 
         print('')
         print('------------------------------------------------------------')
@@ -143,7 +143,7 @@ def main():
         if no_sessions:
             dcm_dir_list = [dcm_sub_dir]
         else:
-            dcm_dir_list = glob(dcm_sub_dir + '/*/')
+            dcm_dir_list = glob(dcm_sub_dir + os.sep + '*' + os.sep)
 
         # Loop over source data session directories in subject directory
         for dcm_dir in dcm_dir_list:
@@ -160,7 +160,7 @@ def main():
 
             else:
 
-                ses = os.path.basename(dcm_dir.strip('/'))
+                ses = os.path.basename(os.path.normpath(dcm_dir))
 
                 # Check that session ID is legal
                 btr.check_subject_session(ses)
