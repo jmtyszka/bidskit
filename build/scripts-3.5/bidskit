@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import sys
+from PySide2.QtWidgets import QApplication
+from bidskit.mainwindow import BIDSKitMainWindow
+
+
+# Main entry point
+if __name__ == "__main__":
+
+    app = QApplication(sys.argv)
+
+    window = BIDSKitMainWindow()
+    window.show()
+
+    sys.exit(app.exec_())

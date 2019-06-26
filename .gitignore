@@ -188,3 +188,8 @@ venv/lib/python3.6/types.py
 venv/lib/python3.6/warnings.py
 venv/lib/python3.6/weakref.py
 venv/pip-selfcheck.json
+bidskit.egg-info/dependency_links.txt
+bidskit.egg-info/PKG-INFO
+bidskit.egg-info/requires.txt
+bidskit.egg-info/SOURCES.txt
+bidskit.egg-info/top_level.txt
