@@ -28,6 +28,7 @@ import os
 import shutil
 import bidskit.translate as btr
 import bidskit.io as bio
+import copy
 
 
 def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_conv_dir, overwrite=False):
@@ -104,7 +105,9 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
                         print('  Organizing ' + str(info['SerDesc']))
 
                         # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
-                        bids_purpose, bids_suffix, bids_intendedfor = prot_dict[info['SerDesc']]
+                        # Note use of deepcopy to prevent corruption of prot_dict (see Issue #36 solution by @bogpetre)
+                        # TODO: Check variety of use cases for stability
+                        bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[info['SerDesc']])
 
                         # Safely add run-* key to BIDS suffix
                         bids_suffix = btr.add_run_number(bids_suffix, run_no[fc])
