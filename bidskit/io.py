@@ -29,6 +29,7 @@ import sys
 import shutil
 import json
 import pydicom
+import numpy as np
 
 
 def read_json(fname):
@@ -188,29 +189,77 @@ def parse_bids_fname(fname):
     """
     Parse BIDS filename into key-value pairs
 
-    :param fname:
-    :return:
+    :param fname: str,
+        Raw BIDS-format filename with extension(s)
+    :return: dict,
+        Dictionary of key-value pairs parsed from BIDS-format filename
     """
 
-    # Init return dictionary
-    bids_keys = dict()
+    # Init return dictionary with BIDS 1.1.1 valid key strings
+    bids_keys = {
+        'sub': "",
+        'ses': "",
+        'task': "",
+        'run': "",
+        'acq': "",
+        'dir': "",
+        'ce': "",
+        'rec': "",
+        'mod': "",
+        'echo': "",
+        'proc': "",
+        'suffix': "",
+    }
 
-    # Retain only basename without extensions (handle .nii.gz)
+    # Extract base filename and strip up to two extensions
+    # Accounts for both '.nii' and '.nii.gz' variants
     fname, _ = os.path.splitext(os.path.basename(fname))
     fname, _ = os.path.splitext(fname)
 
-    kvs = fname.split('_')
+    # Locate, record and remove final constrast suffix
+    suffix_start = fname.rfind('_') + 1
+    bids_keys['suffix'] = fname[suffix_start:]
+    fname = fname[:suffix_start]
 
-    for kv in kvs:
+    # Divide filename into keys and values
+    # Value segments are delimited by '<key>-' strings
 
-        tmp = kv.split('-')
+    key_name = []
+    val_start = []
+    key_start = []
 
-        if len(tmp) > 1:
-            bids_keys[tmp[0]] = tmp[1]
-        else:
+    # Search for any valid keys in filename
+    # Record key and value start indices within string
+    for key in bids_keys:
 
-            # Single value without key implies final contrast suffix (eg '_T1w')
-            bids_keys['contrast'] = tmp[0]
+        key_str = key + '-'
+
+        i0 = fname.find(key_str)
+        if i0 > -1:
+            i1 = i0 + len(key_str)
+            key_name.append(key)
+            key_start.append(i0)
+            val_start.append(i1)
+
+    # Convert lists to numpy arrays
+    key_name = np.array(key_name)
+    key_start = np.array(key_start)
+    val_start = np.array(val_start)
+
+    # Sort keys by position in filename
+    key_order = np.argsort(key_start)
+    key_name_sorted = key_name[key_order]
+    val_start_sorted = val_start[key_order]
+    val_end_sorted = key_start[np.roll(key_order, -1)] - 1
+
+    # Fill BIDS key-value dictionary
+    for kc in range(len(key_name_sorted)):
+
+        kname = key_name_sorted[kc]
+        vstart = val_start_sorted[kc]
+        vend = val_end_sorted[kc]
+        val = fname[vstart:vend]
+        bids_keys[kname] = val
 
     return bids_keys
 

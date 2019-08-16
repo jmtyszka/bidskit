@@ -585,21 +585,6 @@ def create_events_template(bold_fname, overwrite=False):
             fd.close()
 
 
-def check_subject_session(sname):
-    """
-    Check that subject or session ID does not contain '-' or '_'
-
-    :param sname:
-    :return: None
-    """
-
-    if '-' in sname or '_' in sname:
-        print('* Looking at %s' % sname)
-        print('* Subject/session names cannot contain "-" or "_"')
-        print('* Please rename the subject/session folder in the sourcedata directory and rerun bidskit')
-        sys.exit(1)
-
-
 def check_dcm2niix_version(min_version='v1.0.20181125'):
 
     output = subprocess.check_output('dcm2niix')

@@ -66,8 +66,9 @@ def main():
     parser.add_argument('--clean_conv_dir', action='store_true', default=False,
                         help='Clean up conversion directory')
 
-    parser.add_argument('--nearest_fmap', action='store_true', default=False,
-                        help='Associate BOLD series with nearest fieldmap in time to series start')
+    # TODO: Implement option for linking nearest fieldmap in time to BOLD series via IntendedFor field
+    # parser.add_argument('--nearest_fmap', action='store_true', default=False,
+    #                     help='Associate BOLD series with nearest fieldmap in time to series start')
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -75,7 +76,7 @@ def main():
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
-    nearest_fmap = args.nearest_fmap
+    # nearest_fmap = args.nearest_fmap
 
     # Read version from setup.py
     ver = pkg_resources.get_distribution('cbicqc').version
@@ -98,7 +99,7 @@ def main():
     print('Use Session Directories    : {}'.format('No' if no_sessions else 'Yes'))
     print('Overwrite Existing Files   : {}'.format('Yes' if overwrite else 'No'))
     print('Anonymize BIDS Output      : {}'.format('No' if no_anon else 'Yes'))
-    print('Use Nearest Fieldmap       : {}'.format('Yes' if nearest_fmap else 'No'))
+    # print('Use Nearest Fieldmap       : {}'.format('Yes' if nearest_fmap else 'No'))
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -122,15 +123,13 @@ def main():
         print('------------------------------------------------------------')
         first_pass = True
 
+    # Init list of output subject directories
     subject_dir_list = []
 
-    # Loop over subject directories in DICOM root
+    # Loop over list of subject directories in sourcedata directory
     for dcm_sub_dir in glob(btree.sourcedata_dir + os.sep + '*' + os.sep):
 
         sid = os.path.basename(os.path.normpath(dcm_sub_dir))
-
-        # Check that subject ID is legal
-        btr.check_subject_session(sid)
 
         subject_dir_list.append(os.path.join(dataset_dir, 'sub-' + sid))
 
@@ -161,9 +160,6 @@ def main():
             else:
 
                 ses = os.path.basename(os.path.normpath(dcm_dir))
-
-                # Check that session ID is legal
-                btr.check_subject_session(ses)
 
                 ses_prefix = 'ses-' + ses
                 print('  Processing session ' + ses)
@@ -237,13 +233,13 @@ def main():
         for bids_subj_dir in subject_dir_list:
             btr.prune_intendedfors(bids_subj_dir, True)
 
-    if not first_pass:
-
-        if args.nearest_fmap:
-
-            print('')
-            print('Assigning nearest fieldmap to each BOLD series')
-            btr.intendedfor_nearest_fieldmap(bids_subj_dir)
+    # if not first_pass:
+    #
+    #     if args.nearest_fmap:
+    #
+    #         print('')
+    #         print('Assigning nearest fieldmap to each BOLD series')
+    #         btr.intendedfor_nearest_fieldmap(bids_subj_dir)
 
     # Finally validate that all is well with the BIDS dataset
     if not first_pass:
