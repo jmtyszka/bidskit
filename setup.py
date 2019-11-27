@@ -144,6 +144,7 @@ setup(
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['pydicom>=1.2.2',
+                      'pybids>=0.9.5',
                       'numpy>=1.15.2'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
