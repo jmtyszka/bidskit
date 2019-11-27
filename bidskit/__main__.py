@@ -79,7 +79,7 @@ def main():
     # nearest_fmap = args.nearest_fmap
 
     # Read version from setup.py
-    ver = pkg_resources.get_distribution('cbicqc').version
+    ver = pkg_resources.get_distribution('bidskit').version
 
     print('')
     print('------------------------------------------------------------')
