@@ -45,7 +45,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='2019.8.16',  # Required
+    version='2019.12.20',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -145,7 +145,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['pydicom>=1.2.2',
                       'pybids>=0.9.5',
-                      'numpy>=1.15.2'],  # Optional
+                      'numpy'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -203,4 +203,8 @@ setup(
         'Funding': 'http://conte.caltech.edu/',
         'Source': 'https://github.com/jmtyszka/bidskit/',
     },
+
+    # Allow or forbid running this package directly from a zip file
+    # https://setuptools.readthedocs.io/en/latest/setuptools.html#setting-the-zip-safe-flag
+    zip_safe=False,
 )
