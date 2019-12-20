@@ -26,8 +26,8 @@ SOFTWARE.
 
 import os
 import shutil
-import bidskit.translate as btr
-import bidskit.io as bio
+from . import translate as btr
+from . import io as bio
 import copy
 
 

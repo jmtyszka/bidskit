@@ -29,7 +29,6 @@ import sys
 import json
 import re
 import subprocess
-import datetime as dt
 import numpy as np
 
 from glob import glob
@@ -392,7 +391,17 @@ def auto_run_no(file_list, prot_dict):
 
         # Parse dcm2niix filename into relevant keys, including suffix
         info = parse_dcm2niix_fname(fname)
-        _, bids_suffix, _ = prot_dict[info['SerDesc']]
+
+        ser_desc = info['SerDesc']
+
+        if ser_desc in prot_dict:
+            _, bids_suffix, _ = prot_dict[info['SerDesc']]
+        else:
+            print('')
+            print('* Series description {} missing from code/Protocol_Translator.json'.format(ser_desc))
+            print('* Please use EXCLUDE_BIDS_Directory and EXCLUDE_BIDS_Name instead of deleting a series entry')
+            print('* Exiting')
+            sys.exit(1)
         
         # Construct a unique series description using multirecon suffix
         ser_suffix = bids_suffix + '_' + info['Suffix']
