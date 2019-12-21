@@ -128,7 +128,7 @@ class BIDSTree:
             print('---')
             print('New protocol dictionary created : %s' % self.translator_file)
             print('Remember to replace "EXCLUDE" values in dictionary with an appropriate image description')
-            print('For example "MP-RAGE T1w 3D structural" or "MB-EPI BOLD resting-state')
+            print('For example "MP-RAGE T1w 3D structural" or "MB-EPI BOLD resting-state"')
             print('---')
             print('')
 
