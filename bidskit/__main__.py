@@ -66,9 +66,11 @@ def main():
     parser.add_argument('--clean_conv_dir', action='store_true', default=False,
                         help='Clean up conversion directory')
 
-    # TODO: Implement option for linking nearest fieldmap in time to BOLD series via IntendedFor field
-    # parser.add_argument('--nearest_fmap', action='store_true', default=False,
-    #                     help='Associate BOLD series with nearest fieldmap in time to series start')
+    parser.add_argument('--bind_fmaps', action='store_true', default=False,
+                        help='Bind fieldmaps to fMRI series using IntendedFor field')
+
+    parser.add_argument('-V','--version', action='store_true', default=False,
+                        help='Display bidskit version number and exit')
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -76,10 +78,14 @@ def main():
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
-    # nearest_fmap = args.nearest_fmap
+    bind_fmaps = args.bind_fmaps
 
     # Read version from setup.py
     ver = pkg_resources.get_distribution('bidskit').version
+
+    if args.version:
+        print('BIDSKIT {}'.format(ver))
+        sys.exit(1)
 
     print('')
     print('------------------------------------------------------------')
@@ -99,7 +105,7 @@ def main():
     print('Use Session Directories    : {}'.format('No' if no_sessions else 'Yes'))
     print('Overwrite Existing Files   : {}'.format('Yes' if overwrite else 'No'))
     print('Anonymize BIDS Output      : {}'.format('No' if no_anon else 'Yes'))
-    # print('Use Nearest Fieldmap       : {}'.format('Yes' if nearest_fmap else 'No'))
+    print('Bind fieldmaps             : {}'.format('Yes' if bind_fmaps else 'No'))
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -233,13 +239,14 @@ def main():
         for bids_subj_dir in subject_dir_list:
             btr.prune_intendedfors(bids_subj_dir, True)
 
-    # if not first_pass:
-    #
-    #     if args.nearest_fmap:
-    #
-    #         print('')
-    #         print('Assigning nearest fieldmap to each BOLD series')
-    #         btr.intendedfor_nearest_fieldmap(bids_subj_dir)
+    if not first_pass:
+
+        if args.bind_fmaps:
+
+            print('')
+            print('Binding nearest fieldmap to each functional series')
+            for bids_subj_dir in subject_dir_list:
+                btr.bind_fmaps(bids_subj_dir)
 
     # Finally validate that all is well with the BIDS dataset
     if not first_pass:

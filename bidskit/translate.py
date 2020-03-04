@@ -30,9 +30,10 @@ import json
 import re
 import subprocess
 import numpy as np
+import datetime as dt
 
 from glob import glob
-from bids import BIDSLayout
+from bids.layout import parse_file_entities
 
 from .io import (nii_to_json,
                  read_json,
@@ -90,28 +91,6 @@ def get_acq_time(json_file):
     return acq_time
 
 
-def intendedfor_nearest_fieldmap(bids_dir):
-    """
-
-    :param bids_dir: str
-        BIDS root directory
-    :return:
-    """
-
-    layout = BIDSLayout(bids_dir,
-                        absolute_paths=True,
-                        ignore=['sourcedata', 'work', 'derivatives', 'exclude'])
-
-    for subj in layout.get_subjects():
-
-        # Find all JSON sidecars in bold and fmap folders
-        bold_json = layout.get(return_type='file', extensions=['.json'], subject=subj, suffix='bold')
-        fmap_json = layout.get(return_type='file', extensions=['.json'], subject=subj, suffix='json')
-
-        print(bold_json)
-        print(fmap_json)
-
-
 def prune_intendedfors(bids_subj_dir, fmap_only):
     """
     Prune out all "IntendedFor" entries pointing to nonexistent files from all json files in given directory tree
@@ -154,6 +133,105 @@ def prune_intendedfors(bids_subj_dir, fmap_only):
                         f.seek(0)
                         json.dump(data, f, indent=4)
                         f.truncate()
+
+
+def bind_fmaps(bids_subj_dir):
+    """
+    Bind nearest fieldmap in time to each functional series for this subject
+
+    :param dataset_dir: string
+        BIDS root directory
+    """
+
+    print('  Subject {}'.format(os.path.basename(bids_subj_dir)))
+
+    sess_dirs = glob(os.path.join(bids_subj_dir, 'ses-*'))
+
+    # Session loop
+    for sess_dir in sess_dirs:
+
+        print('    Session {}'.format(os.path.basename(sess_dir)))
+
+        # Get list of BOLD fMRI JSON sidecars
+        bold_jsons = glob(os.path.join(sess_dir, 'func', '*task-*_bold.json'))
+
+        # Get acquisition times for all BOLD and fieldmap series
+        t_bold = np.array([acqtime_mins(fname) for fname in bold_jsons])
+
+        # Get list of all SE-EPI fieldmaps
+        epi_fmap_jsons = glob(os.path.join(sess_dir, 'fmap', '*_dir-*_epi.json'))
+
+        if not epi_fmap_jsons:
+            print('* No SE-EPI fieldmaps found - skipping this subject/series')
+            break
+
+        # Get list of SE-EPI directions
+        dirs = []
+        for fname in epi_fmap_jsons:
+            ents = parse_file_entities(fname)
+            if 'direction' in ents:
+                dirs.append(ents['direction'])
+        fmap_dirs = np.unique(dirs)
+
+        # Loop over directions
+        for fmap_dir in fmap_dirs:
+
+            print('    Scanning for dir-{} SE-EPI fieldmaps'.format(fmap_dir))
+
+            # New SE-EPI fmap list for this direction
+            fmap_dir_jsons = glob(os.path.join(sess_dir, 'fmap', '*_dir-{}*_epi.json'.format(fmap_dir)))
+
+            # Create list for storing IntendedFor lists
+            intended_for = [ [] for ic in range(len(fmap_dir_jsons)) ]
+
+            # Get SE-EPI fmap acquisition times
+            t_epi_fmap = np.array([acqtime_mins(fname) for fname in fmap_dir_jsons])
+
+            # Find the closest fieldmap in time to each BOLD series
+            for ic, bold_json in enumerate(bold_jsons):
+
+                # Time difference between all fieldmaps in this direction and current BOLD series
+                dt = np.abs(t_bold[ic] - t_epi_fmap)
+
+                # Index of closest fieldmap to this BOLD series
+                idx = np.argmin(dt)
+
+                # Add this BOLD series image name to list for this fmap
+                intended_for[idx].append(bids_intended_name(bold_json))
+
+            # Replace IntendedFor field in fmap JSON file
+            for fc, json_fname in enumerate(fmap_dir_jsons):
+                info = read_json(json_fname)
+                info['IntendedFor'] = intended_for[fc]
+                write_json(json_fname, info, overwrite=True)
+
+
+def bids_intended_name(json_fname):
+
+    # Replace .json with .nii.gz
+    tmp1 = json_fname.replace('.json', '.nii.gz')
+    base1 = os.path.basename(tmp1)
+
+    tmp2 = os.path.dirname(tmp1)
+    base2 = os.path.basename(tmp2)
+
+    tmp3 = os.path.dirname(tmp2)
+    base3 = os.path.basename(tmp3)
+
+    return(os.path.join(base3, base2, base1))
+
+
+def acqtime_mins(json_fname):
+
+    with open(json_fname) as fd:
+
+        info = json.load(fd)
+
+        t1 = dt.datetime.strptime(info['AcquisitionTime'], '%H:%M:%S.%f0')
+        t0 = dt.datetime(1900, 1, 1)
+        t_mins = np.float((t1 - t0).total_seconds() / 60.0)
+
+    return t_mins
 
 
 def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
