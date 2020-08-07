@@ -3,7 +3,7 @@ Utility functions for handling protocol series tranlsation and purpose mapping
 
 MIT License
 
-Copyright (c) 2017-2019 Mike Tyszka
+Copyright (c) 2017-2020 Mike Tyszka
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -139,7 +139,7 @@ def bind_fmaps(bids_subj_dir):
     """
     Bind nearest fieldmap in time to each functional series for this subject
 
-    :param dataset_dir: string
+    :param bids_subj_dir: string
         BIDS root directory
     """
 
@@ -218,7 +218,7 @@ def bids_intended_name(json_fname):
     tmp3 = os.path.dirname(tmp2)
     base3 = os.path.basename(tmp3)
 
-    return(os.path.join(base3, base2, base1))
+    return os.path.join(base3, base2, base1)
 
 
 def acqtime_mins(json_fname):
@@ -280,59 +280,18 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         if 'UNASSIGNED' not in bids_intendedfor:
             bids_info['IntendedFor'] = bids_intendedfor
 
-        # Check for MEGE vs SE-EPI fieldmap images
-        # MEGE will have a 'GR' sequence, SE-EPI will have 'EP'
+        # Check for GRE vs SE-EPI fieldmap images
+        # GRE will have a 'GR' sequence, SE-EPI will have 'EP'
 
         print('    Identifying fieldmap image type')
 
         if seq_name == 'GR':
 
-            print('    GRE detected')
+            print('    Gradient echo fieldmap detected')
             print('    Identifying magnitude and phase images')
 
-            # Siemens: Dual gradient echo fieldmaps reconstruct to three series
-            # (Requires dcm2nixx v1.0.20180404 or later for echo number suffix)
-            # *--GR--<serno>_e1.<ext> : magnitude image from echo 1
-            # *--GR--<serno>_e2.<ext> : magnitude image from echo 2
-            # *--GR--<serno+1>_ph.<ext> : inter-echo phase difference
-
-            # Pull dcm2niix filename info
-            work_info = parse_dcm2niix_fname(work_nii_fname)
-
-            if 'e1' in work_info['Suffix']:
-
-                print('    Echo 1 magnitude detected')
-
-                # Replace existing contrast suffix (if any) with '_magnitude1'
-                bids_nii_fname = replace_contrast(bids_nii_fname, 'magnitude1')
-                bids_json_fname = []  # Do not copy sidecar
-
-            elif 'e2' in work_info['Suffix']:
-
-                print('    Echo 2 magnitude detected')
-
-                # Replace existing contrast suffix (if any) with '_magnitude1'
-                bids_nii_fname = replace_contrast(bids_nii_fname, 'magnitude2')
-                bids_json_fname = []  # Do not copy sidecar
-
-            elif 'ph' in work_info['Suffix']:
-
-                print('    Interecho phase difference detected')
-
-                # Replace existing contrast suffix (if any) with '_phasediff'
-                bids_nii_fname = replace_contrast(bids_nii_fname, 'phasediff')
-                bids_json_fname = replace_contrast(bids_json_fname, 'phasediff')
-
-                # Extract TE1 and TE2 from mag and phase JSON sidecars
-                te1, te2 = fmap_echotimes(work_json_fname)
-                bids_info['EchoTime1'] = te1
-                bids_info['EchoTime2'] = te2
-
-            else:
-
-                print('*   Magnitude or phase image not found - skipping')
-                bids_nii_fname = []
-                bids_json_fname = []
+            # Update BIDS filenames according to BIDS Fieldmap Case (1 or 2 - see specification)
+            bids_nii_fname, bids_json_fname = handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname)
 
         elif seq_name == 'EP':
 
@@ -382,6 +341,123 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
+def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
+    """
+    There are two popular GRE fieldmap organizations: Case 1 and Case 2
+    Source: BIDS 1.4.0 Specification https://bids-specification.readthedocs.io
+
+    Case 1
+    sub-<label>/[ses-<label>/]
+        fmap/
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phasediff.nii[.gz]
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phasediff.json
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
+
+    Case 2
+    sub-<label>/[ses-<label>/]
+        fmap/
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phase1.nii[.gz]
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phase1.json
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phase2.nii[.gz]
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phase2.json
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
+            sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
+
+    Current dcm2niix output suffices
+    Current version at time of coding: v1.0.20200331
+    ---
+    Keep checking that this is true with later releases
+    *--GR--<serno>_e1.<ext> : echo 1 magnitude image [Cases 1 and 2]
+    *--GR--<serno>_e2.<ext> : echo 2 magnitude image [Cases 1 and 2]
+    *--GR--<serno+1>_e1_ph.<ext> : echo 1 phase image [Case 2]
+    *--GR--<serno+1>_e2_ph.<ext> : interecho phase difference [Case 1] or
+                                   echo 2 phase image [Case 2]
+    """
+
+    # Pull dcm2niix filename info
+    work_info = parse_dcm2niix_fname(work_json_fname)
+    ser_no = np.int(work_info['SerNo'])
+    suffix = work_info['Suffix']
+
+    # Base series number for magnitude images (see above)
+    if suffix == 'e1' or suffix == 'e2':
+        is_mag = True
+        echo_no = np.int(suffix[1])
+        base_ser_no = ser_no
+    elif suffix == 'e1_ph' or suffix == 'e2_ph':
+        is_mag = False
+        echo_no = np.int(suffix[1])
+        base_ser_no = ser_no - 1
+    else:
+        is_mag = False
+        echo_no = None
+        base_ser_no = None
+
+    if base_ser_no:
+
+        # Construct candidate JSON sidecar filenames for e1 and e2, mag and phase
+        e1m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e1')
+        e2m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e2')
+        e1p_fname = dcm2niix_json_fname(work_info, base_ser_no + 1, 'e1_ph')
+        e2p_fname = dcm2niix_json_fname(work_info, base_ser_no + 1, 'e2_ph')
+
+        # Check case based on existence of phase images
+        fmap_case = None
+        if os.path.isfile(e2p_fname):
+            if os.path.isfile(e1p_fname):
+                print('    Detected GRE Fieldmap Case 2')
+                fmap_case = 2
+            else:
+                print('    Detected GRE Fieldmap Case 1')
+                fmap_case = 1
+        else:
+            print('* GRE Fieldmap Echo 2 image missing - skipping')
+
+        # Update BIDS nii and json filenames
+        if is_mag:
+
+            bids_nii_fname = replace_contrast(bids_nii_fname, 'magnitude{}'.format(echo_no))
+            bids_json_fname = []  # Do not copy sidecar
+
+        else:
+
+            if fmap_case == 1:
+
+                bids_nii_fname = replace_contrast(bids_nii_fname, 'phasediff')
+                bids_json_fname = replace_contrast(bids_json_fname, 'phasediff')
+
+                # Load echo 1 and echo 2 metadata
+                e1m_info = read_json(e1m_fname)
+                e2p_info = read_json(e2p_fname)
+
+                # Add new fields to echo 2 phase metadata
+                te1 = e1m_info['EchoTime']
+                te2 = e2p_info['EchoTime']
+
+                print('  GRE TE1 : {} ms'.format(te1))
+                print('  GRE TE2 : {} ms'.format(te2))
+                print('  GRE dTE : {} ms'.format(te2 - te1))
+
+                e2p_info['EchoTime1'] = te1
+                e2p_info['EchoTime2'] = te2
+
+                # Re-write echo 2 phase JSON sidecar
+                print('Updating Echo 2 Phase JSON sidecar')
+                write_json(e2p_fname, e2p_info, overwrite=True)
+
+            else:
+
+                bids_nii_fname = replace_contrast(bids_nii_fname, 'phase{}'.format(echo_no))
+                bids_json_fname = replace_contrast(bids_json_fname, 'phase{}'.format(echo_no))
+
+    else:
+
+        print('* Could not find echo 1 and 2 images for GRE Fieldmap - skipping')
+
+    return bids_nii_fname, bids_json_fname
+
+
 def add_participant_record(studydir, subject, age, sex):
     """
     Copied from heudiconv, this solution is good b/c it checks if the same subject ID already exists
@@ -401,7 +477,7 @@ def add_participant_record(studydir, subject, age, sex):
         # Check if subject record already exists
         with open(participants_tsv) as f:
             f.readline()
-            known_subjects = {l.split('\t')[0] for l in f.readlines()}
+            known_subjects = {this_line.split('\t')[0] for this_line in f.readlines()}
 
         if participant_id in known_subjects:
             return
@@ -451,9 +527,11 @@ def auto_run_no(file_list, prot_dict):
 
     NOTES:
     - Multiple recons generated by single acquisition (eg multiecho fieldmaps, localizers, etc) are
-      handled through the dcm2niix extensions (_e1, _ph, _i00001, etc).
+      handled through the dcm2niix extensions (_e1, e2_ph, _i00001, etc).
     - Series number resets following subject re-landmarking make the SerNo useful only for
       determining series uniqueness and not for ordering or run numbering.
+
+    Current dcm2niix version: v20200331
 
     :param file_list: list of str
         Nifti file name list
@@ -586,8 +664,8 @@ def replace_contrast(fname, new_contrast):
 
     bids_keys = parse_bids_fname(fname)
 
-    if 'contrast' in bids_keys:
-        new_fname = fname.replace(bids_keys['contrast'], new_contrast)
+    if 'suffix' in bids_keys:
+        new_fname = fname.replace(bids_keys['suffix'], new_contrast)
     else:
         fstub, fext = strip_extensions(fname)
         new_fname = fstub + '_' + new_contrast + fext
@@ -595,49 +673,31 @@ def replace_contrast(fname, new_contrast):
     return new_fname
 
 
-def fmap_echotimes(src_phase_json_fname):
+def dcm2niix_json_fname(info, ser_no, suffix):
     """
-    Extract TE1 and TE2 from mag and phase MEGE fieldmap pairs
+    Construct a dcm2niix filename from parse_dcm2niix_fname dictionary
 
-    :param src_phase_json_fname: str
-    :return:
+    Current dcm2niix version: v20200331
+
+    :param info: dict
+        series metadata
+    :return: str
+        dcm2niix filename
     """
 
-    # Init returned TEs
-    te1, te2 = 0.0, 0.0
+    if len(suffix) > 0:
+        ser_no = '{}_{}'.format(ser_no, suffix)
 
-    if os.path.isfile(src_phase_json_fname):
+    # Construct dcm2niix mag1 filename
+    fname = '{}--{}--{}--{}.json'.format(
+        info['SubjName'],
+        info['SerDesc'],
+        info['SeqName'],
+        ser_no)
 
-        # Read phase image metadata
-        phase_dict = read_json(src_phase_json_fname)
+    fname_full = os.path.join(info['DirName'], fname)
 
-        # Populate series info dictionary from dcm2niix output filename
-        info = parse_dcm2niix_fname(src_phase_json_fname)
-
-        # Siemens: Magnitude 1 series number is one less than phasediff series number
-        mag1_ser_no = str(int(info['SerNo']) - 1)
-
-        # Construct dcm2niix mag1 JSON filename
-        # Requires dicm2niix v1.0.20180404 or later for echo number suffix '_e1'
-        src_mag1_json_fname = info['SubjName'] + '--' + info['SerDesc'] + '--' + \
-            info['SeqName'] + '--' + mag1_ser_no + '_e1.json'
-        src_mag1_json_path = os.path.join(os.path.dirname(src_phase_json_fname), src_mag1_json_fname)
-
-        # Read mag1 metadata
-        mag1_dict = read_json(src_mag1_json_path)
-
-        # Add te1 key and rename TE2 key
-        if mag1_dict:
-            te1 = mag1_dict['EchoTime']
-            te2 = phase_dict['EchoTime']
-        else:
-            print('*** Could not determine echo times multiecho fieldmap - using 0.0 ')
-
-    else:
-
-        print('* Fieldmap phase difference sidecar not found : ' + src_phase_json_fname)
-
-    return te1, te2
+    return fname_full
 
 
 def create_events_template(bold_fname, overwrite=False):
