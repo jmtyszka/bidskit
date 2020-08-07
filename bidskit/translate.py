@@ -398,7 +398,7 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
 
         # Construct candidate JSON sidecar filenames for e1 and e2, mag and phase
         e1m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e1')
-        e2m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e2')
+        # e2m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e2') # Optional
         e1p_fname = dcm2niix_json_fname(work_info, base_ser_no + 1, 'e1_ph')
         e2p_fname = dcm2niix_json_fname(work_info, base_ser_no + 1, 'e2_ph')
 
