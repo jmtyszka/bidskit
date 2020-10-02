@@ -1,4 +1,4 @@
-# BIDSKIT 2019.12.20
+# BIDSKIT 2020.08.01
 # MAINTAINER: jmt@caltech.edu
 
 # Install Ubuntu 18.04 LTS Bionic Beaver
