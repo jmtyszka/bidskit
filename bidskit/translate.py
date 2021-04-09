@@ -130,44 +130,76 @@ def prune_intendedfors(bids_subj_dir, fmap_only):
 def bind_fmaps(bids_subj_dir):
     """
     Bind nearest fieldmap in time to each functional series for this subject
+    - allow only SE-EPI pair or GRE fieldmap bindings, not a mixture of both
+    - if both SE-EPI and GRE fmaps are present in fmap/ IGNORE the GRE fieldmaps
+
     :param bids_subj_dir: string
-        BIDS subject directory
+        BIDS root directory
     """
 
     print('  Subject {}'.format(os.path.basename(bids_subj_dir)))
 
     sess_dirs = glob(os.path.join(bids_subj_dir, 'ses-*'))
 
-    # Loop over all sessions for this subject
+    # Session loop
     for sess_dir in sess_dirs:
 
         print('    Session {}'.format(os.path.basename(sess_dir)))
 
-        # Get list of BOLD fMRI JSON sidecars
+        # Get list of BOLD fMRI JSON sidecars and acquisition times
         bold_jsons = glob(os.path.join(sess_dir, 'func', '*task-*_bold.json'))
-
-        # Get acquisition times for all BOLD and fieldmap series
         t_bold = np.array([acqtime_mins(fname) for fname in bold_jsons])
 
-        # Need to handle both GRE and SE-EPI fieldmaps
-        # JSON files of form:
-        # *-dir-*_epi.json
-        # *_phasediff.json
+        # Find SE-EPI and GRE fieldmaps in session fmap/ folder
+        fmap_dir = os.path.join(sess_dir, 'fmap')
+        epi_fmap_jsons = glob(os.path.join(fmap_dir, '*_dir-*_epi.json'))
+        gre_fmap_jsons = glob(os.path.join(fmap_dir, '*_phasediff.json'))
 
-        # Get list of all fieldmap JSONs for this session
-        fmap_jsons = glob(os.path.join(sess_dir, 'fmap', '*.json'))
+        if epi_fmap_jsons:
+            bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold)
+        elif gre_fmap_jsons:
+            bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold)
+        else:
+            print("    * No fieldmaps detected in fmap/ - skipping")
+
+
+def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold):
+    """
+    SE-EPI fieldmap binding
+
+    :param epi_fmap_jsons:
+    :param bold_jsons:
+    :param t_bold:
+    :return: 
+    """
+
+    # Get list of SE-EPI directions
+    dirs = []
+    for fname in epi_fmap_jsons:
+        ents = parse_file_entities(fname)
+        if 'direction' in ents:
+            dirs.append(ents['direction'])
+    pedirs = np.unique(dirs)
+
+    # Loop over phase encoding directions
+    for pedir in pedirs:
+
+        print('    Scanning for dir-{} SE-EPI fieldmaps'.format(pedir))
+
+        # List of JSONS with current PE direction
+        pedir_jsons = [fname for fname in epi_fmap_jsons if pedir in fname]
 
         # Create list for storing IntendedFor lists
-        intended_for = [ [] for ic in range(len(fmap_jsons)) ]
+        intended_for = [ [] for ic in range(len(pedir_jsons)) ]
 
-        # Get fmap acquisition times
-        t_fmap = np.array([acqtime_mins(fname) for fname in fmap_jsons])
+        # Get SE-EPI fmap acquisition times
+        t_epi_fmap = np.array([acqtime_mins(fname) for fname in pedir_jsons])
 
         # Find the closest fieldmap in time to each BOLD series
         for ic, bold_json in enumerate(bold_jsons):
 
             # Time difference between all fieldmaps in this direction and current BOLD series
-            dt = np.abs(t_bold[ic] - t_fmap)
+            dt = np.abs(t_bold[ic] - t_epi_fmap)
 
             # Index of closest fieldmap to this BOLD series
             idx = np.argmin(dt)
@@ -175,11 +207,46 @@ def bind_fmaps(bids_subj_dir):
             # Add this BOLD series image name to list for this fmap
             intended_for[idx].append(bids_intended_name(bold_json))
 
-        # Replace IntendedFor field in each fmap JSON file
-        for fc, json_fname in enumerate(fmap_jsons):
+        # Replace IntendedFor field in fmap JSON file
+        for fc, json_fname in enumerate(pedir_jsons):
             info = read_json(json_fname)
             info['IntendedFor'] = intended_for[fc]
             write_json(json_fname, info, overwrite=True)
+
+
+def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold):
+    """
+    GRE fieldmap binding
+
+    :param gre_fmap_jsons:
+    :param bold_jsons:
+    :param t_bold:
+    :return:
+    """
+
+    # Create list for storing IntendedFor lists
+    intended_for = [[] for ic in range(len(gre_fmap_jsons))]
+
+    # Get SE-EPI fmap acquisition times
+    t_epi_fmap = np.array([acqtime_mins(fname) for fname in gre_fmap_jsons])
+
+    # Find the closest fieldmap in time to each BOLD series
+    for ic, bold_json in enumerate(bold_jsons):
+
+        # Time difference between all fieldmaps in this direction and current BOLD series
+        dt = np.abs(t_bold[ic] - t_epi_fmap)
+
+        # Index of closest fieldmap to this BOLD series
+        idx = np.argmin(dt)
+
+        # Add this BOLD series image name to list for this fmap
+        intended_for[idx].append(bids_intended_name(bold_json))
+
+    # Replace IntendedFor field in fmap JSON file
+    for fc, json_fname in enumerate(gre_fmap_jsons):
+        info = read_json(json_fname)
+        info['IntendedFor'] = intended_for[fc]
+        write_json(json_fname, info, overwrite=True)
 
 
 def bids_intended_name(json_fname):
