@@ -60,13 +60,13 @@ def main():
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Overwrite existing files')
 
-    parser.add_argument('--skip_if_pruning', action='store_true', default=False,
+    parser.add_argument('--skip-if-pruning', action='store_true', default=False,
                         help='Skip pruning of nonexistent IntendedFor items in json files')
     
-    parser.add_argument('--clean_conv_dir', action='store_true', default=False,
+    parser.add_argument('--clean-conv-dir', action='store_true', default=False,
                         help='Clean up conversion directory')
 
-    parser.add_argument('--bind_fmaps', action='store_true', default=False,
+    parser.add_argument('--bind-fmaps', action='store_true', default=False,
                         help='Bind fieldmaps to fMRI series using IntendedFor field')
 
     parser.add_argument('-V','--version', action='store_true', default=False,

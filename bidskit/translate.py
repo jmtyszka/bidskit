@@ -1,20 +1,15 @@
 """
 Utility functions for handling protocol series tranlsation and purpose mapping
-
 MIT License
-
 Copyright (c) 2017-2020 Mike Tyszka
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -48,7 +43,6 @@ from .io import (nii_to_json,
 def ordered_file_list(conv_dir):
     """
     Generated list of dcm2niix Nifti output files ordered by acquisition time
-
     :param conv_dir: str, working conversion directory
     :return:
     """
@@ -75,7 +69,6 @@ def ordered_file_list(conv_dir):
 def get_acq_time(json_file):
     """
     Extract acquisition time from JSON sidecar of Nifti file
-
     :param json_file: str, JSON sidecar filename
     :return: acq_time: int, integer datetime
     """
@@ -94,7 +87,6 @@ def get_acq_time(json_file):
 def prune_intendedfors(bids_subj_dir, fmap_only):
     """
     Prune out all "IntendedFor" entries pointing to nonexistent files from all json files in given directory tree
-
     :param bids_subj_dir: string
         BIDS subject directory (sub-*)
     :param fmap_only: boolean
@@ -138,16 +130,15 @@ def prune_intendedfors(bids_subj_dir, fmap_only):
 def bind_fmaps(bids_subj_dir):
     """
     Bind nearest fieldmap in time to each functional series for this subject
-
     :param bids_subj_dir: string
-        BIDS root directory
+        BIDS subject directory
     """
 
     print('  Subject {}'.format(os.path.basename(bids_subj_dir)))
 
     sess_dirs = glob(os.path.join(bids_subj_dir, 'ses-*'))
 
-    # Session loop
+    # Loop over all sessions for this subject
     for sess_dir in sess_dirs:
 
         print('    Session {}'.format(os.path.basename(sess_dir)))
@@ -158,52 +149,37 @@ def bind_fmaps(bids_subj_dir):
         # Get acquisition times for all BOLD and fieldmap series
         t_bold = np.array([acqtime_mins(fname) for fname in bold_jsons])
 
-        # Get list of all SE-EPI fieldmaps
-        epi_fmap_jsons = glob(os.path.join(sess_dir, 'fmap', '*_dir-*_epi.json'))
+        # Need to handle both GRE and SE-EPI fieldmaps
+        # JSON files of form:
+        # *-dir-*_epi.json
+        # *_phasediff.json
 
-        if not epi_fmap_jsons:
-            print('* No SE-EPI fieldmaps found - skipping this subject/series')
-            break
+        # Get list of all fieldmap JSONs for this session
+        fmap_jsons = glob(os.path.join(sess_dir, 'fmap', '*.json'))
 
-        # Get list of SE-EPI directions
-        dirs = []
-        for fname in epi_fmap_jsons:
-            ents = parse_file_entities(fname)
-            if 'direction' in ents:
-                dirs.append(ents['direction'])
-        fmap_dirs = np.unique(dirs)
+        # Create list for storing IntendedFor lists
+        intended_for = [ [] for ic in range(len(fmap_jsons)) ]
 
-        # Loop over directions
-        for fmap_dir in fmap_dirs:
+        # Get fmap acquisition times
+        t_fmap = np.array([acqtime_mins(fname) for fname in fmap_jsons])
 
-            print('    Scanning for dir-{} SE-EPI fieldmaps'.format(fmap_dir))
+        # Find the closest fieldmap in time to each BOLD series
+        for ic, bold_json in enumerate(bold_jsons):
 
-            # New SE-EPI fmap list for this direction
-            fmap_dir_jsons = glob(os.path.join(sess_dir, 'fmap', '*_dir-{}*_epi.json'.format(fmap_dir)))
+            # Time difference between all fieldmaps in this direction and current BOLD series
+            dt = np.abs(t_bold[ic] - t_fmap)
 
-            # Create list for storing IntendedFor lists
-            intended_for = [ [] for ic in range(len(fmap_dir_jsons)) ]
+            # Index of closest fieldmap to this BOLD series
+            idx = np.argmin(dt)
 
-            # Get SE-EPI fmap acquisition times
-            t_epi_fmap = np.array([acqtime_mins(fname) for fname in fmap_dir_jsons])
+            # Add this BOLD series image name to list for this fmap
+            intended_for[idx].append(bids_intended_name(bold_json))
 
-            # Find the closest fieldmap in time to each BOLD series
-            for ic, bold_json in enumerate(bold_jsons):
-
-                # Time difference between all fieldmaps in this direction and current BOLD series
-                dt = np.abs(t_bold[ic] - t_epi_fmap)
-
-                # Index of closest fieldmap to this BOLD series
-                idx = np.argmin(dt)
-
-                # Add this BOLD series image name to list for this fmap
-                intended_for[idx].append(bids_intended_name(bold_json))
-
-            # Replace IntendedFor field in fmap JSON file
-            for fc, json_fname in enumerate(fmap_dir_jsons):
-                info = read_json(json_fname)
-                info['IntendedFor'] = intended_for[fc]
-                write_json(json_fname, info, overwrite=True)
+        # Replace IntendedFor field in each fmap JSON file
+        for fc, json_fname in enumerate(fmap_jsons):
+            info = read_json(json_fname)
+            info['IntendedFor'] = intended_for[fc]
+            write_json(json_fname, info, overwrite=True)
 
 
 def bids_intended_name(json_fname):
@@ -239,7 +215,6 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
                      overwrite=False):
     """
     Special handling for each image purpose (func, anat, fmap, dwi, etc)
-
     :param bids_purpose: str
     :param bids_intendedfor: str
     :param seq_name: str
@@ -345,7 +320,6 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
     """
     There are two popular GRE fieldmap organizations: Case 1 and Case 2
     Source: BIDS 1.4.0 Specification https://bids-specification.readthedocs.io
-
     Case 1
     sub-<label>/[ses-<label>/]
         fmap/
@@ -353,7 +327,6 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phasediff.json
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
-
     Case 2
     sub-<label>/[ses-<label>/]
         fmap/
@@ -363,7 +336,6 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phase2.json
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
-
     Current dcm2niix output suffices
     Current version at time of coding: v1.0.20200331
     ---
@@ -461,7 +433,6 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
 def add_participant_record(studydir, subject, age, sex):
     """
     Copied from heudiconv, this solution is good b/c it checks if the same subject ID already exists
-
     :param studydir:
     :param subject:
     :param age:
@@ -492,7 +463,6 @@ def add_run_number(bids_suffix, run_no):
     """
     Safely add run number to BIDS suffix
     Handle prior existence of run-* in BIDS filename template from protocol translator
-
     :param bids_suffix, str
     :param run_no, int
     :return: new_bids_suffix, str
@@ -524,15 +494,12 @@ def auto_run_no(file_list, prot_dict):
     """
     Search for duplicate series names in dcm2niix output file list
     Return inferred run numbers accounting for duplication and multiple recons from single acquisition
-
     NOTES:
     - Multiple recons generated by single acquisition (eg multiecho fieldmaps, localizers, etc) are
       handled through the dcm2niix extensions (_e1, e2_ph, _i00001, etc).
     - Series number resets following subject re-landmarking make the SerNo useful only for
       determining series uniqueness and not for ordering or run numbering.
-
     Current dcm2niix version: v20200331
-
     :param file_list: list of str
         Nifti file name list
     :param prot_dict: dictionary
@@ -558,7 +525,7 @@ def auto_run_no(file_list, prot_dict):
             print('* Please use EXCLUDE_BIDS_Directory and EXCLUDE_BIDS_Name instead of deleting a series entry')
             print('* Exiting')
             sys.exit(1)
-        
+
         # Construct a unique series description using multirecon suffix
         ser_suffix = bids_suffix + '_' + info['Suffix']
 
@@ -583,7 +550,6 @@ def auto_run_no(file_list, prot_dict):
 def build_intendedfor(sid, ses, bids_suffix):
     """
     Build the IntendedFor entry for a fieldmap sidecar
-
     :param: sid, str, Subject ID
     :param: ses, str,  Session number
     :param: bids_suffix
@@ -656,7 +622,6 @@ def add_intended_run(prot_dict, info, run_no):
 def replace_contrast(fname, new_contrast):
     """
     Replace contrast suffix (if any) of BIDS filename
-
     :param fname: str, original BIDS Nifti or JSON filename
     :param new_contrast: str, replacement contrast suffix
     :return: new_fname: str, modified BIDS filename
@@ -676,9 +641,7 @@ def replace_contrast(fname, new_contrast):
 def dcm2niix_json_fname(info, ser_no, suffix):
     """
     Construct a dcm2niix filename from parse_dcm2niix_fname dictionary
-
     Current dcm2niix version: v20200331
-
     :param info: dict
         series metadata
     :return: str
@@ -703,7 +666,6 @@ def dcm2niix_json_fname(info, ser_no, suffix):
 def create_events_template(bold_fname, overwrite=False):
     """
     Create a template events file for a corresponding BOLD imaging file
-
     :param bold_fname: str, BOLD imaging filename (.nii.gz)
     :param overwrite: bool, Overwrite flag
     :return: Nothing
