@@ -51,6 +51,12 @@ def main():
 
     parser.add_argument('-d', '--dataset', default='.', help='BIDS dataset directory containing sourcedata subdirectory')
 
+    parser.add_argument('--subjects', nargs='+', default=[],
+                        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
+
+    parser.add_argument('--sessions', nargs='+', default=[],
+                        help='List of session IDs to convert (eg --sessions core1 core2 socbat)')
+
     parser.add_argument('--no-sessions', action='store_true', default=False,
                         help='Do not use session sub-directories')
 
@@ -75,6 +81,8 @@ def main():
     # Parse command line arguments
     args = parser.parse_args()
     dataset_dir = os.path.realpath(args.dataset)
+    subject_list = args.subjects
+    session_list = args.sessions
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
@@ -130,14 +138,21 @@ def main():
         first_pass = True
 
     # Init list of output subject directories
-    subject_dir_list = []
+    out_subj_dir_list = []
+
+    # Init list of source subject directories from command line or sourcedata
+    if len(subject_list) < 1:
+        subject_list = []
+        for it in os.scandir(btree.sourcedata_dir):
+            if it.is_dir():
+                subject_list.append(it)
 
     # Loop over list of subject directories in sourcedata directory
-    for dcm_sub_dir in glob(btree.sourcedata_dir + os.sep + '*' + os.sep):
+    for src_subj_dir in subject_list:
 
-        sid = os.path.basename(os.path.normpath(dcm_sub_dir))
+        sid = os.path.basename(os.path.normpath(src_subj_dir))
 
-        subject_dir_list.append(os.path.join(dataset_dir, 'sub-' + sid))
+        out_subj_dir_list.append(os.path.join(dataset_dir, 'sub-' + sid))
 
         print('')
         print('------------------------------------------------------------')
@@ -146,9 +161,9 @@ def main():
 
         # Handle subject vs subject/session directory lists
         if no_sessions:
-            dcm_dir_list = [dcm_sub_dir]
+            dcm_dir_list = [src_subj_dir]
         else:
-            dcm_dir_list = glob(dcm_sub_dir + os.sep + '*' + os.sep)
+            dcm_dir_list = glob(src_subj_dir + os.sep + '*' + os.sep)
 
         # Loop over source data session directories in subject directory
         for dcm_dir in dcm_dir_list:
@@ -234,9 +249,9 @@ def main():
     if not args.skip_if_pruning:
 
         print('')
-        print('Subject directories to prune:  ' + ', '.join(subject_dir_list))
+        print('Subject directories to prune:  ' + ', '.join(out_subj_dir_list))
 
-        for bids_subj_dir in subject_dir_list:
+        for bids_subj_dir in out_subj_dir_list:
             btr.prune_intendedfors(bids_subj_dir, True)
 
     if not first_pass:
@@ -245,7 +260,7 @@ def main():
 
             print('')
             print('Binding nearest fieldmap to each functional series')
-            for bids_subj_dir in subject_dir_list:
+            for bids_subj_dir in out_subj_dir_list:
                 btr.bind_fmaps(bids_subj_dir)
 
     # Finally validate that all is well with the BIDS dataset
