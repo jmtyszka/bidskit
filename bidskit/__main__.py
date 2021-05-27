@@ -51,11 +51,8 @@ def main():
 
     parser.add_argument('-d', '--dataset', default='.', help='BIDS dataset directory containing sourcedata subdirectory')
 
-    parser.add_argument('--subjects', nargs='+', default=[],
+    parser.add_argument('-s', '--subjects', nargs='+', default=[],
                         help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
-
-    parser.add_argument('--sessions', nargs='+', default=[],
-                        help='List of session IDs to convert (eg --sessions core1 core2 socbat)')
 
     parser.add_argument('--no-sessions', action='store_true', default=False,
                         help='Do not use session sub-directories')
@@ -82,7 +79,6 @@ def main():
     args = parser.parse_args()
     dataset_dir = os.path.realpath(args.dataset)
     subject_list = args.subjects
-    session_list = args.sessions
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
@@ -107,7 +103,13 @@ def main():
     # Creates directory
     btree = BIDSTree(dataset_dir, overwrite)
 
+    if len(subject_list) > 1:
+        subj_to_convert = ' '.join(subject_list)
+    else:
+        subj_to_convert = 'All'
+
     print('')
+    print('Subjects to convert        : {}'.format(subj_to_convert))
     print('Source data directory      : {}'.format(btree.sourcedata_dir))
     print('Working Directory          : {}'.format(btree.work_dir))
     print('Use Session Directories    : {}'.format('No' if no_sessions else 'Yes'))
@@ -140,36 +142,41 @@ def main():
     # Init list of output subject directories
     out_subj_dir_list = []
 
-    # Init list of source subject directories from command line or sourcedata
+    # Init list of source subject directories from sourcedata contents if no subjects provided in command line
     if len(subject_list) < 1:
+        print('  Creating subject list from sourcedata contents')
         subject_list = []
         for it in os.scandir(btree.sourcedata_dir):
             if it.is_dir():
-                subject_list.append(it)
+                subject_list.append(it.name)
+        print('  Found {:d} subjects in sourcedata folder'.format(len(subject_list)))
 
-    # Loop over list of subject directories in sourcedata directory
-    for src_subj_dir in subject_list:
-
-        sid = os.path.basename(os.path.normpath(src_subj_dir))
-
-        out_subj_dir_list.append(os.path.join(dataset_dir, 'sub-' + sid))
+    # Loop over subject list (either from sourcedata contents or command line)
+    for sid in subject_list:
 
         print('')
         print('------------------------------------------------------------')
-        print('Processing subject ' + sid)
+        print('Processing subject {}'.format(sid))
         print('------------------------------------------------------------')
 
-        # Handle subject vs subject/session directory lists
+        # Full path to subject directory in sourcedata/
+        src_subj_dir = os.path.realpath(os.path.join(btree.sourcedata_dir, sid))
+
+        # BIDS subject ID with prefix
+        subj_prefix = 'sub-{:s}'.format(sid)
+
+        # Add full path to subject output directory to running list
+        out_subj_dir_list.append(os.path.join(dataset_dir, subj_prefix ))
+
+        # Create list of DICOM directories to convert
+        # This will be either a session or series folder list depending on no-sessions command line flag
         if no_sessions:
             dcm_dir_list = [src_subj_dir]
         else:
-            dcm_dir_list = glob(src_subj_dir + os.sep + '*' + os.sep)
+            dcm_dir_list = glob(os.path.join(src_subj_dir, '*'))
 
-        # Loop over source data session directories in subject directory
+        # Loop over DICOM directories in subject directory
         for dcm_dir in dcm_dir_list:
-
-            # BIDS subject, session and conversion directories
-            sub_prefix = 'sub-' + sid
 
             if no_sessions:
 
@@ -182,15 +189,15 @@ def main():
 
                 ses = os.path.basename(os.path.normpath(dcm_dir))
 
-                ses_prefix = 'ses-' + ses
+                ses_prefix = 'ses-{:s}'.format(ses)
                 print('  Processing session ' + ses)
 
             # Working conversion directories
-            work_subj_dir = os.path.join(btree.work_dir, sub_prefix)
+            work_subj_dir = os.path.join(btree.work_dir, subj_prefix)
             work_conv_dir = os.path.join(work_subj_dir, ses_prefix)
 
             # BIDS source directory directories
-            bids_subj_dir = os.path.join(dataset_dir, sub_prefix)
+            bids_subj_dir = os.path.join(dataset_dir, subj_prefix)
             bids_ses_dir = os.path.join(bids_subj_dir, ses_prefix)
 
             print('  Working subject directory : %s' % work_subj_dir)
@@ -201,7 +208,7 @@ def main():
                 print('  BIDS session directory  : %s' % bids_ses_dir)
 
             # Safely create working directory for current subject
-            # Flag for conversion if no working directory existed
+            # Flag for conversion if no working directory exists
             if not os.path.isdir(work_conv_dir):
                 os.makedirs(work_conv_dir)
                 needs_converting = True

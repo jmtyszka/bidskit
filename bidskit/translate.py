@@ -26,9 +26,10 @@ import re
 import subprocess
 import numpy as np
 import datetime as dt
-
 from glob import glob
-from bids.layout import parse_file_entities
+
+import bids
+bids.config.set_option('extension_initial_dot', True)
 
 from .io import (nii_to_json,
                  read_json,
@@ -176,7 +177,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold):
     # Get list of SE-EPI directions
     dirs = []
     for fname in epi_fmap_jsons:
-        ents = parse_file_entities(fname)
+        ents = bids.layout.parse_file_entities(fname)
         if 'direction' in ents:
             dirs.append(ents['direction'])
     pedirs = np.unique(dirs)
