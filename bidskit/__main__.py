@@ -100,6 +100,12 @@ def main():
     print('BIDSKIT {}'.format(ver))
     print('------------------------------------------------------------')
 
+    if not os.path.isdir(os.path.join(dataset_dir, 'sourcedata')):
+        print('* sourcedata folder not found in {}'.format(dataset_dir))
+        print('* bidskit expects this folder to exist and contain DICOM series')
+        print('* Please see bidskit documentation at https://github.com/jmtyszka/bidskit/blob/master/docs/QuickStart.md')
+        sys.exit(1)
+
     # Check for minimum dcm2niix version (mostly for multirecon suffix handling)
     btr.check_dcm2niix_version('v1.0.20181125')
 

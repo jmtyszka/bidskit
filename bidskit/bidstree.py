@@ -44,8 +44,10 @@ class BIDSTree:
         self.code_dir = os.path.join(dataset_dir, 'code')
         self.work_dir = os.path.join(dataset_dir, 'work')
 
+        # sourcedata should already exist - no need to create
+        # Existence check in __main__
+
         bio.safe_mkdir(self.derivatives_dir)
-        bio.safe_mkdir(self.sourcedata_dir)
         bio.safe_mkdir(self.code_dir)
         bio.safe_mkdir(self.work_dir)
 
