@@ -305,7 +305,7 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
 
     if bids_purpose == 'func':
 
-        if seq_name == 'EP':
+        if 'EP' in seq_name:
 
             print('    EPI detected')
             create_events_template(bids_nii_fname, overwrite)
