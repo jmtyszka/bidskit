@@ -72,7 +72,10 @@ def main():
     parser.add_argument('--bind-fmaps', action='store_true', default=False,
                         help='Bind fieldmaps to fMRI series using IntendedFor field')
 
-    parser.add_argument('-V','--version', action='store_true', default=False,
+    parser.add_argument('--compression', required=False, default='y',
+                        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [y]')
+
+    parser.add_argument('-V', '--version', action='store_true', default=False,
                         help='Display bidskit version number and exit')
 
     # Parse command line arguments
@@ -83,6 +86,7 @@ def main():
     no_anon = args.no_anon
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
+    gzip_type = args.compression
 
     # Read version from setup.py
     ver = pkg_resources.get_distribution('bidskit').version
@@ -116,6 +120,7 @@ def main():
     print('Overwrite Existing Files   : {}'.format('Yes' if overwrite else 'No'))
     print('Anonymize BIDS Output      : {}'.format('No' if no_anon else 'Yes'))
     print('Bind fieldmaps             : {}'.format('Yes' if bind_fmaps else 'No'))
+    print('GZIP compression           : {}'.format(gzip_type))
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -228,7 +233,7 @@ def main():
                 cmd = ['dcm2niix',
                        '-b', 'y',
                        '-ba', anon,
-                       '-z','y',
+                       '-z', gzip_type,
                        '-f', '%n--%d--%q--%s',
                        '-o', work_conv_dir,
                        dcm_dir]
