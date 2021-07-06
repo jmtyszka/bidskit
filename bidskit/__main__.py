@@ -49,7 +49,8 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
 
-    parser.add_argument('-d', '--dataset', default='.', help='BIDS dataset directory containing sourcedata subdirectory')
+    parser.add_argument('-d', '--dataset', default='.',
+                        help='BIDS dataset directory containing sourcedata subdirectory')
 
     parser.add_argument('-s', '--subjects', nargs='+', default=[],
                         help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
@@ -103,7 +104,8 @@ def main():
     if not os.path.isdir(os.path.join(dataset_dir, 'sourcedata')):
         print('* sourcedata folder not found in {}'.format(dataset_dir))
         print('* bidskit expects this folder to exist and contain DICOM series')
-        print('* Please see bidskit documentation at https://github.com/jmtyszka/bidskit/blob/master/docs/QuickStart.md')
+        print('* Please see the bidskit documentation at')
+        print('* https://github.com/jmtyszka/bidskit/blob/master/docs/QuickStart.md')
         sys.exit(1)
 
     # Check for minimum dcm2niix version (mostly for multirecon suffix handling)
@@ -177,7 +179,7 @@ def main():
         subj_prefix = 'sub-{:s}'.format(sid)
 
         # Add full path to subject output directory to running list
-        out_subj_dir_list.append(os.path.join(dataset_dir, subj_prefix ))
+        out_subj_dir_list.append(os.path.join(dataset_dir, subj_prefix))
 
         # Create list of DICOM directories to convert
         # This will be either a session or series folder list depending on no-sessions command line flag
@@ -230,7 +232,6 @@ def main():
 
                 # Run dcm2niix conversion into working conversion directory
                 print('  Converting all DICOM images in %s' % dcm_dir)
-                devnull = open(os.devnull, 'w')
 
                 # BIDS anonymization flag - default 'y'
                 anon = 'n' if no_anon else 'y'
@@ -257,7 +258,7 @@ def main():
 
             # Organize dcm2niix output into BIDS subject/session directories
             organize_series(work_conv_dir, first_pass, translator, bids_ses_dir, sid, ses,
-                           args.clean_conv_dir, overwrite)
+                            args.clean_conv_dir, overwrite)
 
     if first_pass:
 
