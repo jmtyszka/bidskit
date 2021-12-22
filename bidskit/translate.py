@@ -546,14 +546,14 @@ def add_run_number(bids_suffix, run_no):
 
         if '_' in bids_suffix:
 
-            # Add '_run-xx' before final suffix
+            # Add '_run-x' before final suffix
             bmain, bseq = bids_suffix.rsplit('_', 1)
-            new_bids_suffix = '%s_run-%02d_%s' % (bmain, run_no, bseq)
+            new_bids_suffix = '%s_run-%d_%s' % (bmain, run_no, bseq)
 
         else:
 
-            # Isolated final suffix - just add 'run-xx_' as a prefix
-            new_bids_suffix = 'run-%02d_%s' % (run_no, bids_suffix)
+            # Isolated final suffix - just add 'run-x_' as a prefix
+            new_bids_suffix = 'run-%d_%s' % (run_no, bids_suffix)
 
     return new_bids_suffix
 
