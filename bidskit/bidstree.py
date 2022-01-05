@@ -3,7 +3,7 @@ Class for creating and managing BIDS directory tree and essential files
 
 MIT License
 
-Copyright (c) 2017-2019 Mike Tyszka
+Copyright (c) 2017-2021 Mike Tyszka
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,14 +39,16 @@ class BIDSTree:
         print('Initializing BIDS dataset directory tree in %s' % dataset_dir)
 
         self.bids_dir = dataset_dir
-        self.derivatives_dir = os.path.join(dataset_dir, 'derivatives')
         self.sourcedata_dir = os.path.join(dataset_dir, 'sourcedata')
+        self.derivatives_dir = os.path.join(dataset_dir, 'derivatives')
         self.code_dir = os.path.join(dataset_dir, 'code')
         self.work_dir = os.path.join(dataset_dir, 'work')
 
         # sourcedata should already exist - no need to create
         # Existence check in __main__
 
+        # Create required directories
+        # Note: sourcedata/ must already be present and filled with DICOM images
         bio.safe_mkdir(self.derivatives_dir)
         bio.safe_mkdir(self.code_dir)
         bio.safe_mkdir(self.work_dir)
@@ -165,7 +167,7 @@ class BIDSTree:
 
         # Check for bids-validator installation
         try:
-            output = subprocess.check_output(['bids-validator', '-v'])
+            output = subprocess.check_output(['bids-validator {}'.format(self.bids_dir), '-v'])
         except FileNotFoundError:
             print('')
             print('* Optional external bids-validator not found')
