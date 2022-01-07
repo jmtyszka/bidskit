@@ -278,19 +278,31 @@ def acqtime_mins(json_fname):
     return t_mins
 
 
-def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
-                     work_nii_fname, work_json_fname, bids_nii_fname, bids_json_fname,
+def purpose_handling(bids_purpose,
+                     bids_intendedfor,
+                     seq_name,
+                     work_nii_fname,
+                     work_json_fname,
+                     bids_nii_fname,
+                     bids_json_fname,
                      overwrite=False):
     """
     Special handling for each image purpose (func, anat, fmap, dwi, etc)
+
     :param bids_purpose: str
+        BIDS purpose directory name (eg anat, func, fmap, etc)
     :param bids_intendedfor: str
     :param seq_name: str
     :param work_nii_fname: str
+        work directory dcm2niix output Nifit filename
     :param work_json_fname: str
+        work directory dcm2niix output JSON filename
     :param bids_nii_fname: str
+        initial BIDS filename (can be modified by this function)
     :param bids_json_fname: str
+        initial BIDS JSON sidecar filename (can be modified by this function)
     :param overwrite: bool
+        Overwrite flag for sub-* output
     :return:
     """
 
@@ -308,6 +320,14 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
         if 'EP' in seq_name:
 
             print('    EPI detected')
+
+            # Handle multiecho EPI (echo-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = handle_multiecho_epi(work_json_fname, bids_nii_fname, bids_json_fname)
+
+            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = handle_complex_epi(work_json_fname, bids_nii_fname, bids_json_fname)
+
+            # Handle task info
             create_events_template(bids_nii_fname, overwrite)
 
             # Add taskname to BIDS JSON sidecar
@@ -382,6 +402,41 @@ def purpose_handling(bids_purpose, bids_intendedfor, seq_name,
 
     if bids_bvec_fname:
         safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
+
+
+def handle_multiecho_epi(work_json_fname, bids_nii_fname, bids_json_fname):
+    """
+    Handle multiecho EPI converted using dcm2niix needs some additional filename tags
+    As of dcm2niix v1.0.20211220 multiple echo recons have suffices:
+    *_e{:d}[_ph].(nii.gz | json)
+    _ph suffix present for phase images (see handle_complex_epi() below)
+    """
+
+    # Check if _e? suffix used
+    work_info = parse_dcm2niix_fname(work_json_fname)
+    ser_no = np.int(work_info['SerNo'])
+    suffix = work_info['Suffix']
+
+    if suffix.startswith('e'):
+
+        print('> Echo suffix detected')
+
+        # Split at '_' if present
+        chunks = suffix.split('_')
+        echo_num = int(chunks[0][1:])
+        print(f'> Echo number {echo_num:d}')
+
+        add_bids_tag(work_json_fname, bids_nii_fname, bids_json_fname)
+
+    return bids_nii_fname, bids_json_fname
+
+
+def handle_complex_epi(work_json_fname, bids_nii_fname, bids_json_fname):
+    """
+    Handle mag/phase recon of EPI using part-mag and part-phs filename tags
+    """
+
+    return bids_nii_fname, bids_json_fname
 
 
 def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
@@ -556,6 +611,19 @@ def add_run_number(bids_suffix, run_no):
             new_bids_suffix = 'run-%d_%s' % (run_no, bids_suffix)
 
     return new_bids_suffix
+
+
+def add_bids_tag(fname, tag_name, tag_value):
+    """
+    Add a new tag to a BIDS filename
+    If tag already present, print warning and don't replace tag
+    """
+
+    ents = bids.layout.parse_file_entities(fname)
+
+    pass
+
+    return new_fname
 
 
 def auto_run_no(file_list, prot_dict):
