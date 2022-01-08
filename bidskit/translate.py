@@ -88,13 +88,12 @@ def get_acq_time(json_file):
 def prune_intendedfors(bids_subj_dir, fmap_only):
     """
     Prune out all "IntendedFor" entries pointing to nonexistent files from all json files in given directory tree
+
     :param bids_subj_dir: string
         BIDS subject directory (sub-*)
     :param fmap_only: boolean
         Only looks at json files in an fmap directory
     """
-
-    # TODO: Switch to pybids layout
 
     # Traverse through all directories in bids_subj_dir
     for root, dirs, files in os.walk(bids_subj_dir):
@@ -322,10 +321,10 @@ def purpose_handling(bids_purpose,
             print('    EPI detected')
 
             # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = handle_multiecho_epi(work_json_fname, bids_nii_fname, bids_json_fname)
+            bids_nii_fname, bids_json_fname = handle_multiecho_epi(work_json_fname, bids_json_fname)
 
             # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = handle_complex_epi(work_json_fname, bids_nii_fname, bids_json_fname)
+            bids_nii_fname, bids_json_fname = handle_complex_epi(work_json_fname, bids_json_fname)
 
             # Handle task info
             create_events_template(bids_nii_fname, overwrite)
@@ -404,9 +403,9 @@ def purpose_handling(bids_purpose,
         safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
-def handle_multiecho_epi(work_json_fname, bids_nii_fname, bids_json_fname):
+def handle_multiecho_epi(work_json_fname, bids_json_fname):
     """
-    Handle multiecho EPI converted using dcm2niix needs some additional filename tags
+    Handle multiecho EPI converted using dcm2niix needs some additional filename keys
     As of dcm2niix v1.0.20211220 multiple echo recons have suffices:
     *_e{:d}[_ph].(nii.gz | json)
     _ph suffix present for phase images (see handle_complex_epi() below)
@@ -414,27 +413,63 @@ def handle_multiecho_epi(work_json_fname, bids_nii_fname, bids_json_fname):
 
     # Check if _e? suffix used
     work_info = parse_dcm2niix_fname(work_json_fname)
-    ser_no = np.int(work_info['SerNo'])
     suffix = work_info['Suffix']
 
     if suffix.startswith('e'):
 
-        print('> Echo suffix detected')
+        print('    Multiecho EPI detected')
 
         # Split at '_' if present
         chunks = suffix.split('_')
         echo_num = int(chunks[0][1:])
-        print(f'> Echo number {echo_num:d}')
+        print(f'    Echo number {echo_num:d}')
 
-        add_bids_tag(work_json_fname, bids_nii_fname, bids_json_fname)
+        # Add an "echo-{echo_num}" key to the BIDS Nifti and JSON filenames
+        bids_nii_fname, bids_json_fname = add_bids_key(bids_json_fname, 'echo', echo_num)
+
+    else:
+        bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
 
     return bids_nii_fname, bids_json_fname
 
 
-def handle_complex_epi(work_json_fname, bids_nii_fname, bids_json_fname):
+def handle_complex_epi(work_json_fname, bids_json_fname):
     """
-    Handle mag/phase recon of EPI using part-mag and part-phs filename tags
+    Handle complex EPI converted using dcm2niix
+    As of dcm2niix v1.0.20211220 only the phase recon has a _ph suffix
+    so check if a mag file (without suffix) has a phase partner
     """
+
+    # Extract dcm2niix keys from filename
+    work_keys = parse_dcm2niix_fname(work_json_fname)
+    ser_no = np.int(work_keys['SerNo'])
+    suffix = work_keys['Suffix']
+
+    # Extract keys and containing directory from BIDS pathname
+    bids_keys, bids_dname = bids_filename_to_keys(bids_json_fname)
+
+    # Check for phase image first
+    if suffix.endswith('_ph'):
+
+        print('    Complex phase image detected')
+        bids_keys['part'] = 'phase'
+
+    else:
+
+        # SBRef complex images have same series number
+        # BOLD complex images are split between series number N (mag) and N+1 (phase)
+        sbref_phs_fname = dcm2niix_json_fname(work_keys, ser_no, suffix + '_ph')
+        bold_phs_fname = dcm2niix_json_fname(work_keys, ser_no + 1, suffix + '_ph')
+
+        if os.path.isfile(sbref_phs_fname) or os.path.isfile(bold_phs_fname):
+            print('    Complex EPI magnitude image detected')
+            bids_keys['part'] = 'mag'
+
+    # Modify JSON filename with complex part key
+    bids_json_fname = bids_keys_to_filename(bids_keys, bids_dname)
+
+    # Construct associated BIDS Nifti filename
+    bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
 
     return bids_nii_fname, bids_json_fname
 
@@ -586,6 +621,7 @@ def add_run_number(bids_suffix, run_no):
     """
     Safely add run number to BIDS suffix
     Handle prior existence of run-* in BIDS filename template from protocol translator
+
     :param bids_suffix, str
     :param run_no, int
     :return: new_bids_suffix, str
@@ -613,17 +649,71 @@ def add_run_number(bids_suffix, run_no):
     return new_bids_suffix
 
 
-def add_bids_tag(fname, tag_name, tag_value):
+def add_bids_key(bids_json_fname, key_name, key_value):
     """
-    Add a new tag to a BIDS filename
-    If tag already present, print warning and don't replace tag
+    Add a new key to a BIDS filename
+    If this key is already present, print warning and don't replace key
     """
 
-    ents = bids.layout.parse_file_entities(fname)
+    # Extract key values from BIDS filename
+    keys, dname = bids_filename_to_keys(bids_json_fname)
 
-    pass
+    if key_name in keys:
+        print(f'  * Key {key_name} already present in filename - skipping')
+    else:
 
-    return new_fname
+        # Add new key to dictionary
+        keys[key_name] = key_value
+
+        # Init new filename with containing path
+        new_bids_json_fname = bids_keys_to_filename(keys, dname)
+
+    # Construct associated Nifti filename
+    new_bids_nii_fname = new_bids_json_fname.replace('.json', '.nii.gz')
+
+    return new_bids_nii_fname, new_bids_json_fname
+
+
+def bids_filename_to_keys(bids_fname):
+    """
+    Extract BIDS key values from filename
+    Substitute short key names for long names used by parse_file_entities()
+    """
+
+    dname = os.path.dirname(bids_fname)
+    keys = bids.layout.parse_file_entities(bids_fname)
+
+    # Substitute short key names
+    if 'subject' in keys:
+        keys['sub'] = keys.pop('subject')
+    if 'session' in keys:
+        keys['ses'] = keys.pop('session')
+    if 'acquisition' in keys:
+        keys['acq'] = keys.pop('acquisition')
+
+    return keys, dname
+
+
+def bids_keys_to_filename(keys, dname):
+    """
+    Construct BIDS filename from keys
+    - key dictionary must include suffix and extension
+    """
+
+    # Correct key order from BIDS spec
+    key_order = ['sub', 'ses', 'task', 'acq', 'dir', 'run', 'echo', 'part']
+
+    # Init with the containing directory and trailing file separator
+    bids_fname = dname + os.path.sep
+
+    for key in key_order:
+        if key in keys:
+            bids_fname += f"{key}-{keys[key]}_"
+
+    # Add final pulse sequence suffix and extension
+    bids_fname += keys['suffix'] + keys['extension']
+
+    return bids_fname
 
 
 def auto_run_no(file_list, prot_dict):
@@ -809,6 +899,14 @@ def create_events_template(bold_fname, overwrite=False):
 
     # Make specific to BOLD data to avoid overwriting with SBRef info
     if "_bold.nii.gz" in bold_fname:
+
+        # Remove echo, part keys from filename. Only one events file required for each task/acq
+        keys, dname = bids_filename_to_keys(bold_fname)
+        if 'echo' in keys:
+            del keys['echo']
+        if 'part' in keys:
+            del keys['part']
+        bold_fname = bids_keys_to_filename(keys, dname)
 
         events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
         events_bname = os.path.basename(events_fname)

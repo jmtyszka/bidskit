@@ -112,7 +112,7 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
                         # Safely add run-* key to BIDS suffix
                         bids_suffix = btr.add_run_number(bids_suffix, run_no[fc])
 
-                        # Assume the IntendedFor field should aslo have a run- added
+                        # Assume the IntendedFor field should also have a run-* key added
                         prot_dict = btr.add_intended_run(prot_dict, info, run_no[fc])
 
                         # Create BIDS purpose directory
@@ -141,11 +141,15 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
                                     if '.nii.gz' not in ifstr:
                                         bids_intendedfor[ifc] = btr.build_intendedfor(sid, ses, ifstr)
 
-                        # Special handling for specific purposes (anat, func, fmap, etc)
-                        # This function populates BIDS structure with the image and adjusted sidecar
-                        btr.purpose_handling(bids_purpose, bids_intendedfor, info['SeqName'],
-                                             src_nii_fname, src_json_fname,
-                                             bids_nii_fname, bids_json_fname,
+                        # Special handling for specific purposes (anat, func, fmap, dwi, etc)
+                        # This function populates the BIDS structure with the image and adjusted sidecar
+                        btr.purpose_handling(bids_purpose,
+                                             bids_intendedfor,
+                                             info['SeqName'],
+                                             src_nii_fname,
+                                             src_json_fname,
+                                             bids_nii_fname,
+                                             bids_json_fname,
                                              overwrite)
                 else:
 
