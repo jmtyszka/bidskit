@@ -436,7 +436,7 @@ def handle_multiecho_epi(work_json_fname, bids_json_fname):
 def handle_complex_epi(work_json_fname, bids_json_fname):
     """
     Handle complex EPI converted using dcm2niix
-    As of dcm2niix v1.0.20211220 only the phase recon has a _ph suffix
+    As of dcm2niix v1.0.20211220 only the phase recon has a 'ph' suffix
     so check if a mag file (without suffix) has a phase partner
     """
 
@@ -449,21 +449,14 @@ def handle_complex_epi(work_json_fname, bids_json_fname):
     bids_keys, bids_dname = bids_filename_to_keys(bids_json_fname)
 
     # Check for phase image first
-    if suffix.endswith('_ph'):
+    if suffix.endswith('ph'):
 
-        print('    Complex phase image detected')
+        print('    EPI phase image detected')
         bids_keys['part'] = 'phase'
 
     else:
-
-        # SBRef complex images have same series number
-        # BOLD complex images are split between series number N (mag) and N+1 (phase)
-        sbref_phs_fname = dcm2niix_json_fname(work_keys, ser_no, suffix + '_ph')
-        bold_phs_fname = dcm2niix_json_fname(work_keys, ser_no + 1, suffix + '_ph')
-
-        if os.path.isfile(sbref_phs_fname) or os.path.isfile(bold_phs_fname):
-            print('    Complex EPI magnitude image detected')
-            bids_keys['part'] = 'mag'
+        print('    EPI magnitude image detected')
+        bids_keys['part'] = 'mag'
 
     # Modify JSON filename with complex part key
     bids_json_fname = bids_keys_to_filename(bids_keys, bids_dname)
