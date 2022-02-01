@@ -167,7 +167,8 @@ class BIDSTree:
 
         # Check for bids-validator installation
         try:
-            output = subprocess.check_output(['bids-validator {}'.format(self.bids_dir), '-v'])
+            cmd = ['bids-validator', self.bids_dir, '-v']
+            subprocess.check_output(cmd)
         except FileNotFoundError:
             print('')
             print('* Optional external bids-validator not found')
