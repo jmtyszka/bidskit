@@ -76,6 +76,9 @@ def main():
     parser.add_argument('--compression', required=False, default='y',
                         help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [y]')
 
+    parser.add_argument('--reconflag', action='store_true', default=False,
+                        help='Add recon key to output filenames (eg for Bias and Distortion corrected images')
+
     parser.add_argument('-V', '--version', action='store_true', default=False,
                         help='Display bidskit version number and exit')
 
