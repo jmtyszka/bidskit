@@ -76,8 +76,14 @@ def main():
     parser.add_argument('--compression', required=False, default='y',
                         help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [y]')
 
-    parser.add_argument('--reconflag', action='store_true', default=False,
-                        help='Add recon key to output filenames (eg for Bias and Distortion corrected images')
+    parser.add_argument('--recontype', action='store_true', default=False,
+                        help='Add recon- key to output filenames for bias- and distortion-corrected images')
+
+    parser.add_argument('--complex', action='store_true', default=False,
+                        help='Add part- key to output filenames for complex-valued images')
+
+    parser.add_argument('--multiecho', action='store_true', default=False,
+                        help='Add echo- key to output filenames')
 
     parser.add_argument('-V', '--version', action='store_true', default=False,
                         help='Display bidskit version number and exit')
@@ -91,6 +97,11 @@ def main():
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
     gzip_type = args.compression
+
+    # Additional filename keys
+    part_key = args.complex
+    echo_key = args.multiecho
+    recon_key = args.recontype
 
     # Read version from setup.py
     ver = pkg_resources.get_distribution('bidskit').version
@@ -124,14 +135,17 @@ def main():
         subj_to_convert = 'All'
 
     print('')
-    print('Subjects to convert        : {}'.format(subj_to_convert))
-    print('Source data directory      : {}'.format(btree.sourcedata_dir))
-    print('Working Directory          : {}'.format(btree.work_dir))
-    print('Use Session Directories    : {}'.format('No' if no_sessions else 'Yes'))
-    print('Overwrite Existing Files   : {}'.format('Yes' if overwrite else 'No'))
-    print('Anonymize BIDS Output      : {}'.format('No' if no_anon else 'Yes'))
-    print('Bind fieldmaps             : {}'.format('Yes' if bind_fmaps else 'No'))
-    print('GZIP compression           : {}'.format(gzip_type))
+    print(f"Subjects to convert        : {subj_to_convert}")
+    print(f"Source data directory      : {btree.sourcedata_dir}")
+    print(f"Working Directory          : {btree.work_dir}")
+    print(f"Use Session Directories    : {'No' if no_sessions else 'Yes'}")
+    print(f"Overwrite Existing Files   : {'Yes' if overwrite else 'No'}")
+    print(f"Anonymize BIDS Output      : {'No' if no_anon else 'Yes'}")
+    print(f"Bind fieldmaps             : {'Yes' if bind_fmaps else 'No'}")
+    print(f"GZIP compression           : {gzip_type}")
+    print(f"Recon filename key         : {recon_key}")
+    print(f"Part filename key          : {part_key}")
+    print(f"Echo filename key          : {echo_key}")
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -260,8 +274,14 @@ def main():
                 btr.add_participant_record(dataset_dir, sid, dcm_info['Age'], dcm_info['Sex'])
 
             # Organize dcm2niix output into BIDS subject/session directories
-            organize_series(work_conv_dir, first_pass, translator, bids_ses_dir, sid, ses,
-                            args.clean_conv_dir, overwrite)
+            organize_series(work_conv_dir,
+                            first_pass,
+                            translator,
+                            bids_ses_dir,
+                            sid,
+                            ses,
+                            args.clean_conv_dir,
+                            overwrite)
 
     if first_pass:
 
