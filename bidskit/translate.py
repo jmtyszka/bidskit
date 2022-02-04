@@ -284,6 +284,7 @@ def purpose_handling(bids_purpose,
                      work_json_fname,
                      bids_nii_fname,
                      bids_json_fname,
+                     key_flags,
                      overwrite=False):
     """
     Special handling for each image purpose (func, anat, fmap, dwi, etc)
@@ -300,6 +301,8 @@ def purpose_handling(bids_purpose,
         initial BIDS filename (can be modified by this function)
     :param bids_json_fname: str
         initial BIDS JSON sidecar filename (can be modified by this function)
+    :param key_flags: dict
+        dictionary of filename key flags
     :param overwrite: bool
         Overwrite flag for sub-* output
     :return:
@@ -321,10 +324,10 @@ def purpose_handling(bids_purpose,
             print('    EPI detected')
 
             # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = handle_multiecho_epi(work_json_fname, bids_json_fname)
+            bids_nii_fname, bids_json_fname = handle_multiecho_epi(work_json_fname, bids_json_fname, key_flags['Echo'])
 
             # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = handle_complex_epi(work_json_fname, bids_json_fname)
+            bids_nii_fname, bids_json_fname = handle_complex_epi(work_json_fname, bids_json_fname, key_flags['Part'])
 
             # Handle task info
             create_events_template(bids_nii_fname, overwrite)
@@ -370,9 +373,13 @@ def purpose_handling(bids_purpose,
 
             print('    IR-prepared GRE detected - likely T1w MP-RAGE or equivalent')
 
+            # Handle biased and unbiased (NORM) reconstructions
+            bids_nii_fname, bids_json_fname = handle_bias_recon(work_json_fname, bids_json_fname, key_flags['Recon'])
+
         elif seq_name == 'SE':
 
             print('    Spin echo detected - likely T1w or T2w anatomic image')
+            bids_nii_fname, bids_json_fname = handle_bias_recon(work_json_fname, bids_json_fname, key_flags['Recon'])
 
         elif seq_name == 'GR':
 
@@ -403,12 +410,19 @@ def purpose_handling(bids_purpose,
         safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
-def handle_multiecho_epi(work_json_fname, bids_json_fname):
+def handle_multiecho_epi(work_json_fname, bids_json_fname, echo_flag=True):
     """
     Handle multiecho EPI converted using dcm2niix needs some additional filename keys
     As of dcm2niix v1.0.20211220 multiple echo recons have suffices:
     *_e{:d}[_ph].(nii.gz | json)
     _ph suffix present for phase images (see handle_complex_epi() below)
+
+    :param work_json_fname: string
+        path to JSON sidecar in working directory
+    :param bids_json_fname: string
+        path to JSON sidecar in output BIDS tree
+    :param echo_flag: bool
+        flag to add echo- key to filename (if necessary)
     """
 
     # Check if _e? suffix used
@@ -425,7 +439,8 @@ def handle_multiecho_epi(work_json_fname, bids_json_fname):
         print(f'    Echo number {echo_num:d}')
 
         # Add an "echo-{echo_num}" key to the BIDS Nifti and JSON filenames
-        bids_nii_fname, bids_json_fname = add_bids_key(bids_json_fname, 'echo', echo_num)
+        if echo_flag:
+            bids_nii_fname, bids_json_fname = add_bids_key(bids_json_fname, 'echo', echo_num)
 
     else:
         bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
@@ -433,36 +448,71 @@ def handle_multiecho_epi(work_json_fname, bids_json_fname):
     return bids_nii_fname, bids_json_fname
 
 
-def handle_complex_epi(work_json_fname, bids_json_fname):
+def handle_complex_epi(work_json_fname, bids_json_fname, part_flag):
     """
     Handle complex EPI converted using dcm2niix
     As of dcm2niix v1.0.20211220 only the phase recon has a 'ph' suffix
     so check if a mag file (without suffix) has a phase partner
+
+    :param work_json_fname: string
+        path to JSON sidecar in working directory
+    :param bids_json_fname: string
+        path to JSON sidecar in output BIDS tree
+    :param part_flag: bool
+        flag to add part- key to filename (if necessary)
     """
 
     # Extract dcm2niix keys from filename
     work_keys = parse_dcm2niix_fname(work_json_fname)
-    ser_no = np.int(work_keys['SerNo'])
     suffix = work_keys['Suffix']
 
     # Extract keys and containing directory from BIDS pathname
     bids_keys, bids_dname = bids_filename_to_keys(bids_json_fname)
 
-    # Check for phase image first
-    if suffix.endswith('ph'):
+    # Optionally add part- key to BIDS filename
+    if part_flag:
 
-        print('    EPI phase image detected')
-        bids_keys['part'] = 'phase'
-
-    else:
-        print('    EPI magnitude image detected')
-        bids_keys['part'] = 'mag'
+        # Check for phase image first
+        if suffix.endswith('ph'):
+            print('    EPI phase image detected')
+            bids_keys['part'] = 'phase'
+        else:
+            print('    EPI magnitude image detected')
+            bids_keys['part'] = 'mag'
 
     # Modify JSON filename with complex part key
     bids_json_fname = bids_keys_to_filename(bids_keys, bids_dname)
 
     # Construct associated BIDS Nifti filename
     bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
+
+    return bids_nii_fname, bids_json_fname
+
+def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag):
+    """
+    Handle bias correction (Siemens NORM flag)
+
+    :param work_json_fname: string
+        path to JSON sidecar in working directory
+    :param bids_json_fname: string
+        path to JSON sidecar in output BIDS tree
+    :param recon_flag: bool
+        flag to add recon- key to filename (if necessary)
+    """
+
+    # Extract dcm2niix keys from filename
+    work_keys = parse_dcm2niix_fname(work_json_fname)
+
+    # Load recon type from work JSON sidecar
+    work_json = read_json(work_json_fname)
+    image_type = work_json['ImageType']
+    recon_value = 'norm' if 'NORM' in image_type else 'bias'
+
+    # Add a recon- key to the BIDS filename
+    if recon_flag:
+        bids_nii_fname, bids_json_fname = add_bids_key(bids_json_fname, 'rec', recon_value)
+    else:
+        bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
 
     return bids_nii_fname, bids_json_fname
 
@@ -694,7 +744,7 @@ def bids_keys_to_filename(keys, dname):
     """
 
     # Correct key order from BIDS spec
-    key_order = ['sub', 'ses', 'task', 'acq', 'dir', 'run', 'echo', 'part']
+    key_order = ['sub', 'ses', 'task', 'acq', 'dir', 'rec', 'run', 'echo', 'part']
 
     # Init with the containing directory and trailing file separator
     bids_fname = dname + os.path.sep

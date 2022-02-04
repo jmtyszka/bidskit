@@ -98,10 +98,12 @@ def main():
     bind_fmaps = args.bind_fmaps
     gzip_type = args.compression
 
-    # Additional filename keys
-    part_key = args.complex
-    echo_key = args.multiecho
-    recon_key = args.recontype
+    # Filename key flag dict - pass to organize
+    key_flags = {
+        'Part': args.complex,
+        'Echo': args.multiecho,
+        'Recon': args.recontype
+    }
 
     # Read version from setup.py
     ver = pkg_resources.get_distribution('bidskit').version
@@ -143,9 +145,9 @@ def main():
     print(f"Anonymize BIDS Output      : {'No' if no_anon else 'Yes'}")
     print(f"Bind fieldmaps             : {'Yes' if bind_fmaps else 'No'}")
     print(f"GZIP compression           : {gzip_type}")
-    print(f"Recon filename key         : {recon_key}")
-    print(f"Part filename key          : {part_key}")
-    print(f"Echo filename key          : {echo_key}")
+    print(f"Recon filename key         : {key_flags['Recon']}")
+    print(f"Part filename key          : {key_flags['Part']}")
+    print(f"Echo filename key          : {key_flags['Echo']}")
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
     # If no translator is present, prot_dict is an empty dictionary
@@ -280,6 +282,7 @@ def main():
                             bids_ses_dir,
                             sid,
                             ses,
+                            key_flags,
                             args.clean_conv_dir,
                             overwrite)
 

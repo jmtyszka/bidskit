@@ -31,7 +31,7 @@ from . import io as bio
 import copy
 
 
-def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_conv_dir, overwrite=False):
+def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, key_flags, do_cleanup=False, overwrite=False):
     """
     Organize dcm2niix output into BIDS subject/session directory
 
@@ -47,15 +47,14 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
         subject ID
     :param ses: string
         session name or number
-    :param clean_conv_dir: bool
+    :param key_flags: dict
+        dictionary of flags for filename keys (echo-, part-, recon-)
+    :param do_cleanup: bool
         clean up conversion directory
     :param overwrite: bool
         overwrite flag
     :return:
     """
-
-    # Flag for working conversion directory cleanup
-    do_cleanup = clean_conv_dir
 
     # Proceed if conversion directory exists
     if os.path.isdir(conv_dir):
@@ -150,6 +149,7 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, clean_co
                                              src_json_fname,
                                              bids_nii_fname,
                                              bids_json_fname,
+                                             key_flags,
                                              overwrite)
                 else:
 

@@ -1,6 +1,8 @@
 # BIDSKIT Changelog
 
-## Version 1.2.3
+## Version 2022.2.1
+- Added support for complex-valued, bias corrected and multiecho image types
+- Added command line control for rec-, echo- and part- keys in BIDS filenames
 
 ## Version 1.2.2
 - Fixed auto run number issue #55
