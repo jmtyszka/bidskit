@@ -76,7 +76,7 @@ def main():
     parser.add_argument('--compression', required=False, default='y',
                         help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [y]')
 
-    parser.add_argument('--recontype', action='store_true', default=False,
+    parser.add_argument('--recon', action='store_true', default=False,
                         help='Add recon- key to output filenames for bias- and distortion-corrected images')
 
     parser.add_argument('--complex', action='store_true', default=False,
@@ -102,7 +102,7 @@ def main():
     key_flags = {
         'Part': args.complex,
         'Echo': args.multiecho,
-        'Recon': args.recontype
+        'Recon': args.recon
     }
 
     # Read version from setup.py
