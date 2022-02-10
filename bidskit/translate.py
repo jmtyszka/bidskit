@@ -608,15 +608,15 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
                 te1 = e1m_info['EchoTime']
                 te2 = e2p_info['EchoTime']
 
-                print('  GRE TE1 : {} ms'.format(te1))
-                print('  GRE TE2 : {} ms'.format(te2))
-                print('  GRE dTE : {} ms'.format(te2 - te1))
+                print(f'      GRE TE1 : {te1:0.5f} ms')
+                print(f'      GRE TE2 : {te2:0.5f} ms')
+                print(f'      GRE dTE : {(te2-te1):0.5f} ms')
 
                 e2p_info['EchoTime1'] = te1
                 e2p_info['EchoTime2'] = te2
 
                 # Re-write echo 2 phase JSON sidecar
-                print('Updating Echo 2 Phase JSON sidecar')
+                print('    Updating Echo 2 Phase JSON sidecar')
                 write_json(e2p_fname, e2p_info, overwrite=True)
 
             else:
