@@ -214,6 +214,7 @@ def parse_bids_fname(fname):
         'mod': "",
         'echo': "",
         'proc': "",
+        'part': "",
         'suffix': "",
     }
 

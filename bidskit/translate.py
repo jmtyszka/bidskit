@@ -1,7 +1,8 @@
 """
 Utility functions for handling protocol series tranlsation and purpose mapping
+
 MIT License
-Copyright (c) 2017-2020 Mike Tyszka
+Copyright (c) 2017-2022 Mike Tyszka
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -324,10 +325,10 @@ def purpose_handling(bids_purpose,
             print('    EPI detected')
 
             # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = handle_multiecho_epi(work_json_fname, bids_json_fname, key_flags['Echo'])
+            bids_nii_fname, bids_json_fname = handle_multiecho(work_json_fname, bids_json_fname, key_flags['Echo'])
 
             # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = handle_complex_epi(work_json_fname, bids_json_fname, key_flags['Part'])
+            bids_nii_fname, bids_json_fname = handle_complex(work_json_fname, bids_json_fname, key_flags['Part'])
 
             # Handle task info
             create_events_template(bids_nii_fname, overwrite)
@@ -371,7 +372,13 @@ def purpose_handling(bids_purpose,
 
         if seq_name == 'GR_IR':
 
-            print('    IR-prepared GRE detected - likely T1w MP-RAGE or equivalent')
+            print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMPRAGE')
+
+            # Handle multiecho EPI (echo-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = handle_multiecho(work_json_fname, bids_json_fname, key_flags['Echo'])
+
+            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = handle_complex(work_json_fname, bids_json_fname, key_flags['Part'])
 
             # Handle biased and unbiased (NORM) reconstructions
             bids_nii_fname, bids_json_fname = handle_bias_recon(work_json_fname, bids_json_fname, key_flags['Recon'])
@@ -410,12 +417,12 @@ def purpose_handling(bids_purpose,
         safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
-def handle_multiecho_epi(work_json_fname, bids_json_fname, echo_flag=True):
+def handle_multiecho(work_json_fname, bids_json_fname, echo_flag=True):
     """
-    Handle multiecho EPI converted using dcm2niix needs some additional filename keys
+    Handle multiecho recons converted using dcm2niix
     As of dcm2niix v1.0.20211220 multiple echo recons have suffices:
     *_e{:d}[_ph].(nii.gz | json)
-    _ph suffix present for phase images (see handle_complex_epi() below)
+    _ph suffix handled separately (see handle_complex)
 
     :param work_json_fname: string
         path to JSON sidecar in working directory
@@ -429,9 +436,12 @@ def handle_multiecho_epi(work_json_fname, bids_json_fname, echo_flag=True):
     work_info = parse_dcm2niix_fname(work_json_fname)
     suffix = work_info['Suffix']
 
+    # Default BIDS Nifti filename from JSON filename
+    bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
+
     if suffix.startswith('e'):
 
-        print('    Multiecho EPI detected')
+        print('    Multiple echoes detected')
 
         # Split at '_' if present
         chunks = suffix.split('_')
@@ -442,15 +452,12 @@ def handle_multiecho_epi(work_json_fname, bids_json_fname, echo_flag=True):
         if echo_flag:
             bids_nii_fname, bids_json_fname = add_bids_key(bids_json_fname, 'echo', echo_num)
 
-    else:
-        bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
-
     return bids_nii_fname, bids_json_fname
 
 
-def handle_complex_epi(work_json_fname, bids_json_fname, part_flag):
+def handle_complex(work_json_fname, bids_json_fname, part_flag):
     """
-    Handle complex EPI converted using dcm2niix
+    Handle complex recons converted using dcm2niix
     As of dcm2niix v1.0.20211220 only the phase recon has a 'ph' suffix
     so check if a mag file (without suffix) has a phase partner
 
@@ -474,10 +481,10 @@ def handle_complex_epi(work_json_fname, bids_json_fname, part_flag):
 
         # Check for phase image first
         if suffix.endswith('ph'):
-            print('    EPI phase image detected')
+            print('    Phase image detected')
             bids_keys['part'] = 'phase'
         else:
-            print('    EPI magnitude image detected')
+            print('    Magnitude image detected')
             bids_keys['part'] = 'mag'
 
     # Modify JSON filename with complex part key
@@ -487,6 +494,7 @@ def handle_complex_epi(work_json_fname, bids_json_fname, part_flag):
     bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
 
     return bids_nii_fname, bids_json_fname
+
 
 def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag):
     """
