@@ -201,6 +201,10 @@ def parse_bids_fname(fname):
         Dictionary of key-value pairs parsed from BIDS-format filename
     """
 
+    # Split fname in containing directory and base name
+    dname = os.path.dirname(fname)
+    bname = os.path.basename(fname)
+
     # Init return dictionary with BIDS 1.1.1 valid key strings
     bids_keys = {
         'sub': "",
@@ -220,13 +224,16 @@ def parse_bids_fname(fname):
 
     # Extract base filename and strip up to two extensions
     # Accounts for both '.nii' and '.nii.gz' variants
-    fname, _ = os.path.splitext(os.path.basename(fname))
-    fname, _ = os.path.splitext(fname)
+    bname, ext1 = os.path.splitext(bname)
+    bname, ext2 = os.path.splitext(bname)
+
+    # Remember full extension
+    bids_keys['extension'] = ext2 + ext1
 
     # Locate, record and remove final constrast suffix
-    suffix_start = fname.rfind('_') + 1
-    bids_keys['suffix'] = fname[suffix_start:]
-    fname = fname[:suffix_start]
+    suffix_start = bname.rfind('_') + 1
+    bids_keys['suffix'] = bname[suffix_start:]
+    bname = bname[:suffix_start]
 
     # Divide filename into keys and values
     # Value segments are delimited by '<key>-' strings
@@ -241,7 +248,7 @@ def parse_bids_fname(fname):
 
         key_str = key + '-'
 
-        i0 = fname.find(key_str)
+        i0 = bname.find(key_str)
         if i0 > -1:
             i1 = i0 + len(key_str)
             key_name.append(key)
@@ -265,10 +272,13 @@ def parse_bids_fname(fname):
         kname = key_name_sorted[kc]
         vstart = val_start_sorted[kc]
         vend = val_end_sorted[kc]
-        val = fname[vstart:vend]
+        val = bname[vstart:vend]
         bids_keys[kname] = val
 
-    return bids_keys
+    # Finally purge any empty keys
+    bids_keys = {k: v for k, v in bids_keys.items() if v}
+
+    return bids_keys, dname
 
 
 def safe_mkdir(dname):

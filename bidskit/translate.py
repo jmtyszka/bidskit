@@ -432,7 +432,7 @@ def handle_multiecho(work_json_fname, bids_json_fname, echo_flag=True):
         flag to add echo- key to filename (if necessary)
     """
 
-    # Check if _e? suffix used
+    # Isolate echo/part suffix (e*[_ph])
     work_info = parse_dcm2niix_fname(work_json_fname)
     suffix = work_info['Suffix']
 
@@ -505,7 +505,7 @@ def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag):
     :param bids_json_fname: string
         path to JSON sidecar in output BIDS tree
     :param recon_flag: bool
-        flag to add recon- key to filename (if necessary)
+        flag to add rec- key to filename (if necessary)
     """
 
     # Extract dcm2niix keys from filename
@@ -710,7 +710,10 @@ def add_bids_key(bids_json_fname, key_name, key_value):
     keys, dname = bids_filename_to_keys(bids_json_fname)
 
     if key_name in keys:
+
         print(f'  * Key {key_name} already present in filename - skipping')
+        new_bids_json_fname = bids_json_fname
+
     else:
 
         # Add new key to dictionary
@@ -731,8 +734,8 @@ def bids_filename_to_keys(bids_fname):
     Substitute short key names for long names used by parse_file_entities()
     """
 
-    dname = os.path.dirname(bids_fname)
-    keys = bids.layout.parse_file_entities(bids_fname)
+    # Parse BIDS filename with interal function that supports part- key
+    keys, dname = parse_bids_fname(bids_fname)
 
     # Substitute short key names
     if 'subject' in keys:
