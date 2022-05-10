@@ -29,7 +29,7 @@ import sys
 import json
 import subprocess
 
-import bidskit.io as bio
+from . import io as bio
 
 
 class BIDSTree:
@@ -172,7 +172,8 @@ class BIDSTree:
         except FileNotFoundError:
             print('')
             print('* Optional external bids-validator not found')
-            print('* Please see https://github.com/jmtyszka/bidskit/blob/master/docs/Installation.md for more information')
+            print('* Please see https://github.com/jmtyszka/bidskit/blob/master/docs/Installation.md')
+            print('* for more information')
             sys.exit(0)
 
         print('\n----------------------')

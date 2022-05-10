@@ -230,10 +230,32 @@ def parse_bids_fname(fname):
     # Remember full extension
     bids_keys['extension'] = ext2 + ext1
 
-    # Locate, record and remove final constrast suffix
+    # Locate, record and remove final contrast suffix
+
+    # Find position of first underscore from right of basename
     suffix_start = bname.rfind('_') + 1
+
+    # Clunky code to handle double suffices introduced by some Siemens research sequences
+    # eg *_bold_SBRef and *_T1w_RMS
+    # This only applies to ReproIn style series descriptions being parsed through this function
+    if bname.endswith('SBRef') or bname.endswith('RMS'):
+        # Find the second underscore in from the right
+        tmp = bname[:(suffix_start-1)]
+        suffix_start = tmp.rfind('_') + 1
+
+    # Split basename into prefix and suffix
     bids_keys['suffix'] = bname[suffix_start:]
     bname = bname[:suffix_start]
+
+    if bids_keys['suffix'].endswith('SBRef'):
+        # Replace entire double suffix with 'sbref'
+        bids_keys['suffix'] = 'sbref'
+
+    if bids_keys['suffix'].endswith('RMS'):
+        # Retain left part of double suffix ('T1w', etc)
+        bids_keys['suffix'] = bids_keys['suffix'].split('_')[0]
+        # Add 'rms' to acq key
+        bids_keys['acq'] = bids_keys['acq'] + 'rms'
 
     # Divide filename into keys and values
     # Value segments are delimited by '<key>-' strings

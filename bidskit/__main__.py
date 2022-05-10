@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Convert DICOM neuroimaging data into a BIDS dataset with validation
 
@@ -38,10 +38,12 @@ import subprocess
 import pkg_resources
 from glob import glob
 
-import bidskit.io as bio
-import bidskit.translate as btr
-from bidskit.bidstree import BIDSTree
-from bidskit.organize import organize_series
+from . import io as bio
+from . import translate as btr
+from . import dcm2niix as d2n
+from . import fmaps
+from .bidstree import BIDSTree
+from .auto import auto_translate
 
 
 def main():
@@ -85,6 +87,9 @@ def main():
     parser.add_argument('--multiecho', action='store_true', default=False,
                         help='Add echo- key to output filenames')
 
+    parser.add_argument('--auto', action='store_true', default=False,
+                        help='Automatically generate protocol translator from series descriptions and sequence parameters')
+
     parser.add_argument('-V', '--version', action='store_true', default=False,
                         help='Display bidskit version number and exit')
 
@@ -97,6 +102,7 @@ def main():
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
     gzip_type = args.compression
+    auto = args.auto
 
     # Filename key flag dict - pass to organize
     key_flags = {
@@ -125,7 +131,7 @@ def main():
         sys.exit(1)
 
     # Check for minimum dcm2niix version (mostly for multirecon suffix handling)
-    btr.check_dcm2niix_version('v1.0.20181125')
+    d2n.check_dcm2niix_version('v1.0.20181125')
 
     # Create a BIDS directory tree object to handle file locations
     # Creates directory
@@ -143,8 +149,9 @@ def main():
     print(f"Use Session Directories    : {'No' if no_sessions else 'Yes'}")
     print(f"Overwrite Existing Files   : {'Yes' if overwrite else 'No'}")
     print(f"Anonymize BIDS Output      : {'No' if no_anon else 'Yes'}")
+    print(f"Auto translate             : {'Yes' if auto else 'No'}")
     print(f"Bind fieldmaps             : {'Yes' if bind_fmaps else 'No'}")
-    print(f"GZIP compression           : {gzip_type}")
+    print(f"GZIP compression           : {gzip_type.upper()}")
     print(f"Recon filename key         : {key_flags['Recon']}")
     print(f"Part filename key          : {key_flags['Part']}")
     print(f"Echo filename key          : {key_flags['Echo']}")
@@ -276,7 +283,7 @@ def main():
                 btr.add_participant_record(dataset_dir, sid, dcm_info['Age'], dcm_info['Sex'])
 
             # Organize dcm2niix output into BIDS subject/session directories
-            organize_series(work_conv_dir,
+            d2n.organize_series(work_conv_dir,
                             first_pass,
                             translator,
                             bids_ses_dir,
@@ -288,7 +295,7 @@ def main():
 
     if first_pass:
 
-        # Create a template protocol dictionary
+        # Write a template or auto built translator dictionary to code/Protocol_Translator.json
         btree.write_translator(translator)
 
     if not args.skip_if_pruning:
@@ -297,7 +304,7 @@ def main():
         print('Subject directories to prune:  ' + ', '.join(out_subj_dir_list))
 
         for bids_subj_dir in out_subj_dir_list:
-            btr.prune_intendedfors(bids_subj_dir, True)
+            fmaps.prune_intendedfors(bids_subj_dir, True)
 
     if not first_pass:
 

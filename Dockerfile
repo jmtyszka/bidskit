@@ -36,7 +36,7 @@ RUN cd /tmp && \
 RUN pip3 install cython scipy numpy pandas
 
 # Install python DICOM and BIDS packages
-RUN pip3 install pydicom pybids==0.12.4
+RUN pip3 install pydicom pybids
 
 # Install python3 bidskit in the container
 ADD . /myapp
