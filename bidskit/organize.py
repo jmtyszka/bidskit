@@ -108,11 +108,14 @@ def organize_series(conv_dir, first_pass, prot_dict, src_dir, sid, ses, key_flag
                         # TODO: Check variety of use cases for stability
                         bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[info['SerDesc']])
 
-                        # Safely add run-* key to BIDS suffix
-                        bids_suffix = btr.add_run_number(bids_suffix, run_no[fc])
 
-                        # Assume the IntendedFor field should also have a run-* key added
-                        prot_dict = btr.add_intended_run(prot_dict, info, run_no[fc])
+                        #Edited based on: https://github.com/jmtyszka/bidskit/issues/72 to get rid of run-01 in non relevant files
+                        if prot_dict[info['SerDesc']][0] not in ['anat', 'beh', 'fmap']:
+                            # Safely add run-* key to BIDS suffix
+                            bids_suffix = btr.add_run_number(bids_suffix, run_no[fc])
+
+                            # Assume the IntendedFor field should also have a run-* key added
+                            prot_dict = btr.add_intended_run(prot_dict, info, run_no[fc])
 
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
