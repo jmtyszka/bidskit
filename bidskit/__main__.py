@@ -43,7 +43,6 @@ from . import translate as btr
 from . import dcm2niix as d2n
 from . import fmaps
 from .bidstree import BIDSTree
-from .auto import auto_translate
 
 
 def main():

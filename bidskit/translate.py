@@ -26,7 +26,13 @@ import numpy as np
 
 from . import fmaps
 from . import dcm2niix as d2n
-from . import io as bio
+from .io import (read_json,
+                 write_json,
+                 parse_bids_fname,
+                 parse_dcm2niix_fname,
+                 safe_copy,
+                 create_file_if_missing,
+                 strip_extensions)
 
 
 def purpose_handling(bids_purpose,
@@ -67,7 +73,7 @@ def purpose_handling(bids_purpose,
     bids_bvec_fname = []
 
     # Load the JSON sidecar
-    bids_info = bio.read_json(work_json_fname)
+    bids_info = read_json(work_json_fname)
 
     if bids_purpose == 'func':
 
@@ -85,7 +91,7 @@ def purpose_handling(bids_purpose,
             create_events_template(bids_nii_fname, overwrite)
 
             # Add taskname to BIDS JSON sidecar
-            bids_keys = bio.parse_bids_fname(bids_nii_fname)
+            bids_keys = parse_bids_fname(bids_nii_fname)
             if 'task' in bids_keys:
                 bids_info['TaskName'] = bids_keys['task']
             else:
@@ -156,16 +162,16 @@ def purpose_handling(bids_purpose,
     print('  Populating BIDS source directory')
 
     if bids_nii_fname:
-        bio.safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
+        safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
 
     if bids_json_fname:
-        bio.write_json(bids_json_fname, bids_info, overwrite)
+        write_json(bids_json_fname, bids_info, overwrite)
 
     if bids_bval_fname:
-        bio.safe_copy(work_bval_fname, bids_bval_fname, overwrite)
+        safe_copy(work_bval_fname, bids_bval_fname, overwrite)
 
     if bids_bvec_fname:
-        bio.safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
+        safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
 def add_participant_record(studydir, subject, age, sex):
@@ -181,7 +187,7 @@ def add_participant_record(studydir, subject, age, sex):
     participants_tsv = os.path.join(studydir, 'participants.tsv')
     participant_id = 'sub-%s' % subject
 
-    if not bio.create_file_if_missing(participants_tsv, '\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
+    if not create_file_if_missing(participants_tsv, '\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
 
         # Check if subject record already exists
         with open(participants_tsv) as f:
@@ -263,8 +269,8 @@ def bids_filename_to_keys(bids_fname):
     Substitute short key names for long names used by parse_file_entities()
     """
 
-    # Parse BIDS filename with interal function that supports part- key
-    keys, dname = bio.parse_bids_fname(bids_fname)
+    # Parse BIDS filename with internal function that supports part- key
+    keys, dname = parse_bids_fname(bids_fname)
 
     # Substitute short key names
     if 'subject' in keys:
@@ -286,15 +292,21 @@ def bids_keys_to_filename(keys, dname):
     # Correct key order from BIDS spec
     key_order = ['sub', 'ses', 'task', 'acq', 'dir', 'rec', 'run', 'echo', 'part']
 
-    # Init with the containing directory and trailing file separator
-    bids_fname = dname + os.path.sep
+    # Init with the containing directory and trailing file separator if dname provided
+    if dname:
+        bids_fname = dname + os.path.sep
+    else:
+        bids_fname = ''
 
     for key in key_order:
         if key in keys:
             bids_fname += f"{key}-{keys[key]}_"
 
     # Add final pulse sequence suffix and extension
-    bids_fname += keys['suffix'] + keys['extension']
+    if 'suffix' in keys:
+        bids_fname += keys['suffix']
+    if 'extension' in keys:
+        bids_fname += keys['extension']
 
     return bids_fname
 
@@ -322,7 +334,7 @@ def auto_run_no(file_list, prot_dict):
     for fname in file_list:
 
         # Parse dcm2niix filename into relevant keys, including suffix
-        info = bio.parse_dcm2niix_fname(fname)
+        info = parse_dcm2niix_fname(fname)
 
         ser_desc = info['SerDesc']
 
@@ -364,12 +376,12 @@ def replace_contrast(fname, new_contrast):
     :return: new_fname: str, modified BIDS filename
     """
 
-    bids_keys = bio.parse_bids_fname(fname)
+    bids_keys = parse_bids_fname(fname)
 
     if 'suffix' in bids_keys:
         new_fname = fname.replace(bids_keys['suffix'], new_contrast)
     else:
-        fstub, fext = bio.strip_extensions(fname)
+        fstub, fext = strip_extensions(fname)
         new_fname = fstub + '_' + new_contrast + fext
 
     return new_fname
@@ -412,3 +424,45 @@ def create_events_template(bold_fname, overwrite=False):
             fd = open(events_fname, 'w')
             fd.write('onset\tduration\ttrial_type\tresponse_time\n')
             fd.close()
+
+
+def auto_translate(info, json_fname):
+
+    ser_desc = info['SerDesc']
+
+    # List of possible suffices for each BIDS type directory
+    bids_types = {
+        'func': ['bold', 'sbref'],
+        'anat': ['T1w', 'T2w', 'PDw', 'T2starw', 'FLAIR',
+                 'defacemask', 'MEGRE', 'MESE', 'VFA', 'IRT1',
+                 'MP2RAGE', 'MPM', 'MTS', 'MTR'],
+        'fmap': ['epi'],
+        'dwi': ['dwi']
+    }
+
+    # Use BIDS filename parser on ReproIn-style series description
+    # Returns any BIDS-like key values from series description string
+    # The closer the series descriptions are to Repro-In specs, the
+    # better this works.
+    bids_keys, _ = parse_bids_fname(ser_desc)
+
+    # Infer BIDS type directory
+    bids_dir = 'anat'
+    for bids_type in bids_types:
+        if bids_keys['suffix'] in bids_types[bids_type]:
+            bids_dir = bids_type
+
+    # Reconstitute bids filename stub template from identified BIDS keys
+    bids_stub = bids_keys_to_filename(bids_keys, '')
+
+    # Always set IntendedFor to unassigned at this stage.
+    # Filled automatically if requested during translation
+    bids_intendedfor = 'UNASSIGNED'
+
+    print('')
+    print(f'Series Description : {ser_desc}')
+    print(f'BIDS directory     : {bids_dir}')
+    print(f'BIDS stub          : {bids_stub}')
+    print(f'BIDS IntendedFor   : {bids_intendedfor}')
+
+    return [bids_dir, bids_stub, bids_intendedfor]

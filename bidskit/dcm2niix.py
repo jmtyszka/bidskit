@@ -32,7 +32,6 @@ from . import translate as btr
 from . import io as bio
 from . import translate as tr
 from . import fmaps
-from .auto import (auto_translate)
 from .json import (get_acq_time)
 
 
@@ -128,7 +127,7 @@ def organize_series(
 
                 # Add current protocol to protocol dictionary
                 if auto:
-                    prot_dict[info['SerDesc']] = auto_translate(info, src_json_fname)
+                    prot_dict[info['SerDesc']] = btr.auto_translate(info, src_json_fname)
                 else:
                     prot_dict[info['SerDesc']] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
 

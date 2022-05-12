@@ -235,9 +235,9 @@ def parse_bids_fname(fname):
     # Find position of first underscore from right of basename
     suffix_start = bname.rfind('_') + 1
 
-    # Clunky code to handle double suffices introduced by some Siemens research sequences
+    # Handle double suffices introduced by some Siemens research sequences
     # eg *_bold_SBRef and *_T1w_RMS
-    # This only applies to ReproIn style series descriptions being parsed through this function
+    # This code is only relevant when parsing ReproIn style series descriptions through this function
     if bname.endswith('SBRef') or bname.endswith('RMS'):
         # Find the second underscore in from the right
         tmp = bname[:(suffix_start-1)]
@@ -246,16 +246,6 @@ def parse_bids_fname(fname):
     # Split basename into prefix and suffix
     bids_keys['suffix'] = bname[suffix_start:]
     bname = bname[:suffix_start]
-
-    if bids_keys['suffix'].endswith('SBRef'):
-        # Replace entire double suffix with 'sbref'
-        bids_keys['suffix'] = 'sbref'
-
-    if bids_keys['suffix'].endswith('RMS'):
-        # Retain left part of double suffix ('T1w', etc)
-        bids_keys['suffix'] = bids_keys['suffix'].split('_')[0]
-        # Add 'rms' to acq key
-        bids_keys['acq'] = bids_keys['acq'] + 'rms'
 
     # Divide filename into keys and values
     # Value segments are delimited by '<key>-' strings
@@ -296,6 +286,17 @@ def parse_bids_fname(fname):
         vend = val_end_sorted[kc]
         val = bname[vstart:vend]
         bids_keys[kname] = val
+
+    # Tidy up Siemens recon extensions
+    # Only relevant when using this function to parse ReproIn-style series descriptions
+    if bids_keys['suffix'].endswith('SBRef'):
+        # Replace entire double suffix with 'sbref'
+        bids_keys['suffix'] = 'sbref'
+    if bids_keys['suffix'].endswith('RMS'):
+        # Retain left part of double suffix ('T1w', etc)
+        bids_keys['suffix'] = bids_keys['suffix'].split('_')[0]
+        # Add 'rms' to acq key
+        bids_keys['acq'] = bids_keys['acq'] + 'rms'
 
     # Finally purge any empty keys
     bids_keys = {k: v for k, v in bids_keys.items() if v}
