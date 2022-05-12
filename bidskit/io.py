@@ -230,8 +230,20 @@ def parse_bids_fname(fname):
     # Remember full extension
     bids_keys['extension'] = ext2 + ext1
 
-    # Locate, record and remove final constrast suffix
+    # Locate, record and remove final contrast suffix
+
+    # Find position of first underscore from right of basename
     suffix_start = bname.rfind('_') + 1
+
+    # Handle double suffices introduced by some Siemens research sequences
+    # eg *_bold_SBRef and *_T1w_RMS
+    # This code is only relevant when parsing ReproIn style series descriptions through this function
+    if bname.endswith('SBRef') or bname.endswith('RMS'):
+        # Find the second underscore in from the right
+        tmp = bname[:(suffix_start-1)]
+        suffix_start = tmp.rfind('_') + 1
+
+    # Split basename into prefix and suffix
     bids_keys['suffix'] = bname[suffix_start:]
     bname = bname[:suffix_start]
 
@@ -274,6 +286,17 @@ def parse_bids_fname(fname):
         vend = val_end_sorted[kc]
         val = bname[vstart:vend]
         bids_keys[kname] = val
+
+    # Tidy up Siemens recon extensions
+    # Only relevant when using this function to parse ReproIn-style series descriptions
+    if bids_keys['suffix'].endswith('SBRef'):
+        # Replace entire double suffix with 'sbref'
+        bids_keys['suffix'] = 'sbref'
+    if bids_keys['suffix'].endswith('RMS'):
+        # Retain left part of double suffix ('T1w', etc)
+        bids_keys['suffix'] = bids_keys['suffix'].split('_')[0]
+        # Add 'rms' to acq key
+        bids_keys['acq'] = bids_keys['acq'] + 'rms'
 
     # Finally purge any empty keys
     bids_keys = {k: v for k, v in bids_keys.items() if v}
