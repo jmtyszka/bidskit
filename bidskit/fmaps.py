@@ -286,7 +286,7 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
         if is_mag:
 
             bids_nii_fname = tr.replace_contrast(bids_nii_fname, 'magnitude{}'.format(echo_no))
-            bids_json_fname = []  # Do not copy sidecar
+            bids_json_fname = tr.replace_contrast(bids_json_fname, 'magnitude{}'.format(echo_no))
 
         else:
 
