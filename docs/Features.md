@@ -57,4 +57,4 @@ The resulting tree should look like this
     └── sub-S999
         └── ses-1
 ```
-The --subject argument supports space-separated lists of subject IDs (without the sub- prefix) if you need to add multiple new subjects.
+The `--subject` argument supports space-separated lists of subject IDs (without the `sub-` prefix) if you need to add multiple new subjects.
