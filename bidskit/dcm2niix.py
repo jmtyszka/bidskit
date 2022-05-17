@@ -71,7 +71,7 @@ def organize_series(
         key_flags,
         do_cleanup=False,
         overwrite=False,
-        auto=True):
+        auto=False):
     """
     Organize dcm2niix output in the work/ folder into BIDS
 
