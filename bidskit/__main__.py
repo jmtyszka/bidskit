@@ -290,7 +290,8 @@ def main():
                             ses,
                             key_flags,
                             args.clean_conv_dir,
-                            overwrite)
+                            overwrite,
+                            auto)
 
     if first_pass:
 
