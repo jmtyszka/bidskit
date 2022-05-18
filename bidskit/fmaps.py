@@ -32,49 +32,56 @@ from . import translate as tr
 from .json import (acqtime_mins)
 
 
-def bind_fmaps(bids_subj_dir):
+def bind_fmaps(bids_subj_dir, no_sessions):
     """
     Bind nearest fieldmap in time to each functional series for this subject
     - allow only SE-EPI pair or GRE fieldmap bindings, not a mixture of both
     - if both SE-EPI and GRE fmaps are present in fmap/ IGNORE the GRE fieldmaps
+    - handles no-sessions flag
 
     :param bids_subj_dir: string
         BIDS root directory
+    :param no_sessions: bool
+        Flag for session-less operation
     """
 
     print('  Subject {}'.format(os.path.basename(bids_subj_dir)))
 
-    sess_dirs = glob(os.path.join(bids_subj_dir, 'ses-*'))
+    if no_sessions:
+        subjsess_dirs = [bids_subj_dir]
+    else:
+        subjsess_dirs = glob(os.path.join(bids_subj_dir, 'ses-*'))
 
-    # Session loop
-    for sess_dir in sess_dirs:
+    # Subject/session loop
+    for subjsess_dir in subjsess_dirs:
 
-        print('    Session {}'.format(os.path.basename(sess_dir)))
+        print('    Subject/Session {}'.format(os.path.basename(subjsess_dir)))
 
         # Get list of BOLD fMRI JSON sidecars and acquisition times
-        bold_jsons = glob(os.path.join(sess_dir, 'func', '*task-*_bold.json'))
+        bold_jsons = glob(os.path.join(subjsess_dir, 'func', '*task-*_bold.json'))
         t_bold = np.array([acqtime_mins(fname) for fname in bold_jsons])
 
         # Find SE-EPI and GRE fieldmaps in session fmap/ folder
-        fmap_dir = os.path.join(sess_dir, 'fmap')
+        fmap_dir = os.path.join(subjsess_dir, 'fmap')
         epi_fmap_jsons = glob(os.path.join(fmap_dir, '*_dir-*_epi.json'))
         gre_fmap_jsons = glob(os.path.join(fmap_dir, '*_phasediff.json'))
 
         if epi_fmap_jsons:
-            bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold)
+            bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions)
         elif gre_fmap_jsons:
-            bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold)
+            bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions)
         else:
             print("    * No fieldmaps detected in fmap/ - skipping")
 
 
-def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold):
+def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions):
     """
     SE-EPI fieldmap binding
 
-    :param epi_fmap_jsons:
-    :param bold_jsons:
+    :param epi_fmap_jsons: list
+    :param bold_jsons: list
     :param t_bold:
+    :param no_sessions: bool
     :return:
     """
 
@@ -95,7 +102,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold):
         pedir_jsons = [fname for fname in epi_fmap_jsons if pedir in fname]
 
         # Create list for storing IntendedFor lists
-        intended_for = [ [] for ic in range(len(pedir_jsons)) ]
+        intended_for = [[] for ic in range(len(pedir_jsons))]
 
         # Get SE-EPI fmap acquisition times
         t_epi_fmap = np.array([acqtime_mins(fname) for fname in pedir_jsons])
@@ -110,7 +117,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold):
             idx = np.argmin(dt)
 
             # Add this BOLD series image name to list for this fmap
-            intended_for[idx].append(bids_intended_name(bold_json))
+            intended_for[idx].append(bids_intended_name(bold_json, no_sessions))
 
         # Replace IntendedFor field in fmap JSON file
         for fc, json_fname in enumerate(pedir_jsons):
@@ -119,13 +126,14 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold):
             bio.write_json(json_fname, info, overwrite=True)
 
 
-def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold):
+def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
     """
     GRE fieldmap binding
 
     :param gre_fmap_jsons:
     :param bold_jsons:
     :param t_bold:
+    :param no_sessions: bool
     :return:
     """
 
@@ -145,7 +153,7 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold):
         idx = np.argmin(dt)
 
         # Add this BOLD series image name to list for this fmap
-        intended_for[idx].append(bids_intended_name(bold_json))
+        intended_for[idx].append(bids_intended_name(bold_json, no_sessions))
 
     # Replace IntendedFor field in fmap JSON file
     for fc, json_fname in enumerate(gre_fmap_jsons):
@@ -154,19 +162,33 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold):
         bio.write_json(json_fname, info, overwrite=True)
 
 
-def bids_intended_name(json_fname):
+def bids_intended_name(json_fname, no_sessions):
 
     # Replace .json with .nii.gz
-    tmp1 = json_fname.replace('.json', '.nii.gz')
-    base1 = os.path.basename(tmp1)
+    nii_fname = json_fname.replace('.json', '.nii.gz')
 
-    tmp2 = os.path.dirname(tmp1)
-    base2 = os.path.basename(tmp2)
+    # Get intended Nifti basename from full JSON path
+    nii_bname = os.path.basename(nii_fname)
 
-    tmp3 = os.path.dirname(tmp2)
-    base3 = os.path.basename(tmp3)
+    # Get type directory name ('func', 'fmap', etc)
+    typedir_path = os.path.dirname(nii_fname)
+    type_dname = os.path.basename(typedir_path)
 
-    return os.path.join(base3, base2, base1)
+    if no_sessions:
+
+        # IntendedFor field includes type directory and image basename
+        intended_path = os.path.join(type_dname, nii_bname)
+
+    else:
+
+        # Get session directory name (eg 'ses-1')
+        sesdir_path = os.path.dirname(typedir_path)
+        sesdir_dname = os.path.basename(sesdir_path)
+
+        # IntendedFor field includes session directory, type directory and image basename
+        intended_path = os.path.join(sesdir_dname, type_dname, nii_bname)
+
+    return intended_path
 
 
 def prune_intendedfors(bids_subj_dir, fmap_only):
@@ -209,7 +231,6 @@ def prune_intendedfors(bids_subj_dir, fmap_only):
                         f.seek(0)
                         json.dump(data, f, indent=4)
                         f.truncate()
-
 
 
 def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):

@@ -118,7 +118,7 @@ def purpose_handling(bids_purpose,
 
         elif seq_name == 'EP':
 
-            print('    EPI detected')
+            print('    EPI fieldmap detected')
 
         else:
 
