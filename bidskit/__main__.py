@@ -211,7 +211,7 @@ def main():
         if no_sessions:
             dcm_dir_list = [src_subj_dir]
         else:
-            dcm_dir_list = glob(os.path.join(src_subj_dir, '*'))
+            dcm_dir_list = sorted(glob(os.path.join(src_subj_dir, '*')))
 
         # Loop over DICOM directories in subject directory
         for dcm_dir in dcm_dir_list:

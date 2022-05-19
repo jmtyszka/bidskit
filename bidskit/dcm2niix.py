@@ -43,7 +43,7 @@ def ordered_file_list(conv_dir):
     """
 
     # Get Nifti image list from conversion directory
-    nii_list = glob(os.path.join(conv_dir, '*.nii*'))
+    nii_list = sorted(glob(os.path.join(conv_dir, '*.nii*')))
 
     # Derive JSON sidecar list
     json_list = [bio.nii_to_json(nii_file) for nii_file in nii_list]
