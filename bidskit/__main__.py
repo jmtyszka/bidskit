@@ -74,8 +74,8 @@ def main():
     parser.add_argument('--bind-fmaps', action='store_true', default=False,
                         help='Bind fieldmaps to fMRI series using IntendedFor field')
 
-    parser.add_argument('--compression', required=False, default='y',
-                        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [y]')
+    parser.add_argument('--compression', required=False, default='o',
+                        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]')
 
     parser.add_argument('--recon', action='store_true', default=False,
                         help='Add recon- key to output filenames for bias- and distortion-corrected images')
