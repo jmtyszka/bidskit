@@ -32,7 +32,7 @@ from . import translate as tr
 from .json import (acqtime_mins)
 
 
-def bind_fmaps(bids_subj_dir, no_sessions):
+def bind_fmaps(bids_subj_dir, no_sessions, nii_ext):
     """
     Bind nearest fieldmap in time to each functional series for this subject
     - allow only SE-EPI pair or GRE fieldmap bindings, not a mixture of both
@@ -67,14 +67,14 @@ def bind_fmaps(bids_subj_dir, no_sessions):
         gre_fmap_jsons = sorted(glob(os.path.join(fmap_dir, '*_phasediff.json')))
 
         if epi_fmap_jsons:
-            bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions)
+            bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext)
         elif gre_fmap_jsons:
-            bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions)
+            bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext)
         else:
             print("    * No fieldmaps detected in fmap/ - skipping")
 
 
-def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions):
+def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
     """
     SE-EPI fieldmap binding
 
@@ -117,7 +117,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions):
             idx = np.argmin(dt)
 
             # Add this BOLD series image name to list for this fmap
-            intended_for[idx].append(bids_intended_name(bold_json, no_sessions))
+            intended_for[idx].append(bids_intended_name(bold_json, no_sessions, nii_ext))
 
         # Replace IntendedFor field in fmap JSON file
         for fc, json_fname in enumerate(pedir_jsons):

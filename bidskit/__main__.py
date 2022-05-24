@@ -319,7 +319,7 @@ def main():
             print('')
             print('Binding nearest fieldmap to each functional series')
             for bids_subj_dir in out_subj_dir_list:
-                fmaps.bind_fmaps(bids_subj_dir, no_sessions)
+                fmaps.bind_fmaps(bids_subj_dir, no_sessions, nii_ext)
 
     # Finally validate that all is well with the BIDS dataset
     if not first_pass:
