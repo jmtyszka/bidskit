@@ -103,6 +103,9 @@ def main():
     gzip_type = args.compression
     auto = args.auto
 
+    # Set Nifti image extension from gzip type
+    nii_ext = ".nii" if 'n' in gzip_type else ".nii.gz"
+
     # Filename key flag dict - pass to organize
     key_flags = {
         'Part': args.complex,
@@ -282,16 +285,19 @@ def main():
                 btr.add_participant_record(dataset_dir, sid, dcm_info['Age'], dcm_info['Sex'])
 
             # Organize dcm2niix output into BIDS subject/session directories
-            d2n.organize_series(work_conv_dir,
-                            first_pass,
-                            translator,
-                            bids_ses_dir,
-                            sid,
-                            ses,
-                            key_flags,
-                            args.clean_conv_dir,
-                            overwrite,
-                            auto)
+            d2n.organize_series(
+                work_conv_dir,
+                first_pass,
+                translator,
+                bids_ses_dir,
+                sid,
+                ses,
+                key_flags,
+                nii_ext,
+                args.clean_conv_dir,
+                overwrite,
+                auto
+            )
 
     if first_pass:
 

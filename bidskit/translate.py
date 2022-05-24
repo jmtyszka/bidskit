@@ -43,7 +43,8 @@ def purpose_handling(bids_purpose,
                      bids_nii_fname,
                      bids_json_fname,
                      key_flags,
-                     overwrite=False):
+                     overwrite,
+                     nii_ext):
     """
     Special handling for each image purpose (func, anat, fmap, dwi, etc)
 
@@ -82,13 +83,15 @@ def purpose_handling(bids_purpose,
             print('    EPI detected')
 
             # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(work_json_fname, bids_json_fname, key_flags['Echo'])
+            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
+                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
 
             # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_complex(work_json_fname, bids_json_fname, key_flags['Part'])
+            bids_nii_fname, bids_json_fname = d2n.handle_complex(
+                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
 
             # Handle task info
-            create_events_template(bids_nii_fname, overwrite)
+            create_events_template(bids_nii_fname, overwrite, nii_ext)
 
             # Add taskname to BIDS JSON sidecar
             bids_keys = parse_bids_fname(bids_nii_fname)
@@ -132,18 +135,22 @@ def purpose_handling(bids_purpose,
             print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMPRAGE')
 
             # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(work_json_fname, bids_json_fname, key_flags['Echo'])
+            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
+                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
 
             # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_complex(work_json_fname, bids_json_fname, key_flags['Part'])
+            bids_nii_fname, bids_json_fname = d2n.handle_complex(
+                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
 
             # Handle biased and unbiased (NORM) reconstructions
-            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(work_json_fname, bids_json_fname, key_flags['Recon'])
+            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
+                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
 
         elif seq_name == 'SE':
 
             print('    Spin echo detected - likely T1w or T2w anatomic image')
-            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(work_json_fname, bids_json_fname, key_flags['Recon'])
+            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
+                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
 
         elif seq_name == 'GR':
 
@@ -215,7 +222,7 @@ def add_run_number(bids_suffix, run_no):
 
     if "run-" in bids_suffix:
 
-        # Preserve existing run-* value in suffix
+        # Preserve existing run-%d value in suffix
         print('  * BIDS suffix already contains run number - skipping')
         new_bids_suffix = bids_suffix
 
@@ -225,17 +232,17 @@ def add_run_number(bids_suffix, run_no):
 
             # Add '_run-x' before final suffix
             bmain, bseq = bids_suffix.rsplit('_', 1)
-            new_bids_suffix = '%s_run-%d_%s' % (bmain, run_no, bseq)
+            new_bids_suffix = f"{bmain:s}_run-{run_no:d}_{bseq:s}"
 
         else:
 
-            # Isolated final suffix - just add 'run-x_' as a prefix
-            new_bids_suffix = 'run-%d_%s' % (run_no, bids_suffix)
+            # Isolated final suffix - just add 'run-%d_' as a prefix
+            new_bids_suffix = f"run-{run_no:d}_{bids_suffix:s}"
 
     return new_bids_suffix
 
 
-def add_bids_key(bids_json_fname, key_name, key_value):
+def add_bids_key(bids_json_fname, key_name, key_value, nii_ext):
     """
     Add a new key to a BIDS filename
     If this key is already present, print warning and don't replace key
@@ -258,7 +265,7 @@ def add_bids_key(bids_json_fname, key_name, key_value):
         new_bids_json_fname = bids_keys_to_filename(keys, dname)
 
     # Construct associated Nifti filename
-    new_bids_nii_fname = new_bids_json_fname.replace('.json', '.nii.gz')
+    new_bids_nii_fname = new_bids_json_fname.replace('.json', nii_ext)
 
     return new_bids_nii_fname, new_bids_json_fname
 
@@ -298,6 +305,7 @@ def bids_keys_to_filename(keys, dname):
     else:
         bids_fname = ''
 
+    # Construct BIDS filename from keys in correct order
     for key in key_order:
         if key in keys:
             bids_fname += f"{key}-{keys[key]}_"
@@ -305,10 +313,27 @@ def bids_keys_to_filename(keys, dname):
     # Add final pulse sequence suffix and extension
     if 'suffix' in keys:
         bids_fname += keys['suffix']
+
     if 'extension' in keys:
         bids_fname += keys['extension']
 
     return bids_fname
+
+
+def bids_legalize_keys(keys):
+    """
+    Scrub illegal characters from BIDS keys
+    """
+
+    bad_chars = ['-', '_']
+
+    for key in keys:
+        value = keys[key]
+        for bc in bad_chars:
+            value = value.replace(bc, '')
+        keys[key] = value
+
+    return keys
 
 
 def auto_run_no(file_list, prot_dict):
@@ -356,7 +381,7 @@ def auto_run_no(file_list, prot_dict):
     # Find unique ser_desc entries using sets
     unique_descs = set(desc_list)
 
-    run_no = np.zeros(len(file_list))
+    run_no = np.zeros(len(file_list)).astype(int)
 
     for unique_desc in unique_descs:
         run_count = 1
@@ -387,16 +412,19 @@ def replace_contrast(fname, new_contrast):
     return new_fname
 
 
-def create_events_template(bold_fname, overwrite=False):
+def create_events_template(bold_fname, overwrite, nii_ext):
     """
     Create a template events file for a corresponding BOLD imaging file
-    :param bold_fname: str, BOLD imaging filename (.nii.gz)
-    :param overwrite: bool, Overwrite flag
-    :return: Nothing
+    :param bold_fname: str
+        BOLD imaging filename
+    :param overwrite: bool
+        Overwrite flag
+    :param nii_ext: str
+        Nifti image extension accounting for compression (*.nii or *.nii.gz)
     """
 
     # Make specific to BOLD data to avoid overwriting with SBRef info
-    if "_bold.nii.gz" in bold_fname:
+    if "_bold" + nii_ext in bold_fname:
 
         # Remove echo, part keys from filename. Only one events file required for each task/acq
         keys, dname = bids_filename_to_keys(bold_fname)
@@ -406,7 +434,7 @@ def create_events_template(bold_fname, overwrite=False):
             del keys['part']
         bold_fname = bids_keys_to_filename(keys, dname)
 
-        events_fname = bold_fname.replace('_bold.nii.gz', '_events.tsv')
+        events_fname = bold_fname.replace("_bold" + nii_ext, "_events.tsv")
         events_bname = os.path.basename(events_fname)
 
         if os.path.isfile(events_fname):
@@ -427,6 +455,10 @@ def create_events_template(bold_fname, overwrite=False):
 
 
 def auto_translate(info, json_fname):
+    """
+    Construct protocol translator from original series descriptions
+    - assumes series descriptions are ReproIn-style
+    """
 
     ser_desc = info['SerDesc']
 
@@ -451,6 +483,9 @@ def auto_translate(info, json_fname):
     for bids_type in bids_types:
         if bids_keys['suffix'] in bids_types[bids_type]:
             bids_dir = bids_type
+
+    # Scrub any illegal characters from BIDS key values (eg "-_.")
+    bids_keys = bids_legalize_keys(bids_keys)
 
     # Reconstitute bids filename stub template from identified BIDS keys
     bids_stub = bids_keys_to_filename(bids_keys, '')

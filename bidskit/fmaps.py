@@ -162,10 +162,10 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
         bio.write_json(json_fname, info, overwrite=True)
 
 
-def bids_intended_name(json_fname, no_sessions):
+def bids_intended_name(json_fname, no_sessions, nii_ext):
 
-    # Replace .json with .nii.gz
-    nii_fname = json_fname.replace('.json', '.nii.gz')
+    # Replace .json with Nifti extension ('nii.gz' or '.nii')
+    nii_fname = json_fname.replace('.json', nii_ext)
 
     # Get intended Nifti basename from full JSON path
     nii_bname = os.path.basename(nii_fname)
@@ -347,7 +347,7 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
     return bids_nii_fname, bids_json_fname
 
 
-def build_intendedfor(sid, ses, bids_suffix):
+def build_intendedfor(sid, ses, bids_suffix, nii_ext):
     """
     Build the IntendedFor entry for a fieldmap sidecar
     :param: sid, str, Subject ID
@@ -364,9 +364,9 @@ def build_intendedfor(sid, ses, bids_suffix):
     # Complete BIDS filenames for image and sidecar
     if ses:
         # If sessions are being used, add session directory to IntendedFor field
-        ifstr = os.path.join('ses-' + ses, bids_type, 'sub-' + sid + '_ses-' + ses + '_' + bids_name + '.nii.gz')
+        ifstr = os.path.join('ses-' + ses, bids_type, 'sub-' + sid + '_ses-' + ses + '_' + bids_name + nii_ext)
     else:
-        ifstr = os.path.join(bids_type, 'sub-' + sid + '_' + bids_name + '.nii.gz')
+        ifstr = os.path.join(bids_type, 'sub-' + sid + '_' + bids_name + nii_ext)
 
     return ifstr
 

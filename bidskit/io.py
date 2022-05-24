@@ -378,17 +378,15 @@ def strip_extensions(fname):
     return fstub, fext
 
 
-def nii_to_json(nii_fname):
+def nii_to_json(nii_fname, nii_ext):
     """
     Replace Nifti extension ('.nii.gz' or '.nii') with '.json'
 
     :param nii_fname:
     :return: json_fname
     """
-    if '.nii.gz' in nii_fname:
-        json_fname = nii_fname.replace('.nii.gz', '.json')
-    elif 'nii' in nii_fname:
-        json_fname = nii_fname.replace('.nii', '.json')
+    if nii_ext in nii_fname:
+        json_fname = nii_fname.replace(nii_ext, '.json')
     else:
         print('* Unknown extension for %s' % nii_fname)
         json_fname = nii_fname + '.json'

@@ -28,14 +28,13 @@ import shutil
 import copy
 from glob import glob
 
-from . import translate as btr
 from . import io as bio
 from . import translate as tr
 from . import fmaps
 from .json import (get_acq_time)
 
 
-def ordered_file_list(conv_dir):
+def ordered_file_list(conv_dir, nii_ext):
     """
     Generated list of dcm2niix Nifti output files ordered by acquisition time
     :param conv_dir: str, working conversion directory
@@ -46,7 +45,7 @@ def ordered_file_list(conv_dir):
     nii_list = sorted(glob(os.path.join(conv_dir, '*.nii*')))
 
     # Derive JSON sidecar list
-    json_list = [bio.nii_to_json(nii_file) for nii_file in nii_list]
+    json_list = [bio.nii_to_json(nii_file, nii_ext) for nii_file in nii_list]
 
     # Pull acquisition times for each Nifti image from JSON sidecar
     acq_time = [get_acq_time(json_file) for json_file in json_list]
@@ -69,6 +68,7 @@ def organize_series(
         sid,
         ses,
         key_flags,
+        nii_ext,
         do_cleanup=False,
         overwrite=False,
         auto=False):
@@ -93,8 +93,10 @@ def organize_series(
         clean up conversion directory
     :param overwrite: bool
         overwrite flag
+    :param compression: bool
+        Nifti compression method for dcm2niix ('n' = no compression)
     :param auto: bool
-        auto build translator dictorionary from dcm2niix output in work/
+        auto build translator dictionary from dcm2niix output in work/
     :return:
     """
 
@@ -102,14 +104,14 @@ def organize_series(
     if os.path.isdir(conv_dir):
 
         # Get Nifti file list ordered by acquisition time
-        nii_list, json_list, acq_times = ordered_file_list(conv_dir)
+        nii_list, json_list, acq_times = ordered_file_list(conv_dir, nii_ext)
 
         # Infer run numbers accounting for duplicates.
         # Only used if run-* not present in translator BIDS filename stub
         if first_pass:
             run_no = None
         else:
-            run_no = btr.auto_run_no(nii_list, prot_dict)
+            run_no = tr.auto_run_no(nii_list, prot_dict)
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
         for fc, src_nii_fname in enumerate(nii_list):
@@ -118,18 +120,18 @@ def organize_series(
             src_json_fname = json_list[fc]
 
             # Parse image filename into fields
-            info = bio.parse_dcm2niix_fname(src_nii_fname)
+            d2n_info = bio.parse_dcm2niix_fname(src_nii_fname)
 
             # Check if we're creating a new protocol dictionary
             if first_pass:
 
-                print(f"  Adding protocol {info['SerDesc']} to dictionary")
+                print(f"  Adding protocol {d2n_info['SerDesc']} to dictionary")
 
                 # Add current protocol to protocol dictionary
                 if auto:
-                    prot_dict[info['SerDesc']] = btr.auto_translate(info, src_json_fname)
+                    prot_dict[d2n_info['SerDesc']] = tr.auto_translate(d2n_info, src_json_fname)
                 else:
-                    prot_dict[info['SerDesc']] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
+                    prot_dict[d2n_info['SerDesc']] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
 
             else:
 
@@ -138,26 +140,26 @@ def organize_series(
                     print('* WARNING: JSON sidecar %s not found' % src_json_fname)
                     continue
 
-                if info['SerDesc'] in prot_dict.keys():
+                if d2n_info['SerDesc'] in prot_dict.keys():
 
-                    if prot_dict[info['SerDesc']][0].startswith('EXCLUDE'):
+                    if prot_dict[d2n_info['SerDesc']][0].startswith('EXCLUDE'):
 
                         # Skip excluded protocols
-                        print('* Excluding protocol ' + str(info['SerDesc']))
+                        print('* Excluding protocol ' + str(d2n_info['SerDesc']))
 
                     else:
 
-                        print('  Organizing ' + str(info['SerDesc']))
+                        print('  Organizing ' + str(d2n_info['SerDesc']))
 
                         # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
                         # Note use of deepcopy to prevent corruption of prot_dict (see Issue #36 solution by @bogpetre)
-                        bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[info['SerDesc']])
+                        bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[d2n_info['SerDesc']])
 
                         # Safely add run-* key to BIDS suffix
-                        bids_suffix = btr.add_run_number(bids_suffix, run_no[fc])
+                        bids_suffix = tr.add_run_number(bids_suffix, run_no[fc])
 
                         # Assume the IntendedFor field should also have a run-* key added
-                        prot_dict = fmaps.add_intended_run(prot_dict, info, run_no[fc])
+                        prot_dict = fmaps.add_intended_run(prot_dict, d2n_info, run_no[fc])
 
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
@@ -169,37 +171,39 @@ def organize_series(
                         else:
                             bids_prefix = 'sub-' + sid + '_'
 
-                        # Construct BIDS source Nifti and JSON filenames
-                        bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + '.nii.gz')
-                        bids_json_fname = bids_nii_fname.replace('.nii.gz', '.json')
+                        # Construct BIDS Nifti and JSON filenames
+                        # Issue 105: remember to account for --compress n flag with .nii extension
+                        bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + nii_ext)
+                        bids_json_fname = bids_nii_fname.replace(nii_ext, '.json')
 
                         # Add prefix and suffix to IntendedFor values
                         if 'UNASSIGNED' not in bids_intendedfor:
                             if isinstance(bids_intendedfor, str):
                                 # Single linked image
-                                bids_intendedfor = fmaps.build_intendedfor(sid, ses, bids_intendedfor)
+                                bids_intendedfor = fmaps.build_intendedfor(sid, ses, bids_intendedfor, nii_ext)
                             else:
                                 # Loop over all linked images
                                 for ifc, ifstr in enumerate(bids_intendedfor):
                                     # Avoid multiple substitutions
-                                    if '.nii.gz' not in ifstr:
-                                        bids_intendedfor[ifc] = fmaps.build_intendedfor(sid, ses, ifstr)
+                                    if nii_ext not in ifstr:
+                                        bids_intendedfor[ifc] = fmaps.build_intendedfor(sid, ses, ifstr, nii_ext)
 
                         # Special handling for specific purposes (anat, func, fmap, dwi, etc)
                         # This function populates the BIDS structure with the image and adjusted sidecar
-                        btr.purpose_handling(bids_purpose,
-                                             bids_intendedfor,
-                                             info['SeqName'],
-                                             src_nii_fname,
-                                             src_json_fname,
-                                             bids_nii_fname,
-                                             bids_json_fname,
-                                             key_flags,
-                                             overwrite)
+                        tr.purpose_handling(bids_purpose,
+                                            bids_intendedfor,
+                                            d2n_info['SeqName'],
+                                            src_nii_fname,
+                                            src_json_fname,
+                                            bids_nii_fname,
+                                            bids_json_fname,
+                                            key_flags,
+                                            overwrite,
+                                            nii_ext)
                 else:
 
                     # Skip protocols not in the dictionary
-                    print('* Protocol ' + str(info['SerDesc']) + ' is not in the dictionary, did not convert.')
+                    print('* Protocol ' + str(d2n_info['SerDesc']) + ' is not in the dictionary, did not convert.')
 
         if not first_pass:
 
@@ -211,7 +215,7 @@ def organize_series(
                 print('  Preserving conversion directory')
 
 
-def handle_multiecho(work_json_fname, bids_json_fname, echo_flag=True):
+def handle_multiecho(work_json_fname, bids_json_fname, echo_flag, nii_ext):
     """
     Handle multiecho recons converted using dcm2niix
     As of dcm2niix v1.0.20211220 multiple echo recons have suffices:
@@ -231,7 +235,7 @@ def handle_multiecho(work_json_fname, bids_json_fname, echo_flag=True):
     suffix = work_info['Suffix']
 
     # Default BIDS Nifti filename from JSON filename
-    bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
+    bids_nii_fname = bids_json_fname.replace('.json', nii_ext)
 
     if suffix.startswith('e'):
 
@@ -244,12 +248,12 @@ def handle_multiecho(work_json_fname, bids_json_fname, echo_flag=True):
 
         # Add an "echo-{echo_num}" key to the BIDS Nifti and JSON filenames
         if echo_flag:
-            bids_nii_fname, bids_json_fname = tr.add_bids_key(bids_json_fname, 'echo', echo_num)
+            bids_nii_fname, bids_json_fname = tr.add_bids_key(bids_json_fname, 'echo', echo_num, nii_ext)
 
     return bids_nii_fname, bids_json_fname
 
 
-def handle_complex(work_json_fname, bids_json_fname, part_flag):
+def handle_complex(work_json_fname, bids_json_fname, part_flag, nii_ext):
     """
     Handle complex recons converted using dcm2niix
     As of dcm2niix v1.0.20211220 only the phase recon has a 'ph' suffix
@@ -285,12 +289,12 @@ def handle_complex(work_json_fname, bids_json_fname, part_flag):
     bids_json_fname = tr.bids_keys_to_filename(bids_keys, bids_dname)
 
     # Construct associated BIDS Nifti filename
-    bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
+    bids_nii_fname = bids_json_fname.replace('.json', nii_ext)
 
     return bids_nii_fname, bids_json_fname
 
 
-def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag):
+def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag, nii_ext):
     """
     Handle bias correction (Siemens NORM flag)
 
@@ -309,9 +313,9 @@ def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag):
 
     # Add a recon- key to the BIDS filename
     if recon_flag:
-        bids_nii_fname, bids_json_fname = tr.add_bids_key(bids_json_fname, 'rec', recon_value)
+        bids_nii_fname, bids_json_fname = tr.add_bids_key(bids_json_fname, 'rec', recon_value, nii_ext)
     else:
-        bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
+        bids_nii_fname = bids_json_fname.replace('.json', nii_ext)
 
     return bids_nii_fname, bids_json_fname
 
