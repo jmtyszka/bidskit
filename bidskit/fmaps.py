@@ -43,6 +43,7 @@ def bind_fmaps(bids_subj_dir, no_sessions, nii_ext):
         BIDS root directory
     :param no_sessions: bool
         Flag for session-less operation
+    :param nii_ext: str
     """
 
     print('  Subject {}'.format(os.path.basename(bids_subj_dir)))
@@ -82,6 +83,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
     :param bold_jsons: list
     :param t_bold:
     :param no_sessions: bool
+    :param nii_ext: str
     :return:
     """
 
@@ -126,7 +128,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
             bio.write_json(json_fname, info, overwrite=True)
 
 
-def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
+def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
     """
     GRE fieldmap binding
 
@@ -134,6 +136,7 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
     :param bold_jsons:
     :param t_bold:
     :param no_sessions: bool
+    :param nii_ext: str
     :return:
     """
 
@@ -153,7 +156,7 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
         idx = np.argmin(dt)
 
         # Add this BOLD series image name to list for this fmap
-        intended_for[idx].append(bids_intended_name(bold_json, no_sessions))
+        intended_for[idx].append(bids_intended_name(bold_json, no_sessions, nii_ext))
 
     # Replace IntendedFor field in fmap JSON file
     for fc, json_fname in enumerate(gre_fmap_jsons):
