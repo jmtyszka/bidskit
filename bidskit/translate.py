@@ -28,7 +28,7 @@ from . import fmaps
 from . import dcm2niix as d2n
 from .io import (read_json,
                  write_json,
-                 parse_bids_fname,
+                 parse_bids_keyvals,
                  parse_dcm2niix_fname,
                  safe_copy,
                  create_file_if_missing,
@@ -50,7 +50,7 @@ def purpose_handling(bids_purpose,
 
     :param bids_purpose: str
         BIDS purpose directory name (eg anat, func, fmap, etc)
-    :param bids_intendedfor: str
+    :param bids_intendedfor: list of str
     :param seq_name: str
     :param work_nii_fname: str
         work directory dcm2niix output Nifit filename
@@ -94,7 +94,7 @@ def purpose_handling(bids_purpose,
             create_events_template(bids_nii_fname, overwrite, nii_ext)
 
             # Add taskname to BIDS JSON sidecar
-            bids_keys = parse_bids_fname(bids_nii_fname)
+            bids_keys = parse_bids_keyvals(bids_nii_fname)
             if 'task' in bids_keys:
                 bids_info['TaskName'] = bids_keys['task']
             else:
@@ -224,24 +224,23 @@ def add_run_number(bids_suffix, run_no):
     :return: new_bids_suffix, str
     """
 
-    if "run-" in bids_suffix:
+    # Init return value
+    new_bids_suffix = bids_suffix
+
+    # Extract BIDS keys from suffix
+    bids_keys, _ = parse_bids_keyvals(bids_suffix)
+
+    if 'run' in bids_keys.keys():
 
         # Preserve existing run-%d value in suffix
         print('  * BIDS suffix already contains run number - skipping')
-        new_bids_suffix = bids_suffix
 
     else:
 
-        if '_' in bids_suffix:
-
-            # Add '_run-x' before final suffix
-            bmain, bseq = bids_suffix.rsplit('_', 1)
-            new_bids_suffix = f"{bmain:s}_run-{run_no:d}_{bseq:s}"
-
-        else:
-
-            # Isolated final suffix - just add 'run-%d_' as a prefix
-            new_bids_suffix = f"run-{run_no:d}_{bids_suffix:s}"
+        # Skip adding run number if series is singular (run_no < 0)
+        if run_no > 0:
+            bids_keys['run'] = run_no
+            new_bids_suffix = bids_keys_to_filename(bids_keys, '')
 
     return new_bids_suffix
 
@@ -281,7 +280,7 @@ def bids_filename_to_keys(bids_fname):
     """
 
     # Parse BIDS filename with internal function that supports part- key
-    keys, dname = parse_bids_fname(bids_fname)
+    keys, dname = parse_bids_keyvals(bids_fname)
 
     # Substitute short key names
     if 'subject' in keys:
@@ -388,40 +387,48 @@ def auto_run_no(file_list, prot_dict):
     # Find unique ser_desc entries using sets
     unique_descs = set(desc_list)
 
-    # Init vector of run numbers for each series
+    # Init vector of run numbers and max run numbers for each series
     run_no = np.zeros(len(file_list)).astype(int)
 
     # Loop over unique series descriptions
     for unique_desc in unique_descs:
 
-        # Reset run counter
-        run_count = 1
+        # Count duplicates of unique description in description list
+        n_dup = desc_list.count(unique_desc)
 
-        # Loop over all series descriptions
-        for i, desc in enumerate(desc_list):
+        if n_dup == 1:
 
-            if desc == unique_desc:
-                run_no[i] = run_count
-                run_count += 1
+            # Replace run number of singular series with -1 to indicate
+            # that run- should be dropped in BIDS filename creation
+            run_no[desc_list.index(unique_desc)] = -1
+
+        else:
+
+            # Reset run counter
+            run_count = 0
+
+            # Loop over all series descriptions
+            for i, desc in enumerate(desc_list):
+
+                if desc == unique_desc:
+                    run_count += 1
+                    run_no[i] = run_count
 
     return run_no
 
 
 def replace_contrast(fname, new_contrast):
     """
-    Replace contrast suffix (if any) of BIDS filename
+    Replace contrast suffix (if any) of BIDS filename with new_contrast
+
     :param fname: str, original BIDS Nifti or JSON filename
     :param new_contrast: str, replacement contrast suffix
     :return: new_fname: str, modified BIDS filename
     """
 
-    bids_keys = parse_bids_fname(fname)
-
-    if 'suffix' in bids_keys:
-        new_fname = fname.replace(bids_keys['suffix'], new_contrast)
-    else:
-        fstub, fext = strip_extensions(fname)
-        new_fname = fstub + '_' + new_contrast + fext
+    bids_keys, dname = parse_bids_keyvals(fname)
+    bids_keys['suffix'] = new_contrast
+    new_fname = bids_keys_to_filename(bids_keys, dname)
 
     return new_fname
 
@@ -471,7 +478,7 @@ def create_events_template(bold_fname, overwrite, nii_ext):
 def auto_translate(info, json_fname):
     """
     Construct protocol translator from original series descriptions
-    - assumes series descriptions are ReproIn-style
+    - supports ReproIn-style series descriptions with a leading "seqtype-" key
     """
 
     ser_desc = info['SerDesc']
@@ -482,7 +489,7 @@ def auto_translate(info, json_fname):
         'anat': ['T1w', 'T2w', 'PDw', 'T2starw', 'FLAIR',
                  'defacemask', 'MEGRE', 'MESE', 'VFA', 'IRT1',
                  'MP2RAGE', 'MPM', 'MTS', 'MTR'],
-        'fmap': ['epi'],
+        'fmap': ['gre', 'epi'],
         'dwi': ['dwi']
     }
 
@@ -490,13 +497,21 @@ def auto_translate(info, json_fname):
     # Returns any BIDS-like key values from series description string
     # The closer the series descriptions are to Repro-In specs, the
     # better this works.
-    bids_keys, _ = parse_bids_fname(ser_desc)
+    bids_keys, _ = parse_bids_keyvals(ser_desc)
 
-    # Infer BIDS type directory
-    bids_dir = 'anat'
-    for bids_type in bids_types:
-        if bids_keys['suffix'] in bids_types[bids_type]:
-            bids_dir = bids_type
+    # Give precedence to ReproIn seqtype key
+    if bids_keys['seqtype']:
+
+        bids_dir = bids_keys['seqtype']
+        print(f"ReproIn: detected sequence type {bids_dir}")
+
+    else:
+
+        # Infer BIDS type directory
+        bids_dir = 'anat'
+        for bids_type in bids_types:
+            if bids_keys['suffix'] in bids_types[bids_type]:
+                bids_dir = bids_type
 
     # Scrub any illegal characters from BIDS key values (eg "-_.")
     bids_keys = bids_legalize_keys(bids_keys)

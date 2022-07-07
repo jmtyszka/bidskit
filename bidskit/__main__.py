@@ -266,9 +266,10 @@ def main():
 
                 # Compose command
                 cmd = ['dcm2niix',
-                       '-b', 'y',
+                       '-b', 'y',  # Create BIDS JSON sidecar
                        '-ba', anon,
                        '-z', gzip_type,
+                       '-w', '1',  # Overwrite existing files in work/
                        '-f', '%n--%d--%q--%s',
                        '-o', work_conv_dir,
                        dcm_dir]

@@ -43,6 +43,7 @@ def bind_fmaps(bids_subj_dir, no_sessions, nii_ext):
         BIDS root directory
     :param no_sessions: bool
         Flag for session-less operation
+    :param nii_ext: str
     """
 
     print('  Subject {}'.format(os.path.basename(bids_subj_dir)))
@@ -61,17 +62,22 @@ def bind_fmaps(bids_subj_dir, no_sessions, nii_ext):
         bold_jsons = sorted(glob(os.path.join(subjsess_dir, 'func', '*task-*_bold.json')))
         t_bold = np.array([acqtime_mins(fname) for fname in bold_jsons])
 
-        # Find SE-EPI and GRE fieldmaps in session fmap/ folder
+        # Find all SE-EPI fieldmap JSONs in session fmap/ folder
         fmap_dir = os.path.join(subjsess_dir, 'fmap')
         epi_fmap_jsons = sorted(glob(os.path.join(fmap_dir, '*_dir-*_epi.json')))
-        gre_fmap_jsons = sorted(glob(os.path.join(fmap_dir, '*_phasediff.json')))
+
+        # Find all GRE fieldmap JSONs in session fmap/ folder
+        gre_fmap_jsons = sorted(
+            glob(os.path.join(fmap_dir, '*_phase*.json')) +
+            glob(os.path.join(fmap_dir, '*_magnitude*.json'))
+        )
 
         if epi_fmap_jsons:
             bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext)
         elif gre_fmap_jsons:
             bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext)
         else:
-            print("    * No fieldmaps detected in fmap/ - skipping")
+            print(f"    * No fieldmaps detected in {fmap_dir} - skipping")
 
 
 def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
@@ -82,6 +88,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
     :param bold_jsons: list
     :param t_bold:
     :param no_sessions: bool
+    :param nii_ext: str
     :return:
     """
 
@@ -126,7 +133,7 @@ def bind_epi_fmaps(epi_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
             bio.write_json(json_fname, info, overwrite=True)
 
 
-def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
+def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions, nii_ext):
     """
     GRE fieldmap binding
 
@@ -134,6 +141,7 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
     :param bold_jsons:
     :param t_bold:
     :param no_sessions: bool
+    :param nii_ext: str
     :return:
     """
 
@@ -143,17 +151,22 @@ def bind_gre_fmaps(gre_fmap_jsons, bold_jsons, t_bold, no_sessions):
     # Get SE-EPI fmap acquisition times
     t_epi_fmap = np.array([acqtime_mins(fname) for fname in gre_fmap_jsons])
 
-    # Find the closest fieldmap in time to each BOLD series
+    # Find the closest fieldmap files in time to each BOLD series
     for ic, bold_json in enumerate(bold_jsons):
 
-        # Time difference between all fieldmaps in this direction and current BOLD series
+        # Time differences between all fieldmaps and current BOLD series
         dt = np.abs(t_bold[ic] - t_epi_fmap)
 
-        # Index of closest fieldmap to this BOLD series
-        idx = np.argmin(dt)
+        # Timestamp of closest fieldmap to this BOLD series
+        dt_min = np.min(dt)
 
-        # Add this BOLD series image name to list for this fmap
-        intended_for[idx].append(bids_intended_name(bold_json, no_sessions))
+        # Find the indices of any other images acquired within a short time (1 s) of the minimum dt
+        # These should be the associated mag and phase echo recons
+        inds = np.where(np.abs(dt - dt_min) < 1.0)[0]
+
+        # Add the current BOLD series to the IntendedFor list for each of the closest fmap JSONs
+        for ind in inds:
+            intended_for[ind].append(bids_intended_name(bold_json, no_sessions, nii_ext))
 
     # Replace IntendedFor field in fmap JSON file
     for fc, json_fname in enumerate(gre_fmap_jsons):
