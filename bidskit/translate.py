@@ -50,7 +50,7 @@ def purpose_handling(bids_purpose,
 
     :param bids_purpose: str
         BIDS purpose directory name (eg anat, func, fmap, etc)
-    :param bids_intendedfor: str
+    :param bids_intendedfor: list of str
     :param seq_name: str
     :param work_nii_fname: str
         work directory dcm2niix output Nifit filename
