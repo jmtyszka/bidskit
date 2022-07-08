@@ -500,7 +500,7 @@ def auto_translate(info, json_fname):
     bids_keys, _ = parse_bids_keyvals(ser_desc)
 
     # Give precedence to ReproIn seqtype key
-    if bids_keys['seqtype']:
+    if 'seqtype' in bids_keys.keys():
 
         bids_dir = bids_keys['seqtype']
         print(f"ReproIn: detected sequence type {bids_dir}")
