@@ -191,14 +191,17 @@ def parse_dcm2niix_fname(fname):
     return info
 
 
-def parse_bids_fname(fname):
+def parse_bids_keyvals(fname):
     """
-    Parse BIDS filename into key-value pairs
+    Parse string into BIDS key-value pairs
+    eg string "task-rest_run-1_bold"
 
     :param fname: str,
-        Raw BIDS-format filename with extension(s)
+        Raw BIDS key-value string with possible file extension(s)
     :return: dict,
         Dictionary of key-value pairs parsed from BIDS-format filename
+    :return: str
+        Containing directory
     """
 
     # Split fname in containing directory and base name
@@ -207,6 +210,7 @@ def parse_bids_fname(fname):
 
     # Init return dictionary with BIDS 1.1.1 valid key strings
     bids_keys = {
+        'seqtype': "",  # Only used during ReproIn parsing, not for BIDS filename construction
         'sub': "",
         'ses': "",
         'task': "",
