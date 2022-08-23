@@ -28,6 +28,8 @@ import os
 import sys
 import json
 import subprocess
+import pkg_resources
+import shutil
 
 from . import io as bio
 
@@ -53,61 +55,17 @@ class BIDSTree:
         bio.safe_mkdir(self.code_dir)
         bio.safe_mkdir(self.work_dir)
 
+        # code/Protocol_Translator.json file path
         self.translator_file = os.path.join(self.code_dir, 'Protocol_Translator.json')
 
-        print('Creating required file templates')
+        print('Creating file templates required for BIDS compliance')
 
-        # README file
-        self.readme_file = os.path.join(dataset_dir, 'README')
-        with open(self.readme_file, 'w') as fd:
-            fd.writelines('Useful information about this dataset\n')
-
-        # CHANGES changelog file
-        self.changes_file = os.path.join(dataset_dir, 'CHANGES')
-        with open(self.changes_file, 'w') as fd:
-            fd.writelines(['1.0.0 YYYY-MM-DD\n', ' - Initial release\n'])
-
-        # Create template JSON dataset description (must comply with BIDS 1.2 spec)
-        self.datadesc_json = os.path.join(self.bids_dir, 'dataset_description.json')
-        meta_dict = dict({
-            'Name': 'Descriptive name for this dataset',
-            'BIDSVersion': '1.2',
-            'License': 'This data is made available under the Creative Commons BY-SA 4.0 International License.',
-            'Authors': ['First Author', 'Second Author'],
-            'Acknowledgments': 'Thanks to everyone for all your help',
-            'HowToAcknowledge': 'Please cite: Author AB, Seminal Paper Title, High Impact Journal, 2019',
-            'Funding': ['First Grant', 'Second Grant'],
-            'ReferencesAndLinks': ['A Reference', 'Another Reference', 'A Link'],
-            'DatasetDOI': '10.0.1.2/abcd.10'
-        })
-        bio.write_json(self.datadesc_json, meta_dict, overwrite)
-
-        # Create participants JSON file defining columns in participants.tsv
-        # See
-        self.participants_json = os.path.join(self.bids_dir, 'participants.json')
-        meta_dict = dict({
-            'age': {
-                'Description': 'Age of participant',
-                'Units': 'years'
-            },
-            'sex': {
-                'Description': 'Sex of participant',
-                'Levels': {
-                    'M': 'male',
-                    'F': 'female',
-                    'T': 'transgender'
-                }
-            },
-            'group': {
-                'Description': 'participant group assignment'
-            },
-        })
-        bio.write_json(self.participants_json, meta_dict, overwrite)
-
-        # Create .bidsignore file to skip work/ during validation
-        self.ignore_file = os.path.join(dataset_dir, '.bidsignore')
-        with open(self.ignore_file, 'w') as fd:
-            fd.writelines('work/\n')
+        # Copy BIDS-compliant JSON templates to BIDS directory root
+        self.copy_template('README.md')
+        self.copy_template('CHANGES')
+        self.copy_template('dataset_description.json')
+        self.copy_template('participants.json')
+        self.copy_template('.bidsignore')
 
     def write_translator(self, translator):
         """
@@ -182,3 +140,15 @@ class BIDSTree:
 
         # Run bids-validator on BIDS dataset
         subprocess.run(['bids-validator', self.bids_dir])
+
+    def copy_template(self, tpl_fname):
+        """
+        Copy standard BIDS top-level templates to BIDS root directory
+        """
+
+        tpl_pname = pkg_resources.resource_filename(
+            __name__,
+            os.path.join('templates', tpl_fname)
+        )
+        out_fname = os.path.join(self.bids_dir, tpl_fname)
+        shutil.copyfile(tpl_pname, out_fname)
