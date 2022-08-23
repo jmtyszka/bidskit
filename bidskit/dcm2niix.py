@@ -119,19 +119,20 @@ def organize_series(
             # JSON sidecar for this image
             src_json_fname = json_list[fc]
 
-            # Parse image filename into fields
-            d2n_info = bio.parse_dcm2niix_fname(src_nii_fname)
+            # Load JSON sidecar metadata
+            src_meta = bio.read_json(src_json_fname)
+            ser_desc = src_meta['SeriesDescription']
 
             # Check if we're creating a new protocol dictionary
             if first_pass:
 
-                print(f"  Adding protocol {d2n_info['SerDesc']} to dictionary")
+                print(f"  Adding protocol {ser_desc} to dictionary")
 
                 # Add current protocol to protocol dictionary
                 if auto:
-                    prot_dict[d2n_info['SerDesc']] = tr.auto_translate(d2n_info, src_json_fname)
+                    prot_dict[ser_desc] = tr.auto_translate(src_meta, src_json_fname)
                 else:
-                    prot_dict[d2n_info['SerDesc']] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
+                    prot_dict[ser_desc] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
 
             else:
 
@@ -140,26 +141,26 @@ def organize_series(
                     print('* WARNING: JSON sidecar %s not found' % src_json_fname)
                     continue
 
-                if d2n_info['SerDesc'] in prot_dict.keys():
+                if ser_desc in prot_dict.keys():
 
-                    if prot_dict[d2n_info['SerDesc']][0].startswith('EXCLUDE'):
+                    if prot_dict[ser_desc][0].startswith('EXCLUDE'):
 
                         # Skip excluded protocols
-                        print('* Excluding protocol ' + str(d2n_info['SerDesc']))
+                        print(f'* Excluding protocol {ser_desc}')
 
                     else:
 
-                        print('  Organizing ' + str(d2n_info['SerDesc']))
+                        print(f'  Organizing {ser_desc}')
 
                         # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
                         # Note use of deepcopy to prevent corruption of prot_dict (see Issue #36 solution by @bogpetre)
-                        bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[d2n_info['SerDesc']])
+                        bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[ser_desc])
 
                         # Safely add run-* key to BIDS suffix
                         bids_suffix = tr.add_run_number(bids_suffix, run_no[fc])
 
                         # Assume the IntendedFor field should also have a run-* key added
-                        prot_dict = fmaps.add_intended_run(prot_dict, d2n_info, run_no[fc])
+                        prot_dict = fmaps.add_intended_run(prot_dict, src_meta, run_no[fc])
 
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
@@ -167,9 +168,9 @@ def organize_series(
 
                         # Complete BIDS filenames for image and sidecar
                         if ses:
-                            bids_prefix = 'sub-' + sid + '_ses-' + ses + '_'
+                            bids_prefix = f'sub-{sid}_ses-{ses}_'
                         else:
-                            bids_prefix = 'sub-' + sid + '_'
+                            bids_prefix = f'sub-{sid}_'
 
                         # Construct BIDS Nifti and JSON filenames
                         # Issue 105: remember to account for --compress n flag with .nii extension
@@ -190,9 +191,9 @@ def organize_series(
 
                         # Special handling for specific purposes (anat, func, fmap, dwi, etc)
                         # This function populates the BIDS structure with the image and adjusted sidecar
-                        tr.purpose_handling(bids_purpose,
+                        tr.purpose_handling(src_meta,
+                                            bids_purpose,
                                             bids_intendedfor,
-                                            d2n_info['SeqName'],
                                             src_nii_fname,
                                             src_json_fname,
                                             bids_nii_fname,
@@ -320,37 +321,36 @@ def handle_bias_recon(work_json_fname, bids_json_fname, recon_flag, nii_ext):
     return bids_nii_fname, bids_json_fname
 
 
-def dcm2niix_json_fname(info, ser_no, suffix):
+def dcm2niix_json_fname(d2n_meta, ser_no, echo_no, suffix):
     """
     Construct a dcm2niix filename from parse_dcm2niix_fname dictionary
-    Current dcm2niix version: v20200331
-    :param info: dict
-        series metadata
-    :param ser_no: int
-        series number
-    :param suffix: str
-        BIDS filename suffix
+    See dcm2niix call in __main__.py for output file format string
+
+    Allows custom ser_no, echo_no and suffix different from d2n_meta entries
+
+    :param info d2n_meta: dict
+        dcm2niix filename metadata
     :return: str
         dcm2niix filename
     """
 
-    if len(suffix) > 0:
-        ser_no = '{}_{}'.format(ser_no, suffix)
-
     # Construct dcm2niix mag1 filename
-    fname = '{}--{}--{}--{}.json'.format(
-        info['SubjName'],
-        info['SerDesc'],
-        info['SeqName'],
-        ser_no)
+    fname = '{}--{}--s{}--e{}{}.json'.format(
+        d2n_meta['SubjName'],
+        d2n_meta['SerDesc'],
+        ser_no,
+        echo_no,
+        suffix
+    )
 
-    fname_full = os.path.join(info['DirName'], fname)
+    fname_full = os.path.join(d2n_meta['DirName'], fname)
 
     return fname_full
 
 
-def check_dcm2niix_version(min_version='v1.0.20181125'):
+def check_dcm2niix_version(min_version='v1.0.20220720'):
 
+    print(f'\nCheck dcm2nixx version')
     output = subprocess.check_output('dcm2niix')
 
     # Search for version in output
@@ -359,14 +359,15 @@ def check_dcm2niix_version(min_version='v1.0.20181125'):
     if match:
 
         version = match[0].decode('utf-8')
-        print('\ndcm2niix version %s detected' % version)
 
         if version < min_version:
-            print('* please update to dcm2niix version %s or later' % min_version)
+            print(f'dcm2niix {version} detected - please update to {min_version} or later\n')
             sys.exit(1)
+        else:
+            print(f'dcm2niix {version} detected - ok\n')
 
     else:
 
-        print('* dcm2niix version not detected')
-        print('* check that dcm2niix %s or later is installed correctly' % min_version)
+        print(f'* dcm2niix version not detected')
+        print(f'* check that dcm2niix {min_version} or later is installed correctly\n')
         sys.exit(1)
