@@ -277,32 +277,27 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
                                    echo 2 phase image [Case 2]
     """
 
-    # Pull dcm2niix filename info
+    # Parse keys from dcm2niix filename
     work_info = bio.parse_dcm2niix_fname(work_json_fname)
-    ser_no = np.int(work_info['SerNo'])
+    ser_no = work_info['SerNo']
+    echo_no = work_info['EchoNo']
     suffix = work_info['Suffix']
 
     # Base series number for magnitude images (see above)
-    if suffix == 'e1' or suffix == 'e2':
-        is_mag = True
-        echo_no = np.int(suffix[1])
-        base_ser_no = ser_no
-    elif suffix == 'e1_ph' or suffix == 'e2_ph':
+    if 'ph' in suffix:
         is_mag = False
-        echo_no = np.int(suffix[1])
         base_ser_no = ser_no - 1
     else:
-        is_mag = False
-        echo_no = None
-        base_ser_no = None
+        is_mag = True
+        base_ser_no = ser_no
 
     if base_ser_no:
 
         # Construct candidate JSON sidecar filenames for e1 and e2, mag and phase
-        e1m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 'e1')
+        e1m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 1, '')
         # e2m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e2') # Optional
-        e1p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 'e1_ph')
-        e2p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 'e2_ph')
+        e1p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, '1', '_ph')
+        e2p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, '2', '_ph')
 
         # Check case based on existence of phase images
         fmap_case = None

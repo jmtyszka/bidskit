@@ -28,161 +28,11 @@ from . import fmaps
 from . import dcm2niix as d2n
 from .io import (read_json,
                  write_json,
-                 parse_bids_keyvals,
+                 parse_bids_fname_keyvals,
                  parse_dcm2niix_fname,
                  safe_copy,
                  create_file_if_missing,
                  strip_extensions)
-
-
-def purpose_handling(bids_purpose,
-                     bids_intendedfor,
-                     seq_name,
-                     work_nii_fname,
-                     work_json_fname,
-                     bids_nii_fname,
-                     bids_json_fname,
-                     key_flags,
-                     overwrite,
-                     nii_ext):
-    """
-    Special handling for each image purpose (func, anat, fmap, dwi, etc)
-
-    :param bids_purpose: str
-        BIDS purpose directory name (eg anat, func, fmap, etc)
-    :param bids_intendedfor: list of str
-    :param seq_name: str
-    :param work_nii_fname: str
-        work directory dcm2niix output Nifit filename
-    :param work_json_fname: str
-        work directory dcm2niix output JSON filename
-    :param bids_nii_fname: str
-        initial BIDS filename (can be modified by this function)
-    :param bids_json_fname: str
-        initial BIDS JSON sidecar filename (can be modified by this function)
-    :param key_flags: dict
-        dictionary of filename key flags
-    :param overwrite: bool
-        Overwrite flag for sub-* output
-    :return:
-    """
-
-    # Init DWI sidecars
-    work_bval_fname = []
-    work_bvec_fname = []
-    bids_bval_fname = []
-    bids_bvec_fname = []
-
-    # Load the JSON sidecar
-    bids_info = read_json(work_json_fname)
-
-    if bids_purpose == 'func':
-
-        if 'EP' in seq_name:
-
-            print('    EPI detected')
-
-            # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
-                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
-
-            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_complex(
-                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
-
-            # Handle task info
-            create_events_template(bids_nii_fname, overwrite, nii_ext)
-
-            # Add taskname to BIDS JSON sidecar
-            bids_keys = parse_bids_keyvals(bids_nii_fname)
-            if 'task' in bids_keys:
-                bids_info['TaskName'] = bids_keys['task']
-            else:
-                bids_info['TaskName'] = 'unknown'
-
-    elif bids_purpose == 'fmap':
-
-        # Add IntendedFor field if requested through protocol translator
-        if 'UNASSIGNED' not in bids_intendedfor:
-            bids_info['IntendedFor'] = bids_intendedfor
-
-        # Check for GRE vs SE-EPI fieldmap images
-        # GRE will have a 'GR' sequence, SE-EPI will have 'EP'
-
-        print('    Identifying fieldmap image type')
-
-        if seq_name == 'GR':
-
-            print('    Gradient echo fieldmap detected')
-            print('    Identifying magnitude and phase images')
-
-            # Update BIDS filenames according to BIDS Fieldmap Case (1 or 2 - see specification)
-            bids_nii_fname, bids_json_fname = fmaps.handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname)
-
-        elif seq_name == 'EP':
-
-            print('    EPI fieldmap detected')
-
-            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_complex(
-                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
-
-        else:
-
-            print('    Unrecognized fieldmap detected')
-            print('    Simply copying image and sidecar to fmap directory')
-
-    elif bids_purpose == 'anat':
-
-        if seq_name == 'GR_IR':
-
-            print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMPRAGE')
-
-            # Handle multiecho EPI (echo-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
-                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
-
-            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
-            bids_nii_fname, bids_json_fname = d2n.handle_complex(
-                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
-
-            # Handle biased and unbiased (NORM) reconstructions
-            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
-                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
-
-        elif seq_name == 'SE':
-
-            print('    Spin echo detected - likely T1w or T2w anatomic image')
-            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
-                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
-
-        elif seq_name == 'GR':
-
-            print('    Gradient echo detected')
-
-    elif bids_purpose == 'dwi':
-
-        # Fill DWI bval and bvec working and source filenames
-        # Non-empty filenames trigger the copy below
-        work_bval_fname = str(work_json_fname.replace('.json', '.bval'))
-        bids_bval_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bval'))
-        work_bvec_fname = str(work_json_fname.replace('.json', '.bvec'))
-        bids_bvec_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bvec'))
-
-    # Populate BIDS source directory with Nifti images, JSON and DWI sidecars
-    print('  Populating BIDS source directory')
-
-    if bids_nii_fname:
-        safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
-
-    if bids_json_fname:
-        write_json(bids_json_fname, bids_info, overwrite)
-
-    if bids_bval_fname:
-        safe_copy(work_bval_fname, bids_bval_fname, overwrite)
-
-    if bids_bvec_fname:
-        safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
 def add_participant_record(studydir, subject, age, sex):
@@ -214,6 +64,157 @@ def add_participant_record(studydir, subject, age, sex):
             '\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
 
 
+def purpose_handling(bids_meta,
+                     bids_purpose,
+                     bids_intendedfor,
+                     work_nii_fname,
+                     work_json_fname,
+                     bids_nii_fname,
+                     bids_json_fname,
+                     key_flags,
+                     overwrite,
+                     nii_ext):
+    """
+    Special handling for each image purpose (func, anat, fmap, dwi, etc)
+
+    :param bids_meta: dict
+        Metadata dict populated from BIDS JSON sidecar
+    :param bids_purpose: str
+        BIDS purpose directory name (eg anat, func, fmap, etc)
+    :param bids_intendedfor: list of str
+    :param work_nii_fname: str
+        work directory dcm2niix output Nifit filename
+    :param work_json_fname: str
+        work directory dcm2niix output JSON filename
+    :param bids_nii_fname: str
+        initial BIDS filename (can be modified by this function)
+    :param bids_json_fname: str
+        initial BIDS JSON sidecar filename (can be modified by this function)
+    :param key_flags: dict
+        dictionary of filename key flags
+    :param overwrite: bool
+        Overwrite flag for sub-* output
+    :return:
+    """
+
+    # Init DWI sidecars
+    work_bval_fname = []
+    work_bvec_fname = []
+    bids_bval_fname = []
+    bids_bvec_fname = []
+
+    # Extract some useful fields from the BIDS metadata
+    scan_seq = bids_meta['ScanningSequence']
+
+    if bids_purpose == 'func':
+
+        if 'EP' in scan_seq:
+
+            print('    EPI detected')
+
+            # Handle multiecho EPI (echo-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
+                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
+
+            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_complex(
+                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
+
+            # Handle task info
+            create_events_template(bids_nii_fname, overwrite, nii_ext)
+
+            # Add taskname to BIDS JSON sidecar
+            bids_keys = parse_bids_fname_keyvals(bids_nii_fname)
+            if 'task' in bids_keys:
+                bids_meta['TaskName'] = bids_keys['task']
+            else:
+                bids_meta['TaskName'] = 'unknown'
+
+    elif bids_purpose == 'fmap':
+
+        # Add IntendedFor field if requested through protocol translator
+        if 'UNASSIGNED' not in bids_intendedfor:
+            bids_meta['IntendedFor'] = bids_intendedfor
+
+        # Check for GRE vs SE-EPI fieldmap images
+        # GRE will have a 'GR' sequence, SE-EPI will have 'EP'
+
+        print('    Identifying fieldmap image type')
+
+        if scan_seq == 'GR':
+
+            print('    Gradient echo fieldmap detected')
+            print('    Identifying magnitude and phase images')
+
+            # Update BIDS filenames according to BIDS Fieldmap Case (1 or 2 - see specification)
+            bids_nii_fname, bids_json_fname = fmaps.handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname)
+
+        elif scan_seq == 'EP':
+
+            print('    EPI fieldmap detected')
+
+            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_complex(
+                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
+
+        else:
+
+            print('    Unrecognized fieldmap detected')
+            print('    Simply copying image and sidecar to fmap directory')
+
+    elif bids_purpose == 'anat':
+
+        if scan_seq == 'GR_IR':
+
+            print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMPRAGE')
+
+            # Handle multiecho EPI (echo-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
+                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
+
+            # Handle complex-valued EPI (part-*). Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_complex(
+                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
+
+            # Handle biased and unbiased (NORM) reconstructions
+            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
+                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
+
+        elif scan_seq == 'SE':
+
+            print('    Spin echo detected - likely T1w or T2w anatomic image')
+            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
+                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
+
+        elif scan_seq == 'GR':
+
+            print('    Gradient echo detected')
+
+    elif bids_purpose == 'dwi':
+
+        # Fill DWI bval and bvec working and source filenames
+        # Non-empty filenames trigger the copy below
+        work_bval_fname = str(work_json_fname.replace('.json', '.bval'))
+        bids_bval_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bval'))
+        work_bvec_fname = str(work_json_fname.replace('.json', '.bvec'))
+        bids_bvec_fname = str(bids_json_fname.replace('dwi.json', 'dwi.bvec'))
+
+    # Populate BIDS source directory with Nifti images, JSON and DWI sidecars
+    print('  Populating BIDS source directory')
+
+    if bids_nii_fname:
+        safe_copy(work_nii_fname, str(bids_nii_fname), overwrite)
+
+    if bids_json_fname:
+        write_json(bids_json_fname, bids_meta, overwrite)
+
+    if bids_bval_fname:
+        safe_copy(work_bval_fname, bids_bval_fname, overwrite)
+
+    if bids_bvec_fname:
+        safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
+
+
 def add_run_number(bids_suffix, run_no):
     """
     Safely add run number to BIDS suffix
@@ -228,7 +229,7 @@ def add_run_number(bids_suffix, run_no):
     new_bids_suffix = bids_suffix
 
     # Extract BIDS keys from suffix
-    bids_keys, _ = parse_bids_keyvals(bids_suffix)
+    bids_keys, _ = parse_bids_fname_keyvals(bids_suffix)
 
     if 'run' in bids_keys.keys():
 
@@ -280,7 +281,7 @@ def bids_filename_to_keys(bids_fname):
     """
 
     # Parse BIDS filename with internal function that supports part- key
-    keys, dname = parse_bids_keyvals(bids_fname)
+    keys, dname = parse_bids_fname_keyvals(bids_fname)
 
     # Substitute short key names
     if 'subject' in keys:
@@ -426,7 +427,7 @@ def replace_contrast(fname, new_contrast):
     :return: new_fname: str, modified BIDS filename
     """
 
-    bids_keys, dname = parse_bids_keyvals(fname)
+    bids_keys, dname = parse_bids_fname_keyvals(fname)
     bids_keys['suffix'] = new_contrast
     new_fname = bids_keys_to_filename(bids_keys, dname)
 
@@ -478,12 +479,13 @@ def create_events_template(bold_fname, overwrite, nii_ext):
 def auto_translate(info, json_fname):
     """
     Construct protocol translator from original series descriptions
-    - supports ReproIn-style series descriptions with a leading "seqtype-" key
+    - supports ReproIn-style series descriptions with a leading "<BIDS type>-<suffix>" key
+      eg anat-T1w_acq-highres_run-1
     """
 
     ser_desc = info['SerDesc']
 
-    # List of possible suffices for each BIDS type directory
+    # List of possible suffices for each BIDS type
     bids_types = {
         'func': ['bold', 'sbref'],
         'anat': ['T1w', 'T2w', 'PDw', 'T2starw', 'FLAIR',
@@ -497,13 +499,31 @@ def auto_translate(info, json_fname):
     # Returns any BIDS-like key values from series description string
     # The closer the series descriptions are to Repro-In specs, the
     # better this works.
-    bids_keys, _ = parse_bids_keyvals(ser_desc)
+    bids_keys, _ = parse_bids_fname_keyvals(ser_desc)
 
-    # Give precedence to ReproIn seqtype key
-    if 'seqtype' in bids_keys.keys():
-
+    if 'seqtype' in bids_keys:
         bids_dir = bids_keys['seqtype']
-        print(f"ReproIn: detected sequence type {bids_dir}")
+        print(f"Detected legacy seqtype {bids_dir}")
+
+    elif 'anat' in bids_keys:
+        bids_dir = 'anat'
+        bids_keys['suffix'] = bids_keys['anat']
+        del bids_keys['anat']
+
+    elif 'func' in bids_keys:
+        bids_dir = 'func'
+        bids_keys['suffix'] = bids_keys['func']
+        del bids_keys['func']
+
+    elif 'fmap' in bids_keys:
+        bids_dir = 'fmap'
+        bids_keys['suffix'] = bids_keys['fmap']
+        del bids_keys['fmap']
+
+    elif 'dwi' in bids_keys:
+        bids_dir = 'dwi'
+        bids_keys['suffix'] = bids_keys['dwi']
+        del bids_keys['dwi']
 
     else:
 

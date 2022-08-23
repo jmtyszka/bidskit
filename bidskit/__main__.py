@@ -133,7 +133,7 @@ def main():
         sys.exit(1)
 
     # Check for minimum dcm2niix version (mostly for multirecon suffix handling)
-    d2n.check_dcm2niix_version('v1.0.20181125')
+    d2n.check_dcm2niix_version('v1.0.20220720')
 
     # Create a BIDS directory tree object to handle file locations
     # Creates directory
@@ -270,7 +270,7 @@ def main():
                        '-ba', anon,
                        '-z', gzip_type,
                        '-w', '1',  # Overwrite existing files in work/
-                       '-f', '%n--%d--%q--%s',
+                       '-f', '%n--%d--s%s--e%e',
                        '-o', work_conv_dir,
                        dcm_dir]
 
