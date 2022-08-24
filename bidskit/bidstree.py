@@ -61,11 +61,11 @@ class BIDSTree:
         print('Creating file templates required for BIDS compliance')
 
         # Copy BIDS-compliant JSON templates to BIDS directory root
-        self.copy_template('README.md')
-        self.copy_template('CHANGES')
-        self.copy_template('dataset_description.json')
-        self.copy_template('participants.json')
-        self.copy_template('.bidsignore')
+        self.copy_template('README.md', 'README.md')
+        self.copy_template('CHANGES', 'CHANGES')
+        self.copy_template('dataset_description.json', 'dataset_description.json')
+        self.copy_template('participants.json', 'participants.json')
+        self.copy_template('bidsignore', '.bidsignore')
 
     def write_translator(self, translator):
         """
@@ -141,7 +141,7 @@ class BIDSTree:
         # Run bids-validator on BIDS dataset
         subprocess.run(['bids-validator', self.bids_dir])
 
-    def copy_template(self, tpl_fname):
+    def copy_template(self, tpl_fname, dest_fname):
         """
         Copy standard BIDS top-level templates to BIDS root directory
         """
@@ -150,5 +150,5 @@ class BIDSTree:
             __name__,
             os.path.join('templates', tpl_fname)
         )
-        out_fname = os.path.join(self.bids_dir, tpl_fname)
+        out_fname = os.path.join(self.bids_dir, dest_fname)
         shutil.copyfile(tpl_pname, out_fname)

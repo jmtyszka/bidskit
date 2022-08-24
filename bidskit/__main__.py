@@ -100,7 +100,7 @@ def main():
     no_anon = args.no_anon
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
-    gzip_type = args.compression
+    gzip_type = args.compression.lower()
     auto = args.auto
 
     # Set Nifti image extension from gzip type
@@ -153,7 +153,7 @@ def main():
     print(f"Anonymize BIDS Output      : {'No' if no_anon else 'Yes'}")
     print(f"Auto translate             : {'Yes' if auto else 'No'}")
     print(f"Bind fieldmaps             : {'Yes' if bind_fmaps else 'No'}")
-    print(f"GZIP compression           : {gzip_type.upper()}")
+    print(f"GZIP compression           : {gzip_type}")
     print(f"Recon filename key         : {key_flags['Recon']}")
     print(f"Part filename key          : {key_flags['Part']}")
     print(f"Echo filename key          : {key_flags['Echo']}")

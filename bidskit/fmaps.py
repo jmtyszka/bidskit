@@ -266,15 +266,14 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_phase2.json
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
             sub-<label>[_ses-<label>][_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
-    Current dcm2niix output suffices
-    Current version at time of coding: v1.0.20200331
+
+    Current dcm2niix (v1.0.20220720) output suffices
     ---
     Keep checking that this is true with later releases
-    *--GR--<serno>_e1.<ext> : echo 1 magnitude image [Cases 1 and 2]
-    *--GR--<serno>_e2.<ext> : echo 2 magnitude image [Cases 1 and 2]
-    *--GR--<serno+1>_e1_ph.<ext> : echo 1 phase image [Case 2]
-    *--GR--<serno+1>_e2_ph.<ext> : interecho phase difference [Case 1] or
-                                   echo 2 phase image [Case 2]
+    *--s<serno>_e1.<ext> : echo 1 magnitude image [Cases 1 and 2]
+    *--s<serno>_e2.<ext> : echo 2 magnitude image [Cases 1 and 2]
+    *--s<serno+1>_e1_ph.<ext> : echo 1 phase image [Case 2]
+    *--s<serno+1>_e2_ph.<ext> : interecho phase difference [Case 1] or echo 2 phase image [Case 2]
     """
 
     # Parse keys from dcm2niix filename
@@ -291,66 +290,64 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
         is_mag = True
         base_ser_no = ser_no
 
-    if base_ser_no:
+    # Construct candidate dcm2niix JSON sidecar filenames for e1 and e2, mag and phase
+    e1m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 1, '')
+    e2m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 2, '')
+    e1p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 1, '_ph')
+    e2p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 2, '_ph')
 
-        # Construct candidate JSON sidecar filenames for e1 and e2, mag and phase
-        e1m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 1, '')
-        # e2m_fname = dcm2niix_json_fname(work_info, base_ser_no, 'e2') # Optional
-        e1p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, '1', '_ph')
-        e2p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, '2', '_ph')
-
-        # Check case based on existence of phase images
-        fmap_case = None
-        if os.path.isfile(e2p_fname):
-            if os.path.isfile(e1p_fname):
-                print('    Detected GRE Fieldmap Case 2')
-                fmap_case = 2
-            else:
-                print('    Detected GRE Fieldmap Case 1')
-                fmap_case = 1
+    # Check case based on existence of phase images
+    fmap_case = None
+    if os.path.isfile(e2p_fname):
+        if os.path.isfile(e1p_fname):
+            print('    Detected GRE Fieldmap Case 2')
+            fmap_case = 2
         else:
-            print('* GRE Fieldmap Echo 2 image missing - skipping')
+            print('    Detected GRE Fieldmap Case 1')
+            fmap_case = 1
+    else:
+        print('* GRE Fieldmap Echo 2 image missing - skipping')
 
-        # Update BIDS nii and json filenames
-        if is_mag:
+    bids_keys, bids_dname = tr.bids_filename_to_keys(bids_nii_fname)
 
-            bids_nii_fname = tr.replace_contrast(bids_nii_fname, 'magnitude{}'.format(echo_no))
-            bids_json_fname = tr.replace_contrast(bids_json_fname, 'magnitude{}'.format(echo_no))
+    # Update BIDS nii and json filenames
+    if is_mag:
 
-        else:
-
-            if fmap_case == 1:
-
-                bids_nii_fname = tr.replace_contrast(bids_nii_fname, 'phasediff')
-                bids_json_fname = tr.replace_contrast(bids_json_fname, 'phasediff')
-
-                # Load echo 1 and echo 2 metadata
-                e1m_info = bio.read_json(e1m_fname)
-                e2p_info = bio.read_json(e2p_fname)
-
-                # Add new fields to echo 2 phase metadata
-                te1 = e1m_info['EchoTime']
-                te2 = e2p_info['EchoTime']
-
-                print(f'      GRE TE1 : {te1:0.5f} ms')
-                print(f'      GRE TE2 : {te2:0.5f} ms')
-                print(f'      GRE dTE : {(te2-te1):0.5f} ms')
-
-                e2p_info['EchoTime1'] = te1
-                e2p_info['EchoTime2'] = te2
-
-                # Re-write echo 2 phase JSON sidecar
-                print('    Updating Echo 2 Phase JSON sidecar')
-                bio.write_json(e2p_fname, e2p_info, overwrite=True)
-
-            else:
-
-                bids_nii_fname = tr.replace_contrast(bids_nii_fname, 'phase{}'.format(echo_no))
-                bids_json_fname = tr.replace_contrast(bids_json_fname, 'phase{}'.format(echo_no))
+        bids_nii_fname = tr.replace_suffix(bids_nii_fname, f'magnitude{echo_no}')
+        bids_json_fname = tr.replace_suffix(bids_json_fname, f'magnitude{echo_no}')
 
     else:
 
-        print('* Could not find echo 1 and 2 images for GRE Fieldmap - skipping')
+        if fmap_case == 1:
+
+            bids_nii_fname = tr.replace_suffix(bids_nii_fname, 'phasediff')
+            bids_json_fname = tr.replace_suffix(bids_json_fname, 'phasediff')
+
+            # Load echo 1 and echo 2 metadata
+            e1m_info = bio.read_json(e1m_fname)
+            e2p_info = bio.read_json(e2p_fname)
+
+            # Add new fields to echo 2 phase metadata
+            te1 = e1m_info['EchoTime']
+            te2 = e2p_info['EchoTime']
+
+            print(f'      GRE TE1 : {te1:0.5f} ms')
+            print(f'      GRE TE2 : {te2:0.5f} ms')
+            print(f'      GRE dTE : {(te2-te1):0.5f} ms')
+
+            e2p_info['EchoTime1'] = te1
+            e2p_info['EchoTime2'] = te2
+
+            # Re-write echo 2 phase JSON sidecar
+            print('    Updating Echo 2 Phase JSON sidecar')
+            bio.write_json(e2p_fname, e2p_info, overwrite=True)
+
+        if fmap_case == 2:
+
+            bids_nii_fname = tr.replace_suffix(bids_nii_fname, f'phase{echo_no}')
+            bids_json_fname = tr.replace_suffix(bids_json_fname, f'phase{echo_no}')
+
+
 
     return bids_nii_fname, bids_json_fname
 
@@ -360,7 +357,7 @@ def build_intendedfor(sid, ses, bids_suffix, nii_ext):
     Build the IntendedFor entry for a fieldmap sidecar
     :param: sid, str, Subject ID
     :param: ses, str,  Session number
-    :param: bids_suffix
+    :param: bids_stub
     :return: ifstr, str
     """
 
@@ -382,6 +379,7 @@ def build_intendedfor(sid, ses, bids_suffix, nii_ext):
 def add_intended_run(prot_dict, info, run_no):
     """
     Add run numbers to files in IntendedFor.
+
     :param prot_dict: dict
     :param info: dict
     :param run_no: int

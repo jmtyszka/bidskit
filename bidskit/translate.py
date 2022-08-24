@@ -48,7 +48,7 @@ def add_participant_record(studydir, subject, age, sex):
     participants_tsv = os.path.join(studydir, 'participants.tsv')
     participant_id = 'sub-%s' % subject
 
-    if not create_file_if_missing(participants_tsv, '\t'.join(['participant_id', 'age', 'sex', 'group']) + '\n'):
+    if not create_file_if_missing(participants_tsv, '\t'.join(['participant_id', 'age', 'sex', 'handedness']) + '\n'):
 
         # Check if subject record already exists
         with open(participants_tsv) as f:
@@ -61,7 +61,7 @@ def add_participant_record(studydir, subject, age, sex):
     # Add a new participant
     with open(participants_tsv, 'a') as f:
         f.write(
-            '\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'control'])) + '\n')
+            '\t'.join(map(str, [participant_id, age.lstrip('0').rstrip('Y') if age else 'N/A', sex, 'left'])) + '\n')
 
 
 def purpose_handling(bids_meta,
@@ -215,21 +215,21 @@ def purpose_handling(bids_meta,
         safe_copy(work_bvec_fname, bids_bvec_fname, overwrite)
 
 
-def add_run_number(bids_suffix, run_no):
+def add_run_number(bids_stub, run_no):
     """
     Safely add run number to BIDS suffix
     Handle prior existence of run-* in BIDS filename template from protocol translator
 
-    :param bids_suffix, str
+    :param bids_stub, str
     :param run_no, int
-    :return: new_bids_suffix, str
+    :return: new_bids_stub, str
     """
 
     # Init return value
-    new_bids_suffix = bids_suffix
+    new_bids_stub = bids_stub
 
     # Extract BIDS keys from suffix
-    bids_keys, _ = parse_bids_fname_keyvals(bids_suffix)
+    bids_keys, _ = parse_bids_fname_keyvals(bids_stub)
 
     if 'run' in bids_keys.keys():
 
@@ -241,9 +241,9 @@ def add_run_number(bids_suffix, run_no):
         # Skip adding run number if series is singular (run_no < 0)
         if run_no > 0:
             bids_keys['run'] = run_no
-            new_bids_suffix = bids_keys_to_filename(bids_keys, '')
+            new_bids_stub = bids_keys_to_filename(bids_keys, '')
 
-    return new_bids_suffix
+    return new_bids_stub
 
 
 def add_bids_key(bids_json_fname, key_name, key_value, nii_ext):
@@ -316,7 +316,12 @@ def bids_keys_to_filename(keys, dname):
 
     # Add final pulse sequence suffix and extension
     if 'suffix' in keys:
-        bids_fname += keys['suffix']
+        if len(keys['suffix']) > 0:
+            bids_fname += keys['suffix']
+
+    # Remove final trailing '_' (no suffix case)
+    if bids_fname[-1] == '_':
+        bids_fname = bids_fname[:-1]
 
     if 'extension' in keys:
         bids_fname += keys['extension']
@@ -418,7 +423,7 @@ def auto_run_no(file_list, prot_dict):
     return run_no
 
 
-def replace_contrast(fname, new_contrast):
+def replace_suffix(fname, new_contrast):
     """
     Replace contrast suffix (if any) of BIDS filename with new_contrast
 

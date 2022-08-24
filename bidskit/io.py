@@ -238,18 +238,27 @@ def parse_bids_fname_keyvals(fname):
 
     # Find position of first underscore from right of basename
     suffix_start = bname.rfind('_') + 1
+    draft_suffix = bname[suffix_start:]
 
-    # Handle double suffices introduced by some Siemens research sequences
-    # eg *_bold_SBRef and *_T1w_RMS
-    # This code is only relevant when parsing ReproIn style series descriptions through this function
-    if bname.endswith('SBRef') or bname.endswith('RMS'):
-        # Find the second underscore in from the right
-        tmp = bname[:(suffix_start-1)]
-        suffix_start = tmp.rfind('_') + 1
+    # Handle special case of no suffix, only key-value pairs
+    if '-' in draft_suffix or len(draft_suffix) < 1:
 
-    # Split basename into prefix and suffix
-    bids_keys['suffix'] = bname[suffix_start:]
-    bname = bname[:suffix_start]
+        # Leave suffix empty in dict
+        bids_keys['suffix'] = ''
+
+    else:
+
+        # Handle double suffices introduced by some Siemens research sequences
+        # eg *_bold_SBRef and *_T1w_RMS
+        # This code is only relevant when parsing ReproIn style series descriptions through this function
+        if bname.endswith('SBRef') or bname.endswith('RMS'):
+            # Find the second underscore in from the right
+            tmp = bname[:(suffix_start-1)]
+            suffix_start = tmp.rfind('_') + 1
+
+        # Split basename into prefix and suffix
+        bids_keys['suffix'] = bname[suffix_start:]
+        bname = bname[:suffix_start]
 
     # Divide filename into keys and values
     # Value segments are delimited by '<key>-' strings
@@ -288,14 +297,19 @@ def parse_bids_fname_keyvals(fname):
         kname = key_name_sorted[kc]
         vstart = val_start_sorted[kc]
         vend = val_end_sorted[kc]
-        val = bname[vstart:vend]
-        bids_keys[kname] = val
+
+        # Catch negative vend (only happens for final key-value without suffix)
+        if vend < 0:
+            bids_keys[kname] = bname[vstart:]
+        else:
+            bids_keys[kname] = bname[vstart:vend]
 
     # Tidy up Siemens recon extensions
     # Only relevant when using this function to parse ReproIn-style series descriptions
     if bids_keys['suffix'].endswith('SBRef'):
         # Replace entire double suffix with 'sbref'
         bids_keys['suffix'] = 'sbref'
+
     if bids_keys['suffix'].endswith('RMS'):
         # Retain left part of double suffix ('T1w', etc)
         bids_keys['suffix'] = bids_keys['suffix'].split('_')[0]

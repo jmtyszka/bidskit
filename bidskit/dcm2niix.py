@@ -154,10 +154,10 @@ def organize_series(
 
                         # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
                         # Note use of deepcopy to prevent corruption of prot_dict (see Issue #36 solution by @bogpetre)
-                        bids_purpose, bids_suffix, bids_intendedfor = copy.deepcopy(prot_dict[ser_desc])
+                        bids_purpose, bids_stub, bids_intendedfor = copy.deepcopy(prot_dict[ser_desc])
 
                         # Safely add run-* key to BIDS suffix
-                        bids_suffix = tr.add_run_number(bids_suffix, run_no[fc])
+                        bids_stub = tr.add_run_number(bids_stub, run_no[fc])
 
                         # Assume the IntendedFor field should also have a run-* key added
                         prot_dict = fmaps.add_intended_run(prot_dict, src_meta, run_no[fc])
@@ -174,7 +174,7 @@ def organize_series(
 
                         # Construct BIDS Nifti and JSON filenames
                         # Issue 105: remember to account for --compress n flag with .nii extension
-                        bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_suffix + nii_ext)
+                        bids_nii_fname = os.path.join(bids_purpose_dir, bids_prefix + bids_stub + nii_ext)
                         bids_json_fname = bids_nii_fname.replace(nii_ext, '.json')
 
                         # Add prefix and suffix to IntendedFor values
@@ -204,7 +204,7 @@ def organize_series(
                 else:
 
                     # Skip protocols not in the dictionary
-                    print('* Protocol ' + str(d2n_info['SerDesc']) + ' is not in the dictionary, did not convert.')
+                    print(f'* Protocol {ser_desc} is not in the dictionary - skipping conversion')
 
         if not first_pass:
 
