@@ -121,12 +121,14 @@ def organize_series(
 
             # Load JSON sidecar metadata
             src_meta = bio.read_json(src_json_fname)
-            ser_desc = src_meta['SeriesDescription']
+
+            # dcm2niix replaces ' ' with '_' for series description in filenames. We must do the same
+            ser_desc = src_meta['SeriesDescription'].replace(' ', '_')
 
             # Check if we're creating a new protocol dictionary
             if first_pass:
 
-                print(f"  Adding protocol {ser_desc} to dictionary")
+                print(f"\n  Adding protocol {ser_desc} to dictionary")
 
                 # Add current protocol to protocol dictionary
                 if auto:

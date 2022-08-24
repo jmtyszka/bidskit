@@ -291,10 +291,10 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
         base_ser_no = ser_no
 
     # Construct candidate dcm2niix JSON sidecar filenames for e1 and e2, mag and phase
-    e1m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 1, '')
-    e2m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 2, '')
-    e1p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 1, '_ph')
-    e2p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 2, '_ph')
+    e1m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 1, '')  # Echo 1 mag image
+    e2m_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no, 2, '')  # Echo 2 mag image
+    e1p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 1, '_ph')  # Echo 1 phase image
+    e2p_fname = d2n.dcm2niix_json_fname(work_info, base_ser_no + 1, 2, '_ph')  # Echo 2 phase image
 
     # Check case based on existence of phase images
     fmap_case = None
@@ -308,22 +308,22 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
     else:
         print('* GRE Fieldmap Echo 2 image missing - skipping')
 
-    bids_keys, bids_dname = tr.bids_filename_to_keys(bids_nii_fname)
+    if fmap_case == 1:
 
-    # Update BIDS nii and json filenames
-    if is_mag:
+        # Update BIDS nii and json filenames
+        if is_mag:
 
-        bids_nii_fname = tr.replace_suffix(bids_nii_fname, f'magnitude{echo_no}')
-        bids_json_fname = tr.replace_suffix(bids_json_fname, f'magnitude{echo_no}')
+            new_suffix = f'magnitude{echo_no}'
+            bids_nii_fname = tr.replace_suffix(bids_nii_fname, new_suffix)
+            bids_json_fname = tr.replace_suffix(bids_json_fname, new_suffix)
 
-    else:
+        else:  # Presumptive phase image
 
-        if fmap_case == 1:
+            new_suffix = 'phasediff'
+            bids_nii_fname = tr.replace_suffix(bids_nii_fname, new_suffix)
+            bids_json_fname = tr.replace_suffix(bids_json_fname, new_suffix)
 
-            bids_nii_fname = tr.replace_suffix(bids_nii_fname, 'phasediff')
-            bids_json_fname = tr.replace_suffix(bids_json_fname, 'phasediff')
-
-            # Load echo 1 and echo 2 metadata
+            # Load echo 1 and echo 2 metadata from mag and phase images respectively
             e1m_info = bio.read_json(e1m_fname)
             e2p_info = bio.read_json(e2p_fname)
 
@@ -342,12 +342,18 @@ def handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname):
             print('    Updating Echo 2 Phase JSON sidecar')
             bio.write_json(e2p_fname, e2p_info, overwrite=True)
 
-        if fmap_case == 2:
+    if fmap_case == 2:
 
-            bids_nii_fname = tr.replace_suffix(bids_nii_fname, f'phase{echo_no}')
-            bids_json_fname = tr.replace_suffix(bids_json_fname, f'phase{echo_no}')
+        print(f'\n* Warning: GRE fieldmap case 2 not fully supported by bidskit')
+        print(f'* Check the fmap/ contents\n')
 
+        if is_mag:
+            new_suffix = f'phase{echo_no}'
+        else:
+            new_suffix = f'magnitude{echo_no}'
 
+        bids_nii_fname = tr.replace_suffix(bids_nii_fname, new_suffix)
+        bids_json_fname = tr.replace_suffix(bids_json_fname, new_suffix)
 
     return bids_nii_fname, bids_json_fname
 
