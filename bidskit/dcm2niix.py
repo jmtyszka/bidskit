@@ -122,7 +122,8 @@ def organize_series(
             # Load JSON sidecar metadata
             src_meta = bio.read_json(src_json_fname)
 
-            # dcm2niix replaces ' ' with '_' for series description in filenames. We must do the same
+            # DICOM series description string from BIDS sidecar
+            # For consistency with dcm2niix, replace spaces in DICOM SerDesc (eg ' RMS') with underscores
             ser_desc = src_meta['SeriesDescription'].replace(' ', '_')
 
             # Check if we're creating a new protocol dictionary
@@ -233,20 +234,18 @@ def handle_multiecho(work_json_fname, bids_json_fname, echo_flag, nii_ext):
         flag to add echo- key to filename (if necessary)
     """
 
-    # Isolate echo/part suffix (e*[_ph])
-    work_info = bio.parse_dcm2niix_fname(work_json_fname)
-    suffix = work_info['Suffix']
+    # Load BIDS sidecar metadata
+    bids_info = bio.read_json(work_json_fname)
 
-    # Default BIDS Nifti filename from JSON filename
-    bids_nii_fname = bids_json_fname.replace('.json', nii_ext)
+    # Init Nifti image fname
+    bids_nii_fname = bids_json_fname.replace('.json', '.nii.gz')
 
-    if suffix.startswith('e'):
+    # DICOM EchoNumber tag only present for multiecho sequences
+    if 'EchoNumber' in bids_info.keys():
 
-        print('    Multiple echoes detected')
+        echo_num = bids_info['EchoNumber']
 
-        # Split at '_' if present
-        chunks = suffix.split('_')
-        echo_num = int(chunks[0][1:])
+        print(f'    Multiple echoes detected')
         print(f'    Echo number {echo_num:d}')
 
         # Add an "echo-{echo_num}" key to the BIDS Nifti and JSON filenames

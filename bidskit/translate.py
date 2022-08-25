@@ -29,10 +29,9 @@ from . import dcm2niix as d2n
 from .io import (read_json,
                  write_json,
                  parse_bids_fname_keyvals,
-                 parse_dcm2niix_fname,
                  safe_copy,
                  create_file_if_missing,
-                 strip_extensions)
+                 nii_to_json)
 
 
 def add_participant_record(studydir, subject, age, sex):
@@ -141,7 +140,7 @@ def purpose_handling(bids_meta,
 
         print('    Identifying fieldmap image type')
 
-        if scan_seq == 'GR':
+        if 'GR' in scan_seq:
 
             print('    Gradient echo fieldmap detected')
             print('    Identifying magnitude and phase images')
@@ -149,7 +148,7 @@ def purpose_handling(bids_meta,
             # Update BIDS filenames according to BIDS Fieldmap Case (1 or 2 - see specification)
             bids_nii_fname, bids_json_fname = fmaps.handle_fmap_case(work_json_fname, bids_nii_fname, bids_json_fname)
 
-        elif scan_seq == 'EP':
+        elif 'EP' in scan_seq:
 
             print('    EPI fieldmap detected')
 
@@ -164,7 +163,7 @@ def purpose_handling(bids_meta,
 
     elif bids_purpose == 'anat':
 
-        if scan_seq == 'GR_IR':
+        if 'GR' in scan_seq and 'IR' in scan_seq:
 
             print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMPRAGE')
 
@@ -180,13 +179,13 @@ def purpose_handling(bids_meta,
             bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
                 work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
 
-        elif scan_seq == 'SE':
+        elif 'SE' in scan_seq:
 
             print('    Spin echo detected - likely T1w or T2w anatomic image')
             bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
                 work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
 
-        elif scan_seq == 'GR':
+        elif 'GR' in scan_seq:
 
             print('    Gradient echo detected')
 
@@ -345,7 +344,7 @@ def bids_legalize_keys(keys):
     return keys
 
 
-def auto_run_no(file_list, prot_dict):
+def auto_run_no(d2n_nii_list, prot_dict):
     """
     Search for duplicate series names in dcm2niix output file list
     Return inferred run numbers accounting for duplication and multiple recons from single acquisition
@@ -358,8 +357,8 @@ def auto_run_no(file_list, prot_dict):
     - If no duplicates of a given series are found, drop the run- key from the BIDS filename
     - Current dcm2niix version: 1.0.20211006
 
-    :param file_list: list of str
-        Nifti file name list
+    :param d2n_nii_list: list of str
+        dcm2niix output Nifti filename list
     :param prot_dict: dictionary
         Protocol translation dictionary
     :return: run_num, array of int
@@ -368,17 +367,22 @@ def auto_run_no(file_list, prot_dict):
     # Construct list of series descriptions and original numbers from file names
     series_id_list = []
 
-    for fname in file_list:
+    # Loop over all
+    for nii_fname in d2n_nii_list:
 
-        # Parse dcm2niix filename into relevant keys, including suffix
-        info = parse_dcm2niix_fname(fname)
+        # Load JSON sidecar for this Nifti image
+        json_fname = nii_to_json(nii_fname, '.nii.gz')
+        bids_info = read_json(json_fname)
 
-        ser_desc = info['SerDesc']
-        echo_no = info['EchoNo']
-        suffix = info['Suffix']
+        ser_desc = bids_info['SeriesDescription'].replace(' ', '_')
+        if 'EchoNumber' in bids_info.keys():
+            echo_no = bids_info['EchoNumber']
+        else:
+            echo_no = 1
+        recon_type = '-'.join(bids_info['ImageType'])
 
         if ser_desc in prot_dict:
-            _, bids_stub, _ = prot_dict[info['SerDesc']]
+            _, bids_stub, _ = prot_dict[ser_desc]
         else:
             print('')
             print('* Series description {} missing from code/Protocol_Translator.json'.format(ser_desc))
@@ -387,7 +391,7 @@ def auto_run_no(file_list, prot_dict):
             sys.exit(1)
 
         # Construct a unique series identifier including echo number and suffix
-        series_id = f"{bids_stub}_{echo_no}_{suffix}"
+        series_id = f"{bids_stub}_ECHO{echo_no}_{recon_type}"
 
         # Add to list
         series_id_list.append(series_id)
@@ -396,7 +400,7 @@ def auto_run_no(file_list, prot_dict):
     unique_series_ids = set(series_id_list)
 
     # Init vector of run numbers and max run numbers for each series
-    run_no = np.zeros(len(file_list)).astype(int)
+    run_no = np.zeros(len(d2n_nii_list)).astype(int)
 
     # Loop over unique series descriptions
     for unique_series_id in unique_series_ids:

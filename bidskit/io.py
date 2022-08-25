@@ -207,7 +207,7 @@ def parse_bids_fname_keyvals(fname):
 
     # Split fname in containing directory and base name
     dname = os.path.dirname(fname)
-    bname = os.path.basename(fname)
+    bids_stub = os.path.basename(fname)
 
     # Init return dictionary with BIDS 1.1.1 valid key strings
     bids_keys = {
@@ -228,37 +228,56 @@ def parse_bids_fname_keyvals(fname):
 
     # Extract base filename and strip up to two extensions
     # Accounts for both '.nii' and '.nii.gz' variants
-    bname, ext1 = os.path.splitext(bname)
-    bname, ext2 = os.path.splitext(bname)
+    bids_stub, ext1 = os.path.splitext(bids_stub)
+    bids_stub, ext2 = os.path.splitext(bids_stub)
 
     # Remember full extension
     bids_keys['extension'] = ext2 + ext1
 
-    # Locate, record and remove final contrast suffix
+    #
+    # Logic for identifying, saving and trimming sequence type suffix (_bold, _T1w, etc)
+    #
 
-    # Find position of first underscore from right of basename
-    suffix_start = bname.rfind('_') + 1
-    draft_suffix = bname[suffix_start:]
+    # Check for recon variants keys at end of basename
+    # These can have leading '_' or ' ' eg 'acq-mez_T1w RMS' and 'task-rest_bold_SBRef'
 
-    # Handle special case of no suffix, only key-value pairs
-    if '-' in draft_suffix or len(draft_suffix) < 1:
+    recon_list = ['SBRef', 'RMS']
+    recon_key = ''
 
-        # Leave suffix empty in dict
+    # DEBUG
+    if bids_stub.endswith('RMS'):
+        pass
+
+    for recon_str in recon_list:
+        if bids_stub.endswith(recon_str):
+            recon_start = bids_stub.rfind(recon_str)
+            recon_key = recon_str
+            bids_stub = bids_stub[:(recon_start-1)]
+
+    # Find position of last underscore in basename
+    last_underscore = bids_stub.rfind('_')
+
+    if last_underscore < 0:
+
+        # No underscores found in bids_stub - set empty suffix
         bids_keys['suffix'] = ''
 
     else:
 
-        # Handle double suffices introduced by some Siemens research sequences
-        # eg *_bold_SBRef and *_T1w_RMS
-        # This code is only relevant when parsing ReproIn style series descriptions through this function
-        if bname.endswith('SBRef') or bname.endswith('RMS'):
-            # Find the second underscore in from the right
-            tmp = bname[:(suffix_start-1)]
-            suffix_start = tmp.rfind('_') + 1
+        suffix_start = bids_stub.rfind('_') + 1
+        draft_suffix = bids_stub[suffix_start:]
 
-        # Split basename into prefix and suffix
-        bids_keys['suffix'] = bname[suffix_start:]
-        bname = bname[:suffix_start]
+        # Handle special case of no suffix, only key-value pairs
+        if '-' in draft_suffix or len(draft_suffix) < 1:
+
+            # Leave suffix empty in dict
+            bids_keys['suffix'] = ''
+
+        else:
+
+            # Split basename into prefix and suffix
+            bids_keys['suffix'] = bids_stub[suffix_start:]
+            bids_stub = bids_stub[:(suffix_start-1)]
 
     # Divide filename into keys and values
     # Value segments are delimited by '<key>-' strings
@@ -273,7 +292,7 @@ def parse_bids_fname_keyvals(fname):
 
         key_str = key + '-'
 
-        i0 = bname.find(key_str)
+        i0 = bids_stub.find(key_str)
         if i0 > -1:
             i1 = i0 + len(key_str)
             key_name.append(key)
@@ -300,19 +319,16 @@ def parse_bids_fname_keyvals(fname):
 
         # Catch negative vend (only happens for final key-value without suffix)
         if vend < 0:
-            bids_keys[kname] = bname[vstart:]
+            bids_keys[kname] = bids_stub[vstart:]
         else:
-            bids_keys[kname] = bname[vstart:vend]
+            bids_keys[kname] = bids_stub[vstart:vend]
 
     # Tidy up Siemens recon extensions
-    # Only relevant when using this function to parse ReproIn-style series descriptions
-    if bids_keys['suffix'].endswith('SBRef'):
+    if 'SBRef' in recon_key:
         # Replace entire double suffix with 'sbref'
         bids_keys['suffix'] = 'sbref'
 
-    if bids_keys['suffix'].endswith('RMS'):
-        # Retain left part of double suffix ('T1w', etc)
-        bids_keys['suffix'] = bids_keys['suffix'].split('_')[0]
+    if 'RMS' in recon_key:
         # Add 'rms' to acq key
         bids_keys['acq'] = bids_keys['acq'] + 'rms'
 
