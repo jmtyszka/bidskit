@@ -150,5 +150,11 @@ class BIDSTree:
             __name__,
             os.path.join('templates', tpl_fname)
         )
-        out_fname = os.path.join(self.bids_dir, dest_fname)
-        shutil.copyfile(tpl_pname, out_fname)
+        out_pname = os.path.join(self.bids_dir, dest_fname)
+
+        print(f'Copying {tpl_pname} to {out_pname}')
+
+        try:
+            shutil.copyfile(tpl_pname, out_pname)
+        except FileNotFoundError:
+            print('* {tpl_pname} not found - check installation folder permissions')
