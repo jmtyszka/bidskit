@@ -192,25 +192,30 @@ def parse_dcm2niix_fname(fname):
 
 def parse_bids_fname_keyvals(fname):
     """
-    Legacy function for older series naming conventions
+    BIDS-like filename parser
 
-    Parse BIDS filename into BIDS key-value pairs
-    eg string "task-rest_run-1_bold"
+    Parse BIDS-like filename into key-value pairs
+    Supports both BIDS-like and ReproIn format filenames
+    eg "task-rest_run-1_bold" or "anat-T1w_run-2"
 
-    :param fname: str,
-        Raw BIDS key-value string with possible file extension(s)
+    :param fname: str, pathlike
+        Raw BIDS-like filename with possible file extension(s)
     :return: dict,
-        Dictionary of key-value pairs parsed from BIDS-format filename
+        Dictionary of key-value pairs parsed from BIDS-like or ReproIn string
     :return: str
         Containing directory
     """
 
-    # Split fname in containing directory and base name
+    # Split filename into containing directory and base name
     dname = os.path.dirname(fname)
     bids_stub = os.path.basename(fname)
 
-    # Init return dictionary with BIDS 1.1.1 valid key strings
+    # Init return dictionary with BIDS 1.7.0 and ReproIn key names
     bids_keys = {
+        'func': "",  # ReproIn
+        'fmap': "",  # ReproIn
+        'anat': "",  # ReproIn
+        'dwi': "",  # ReproIn
         'sub': "",
         'ses': "",
         'task': "",
@@ -223,7 +228,7 @@ def parse_bids_fname_keyvals(fname):
         'echo': "",
         'proc': "",
         'part': "",
-        'suffix': "",
+        'suffix': "unknown",  # Should always return a non-empty string
     }
 
     # Extract base filename and strip up to two extensions
@@ -238,15 +243,11 @@ def parse_bids_fname_keyvals(fname):
     # Logic for identifying, saving and trimming sequence type suffix (_bold, _T1w, etc)
     #
 
-    # Check for recon variants keys at end of basename
-    # These can have leading '_' or ' ' eg 'acq-mez_T1w RMS' and 'task-rest_bold_SBRef'
+    # Check for recon variants keys at end of BIDS stub string
+    # These may have a leading '_' or ' ' eg 'acq-mez_T1w RMS' and 'task-rest_bold_SBRef'
 
     recon_list = ['SBRef', 'RMS']
     recon_key = ''
-
-    # DEBUG
-    if bids_stub.endswith('RMS'):
-        pass
 
     for recon_str in recon_list:
         if bids_stub.endswith(recon_str):
@@ -259,8 +260,8 @@ def parse_bids_fname_keyvals(fname):
 
     if last_underscore < 0:
 
-        # No underscores found in bids_stub - set empty suffix
-        bids_keys['suffix'] = ''
+        # No underscores found in bids_stub. Interpret as isolated suffix (eg "T2w")
+        bids_keys['suffix'] = bids_stub
 
     else:
 

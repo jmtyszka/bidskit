@@ -487,11 +487,16 @@ def create_events_template(bold_fname, overwrite, nii_ext):
             fd.close()
 
 
-def auto_translate(info, json_fname):
+def auto_translate(info, json_fname=None):
     """
     Construct protocol translator from original series descriptions
     - supports ReproIn-style series descriptions with a leading "<BIDS type>-<suffix>" key
       eg anat-T1w_acq-highres_run-1
+
+    :param info: dict
+        Series information including SeriesDescription
+    :param json_fname: str, pathlike
+        Path of JSON sidecar in working directory [optional]
     """
 
     ser_desc = info['SeriesDescription']
