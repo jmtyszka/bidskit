@@ -513,30 +513,38 @@ def auto_translate(info, json_fname=None):
 
     # Use BIDS filename parser on ReproIn-style series description
     # Returns any BIDS-like key values from series description string
-    # The closer the series descriptions are to Repro-In specs, the
+    # The closer the series descriptions are to ReproIn specs, the
     # better this works.
     bids_keys, _ = parse_bids_fname_keyvals(ser_desc)
 
-    if 'seqtype' in bids_keys:
+    if 'seqtype' in bids_keys.keys():
         bids_dir = bids_keys['seqtype']
         print(f"Detected legacy seqtype {bids_dir}")
 
-    elif 'anat' in bids_keys:
+    elif 'anat' in bids_keys.keys():
+
+        # ReproIn anat-<sequence type> prefix
         bids_dir = 'anat'
         bids_keys['suffix'] = bids_keys['anat']
         del bids_keys['anat']
 
-    elif 'func' in bids_keys:
+    elif 'func' in bids_keys.keys():
+
+        # ReproIn func-<sequence type> prefix
         bids_dir = 'func'
         bids_keys['suffix'] = bids_keys['func']
         del bids_keys['func']
 
     elif 'fmap' in bids_keys:
+
+        # ReproIn fmap-<sequence type> prefix
         bids_dir = 'fmap'
         bids_keys['suffix'] = bids_keys['fmap']
         del bids_keys['fmap']
 
     elif 'dwi' in bids_keys:
+
+        # ReproIn dwi-<sequence type> prefix
         bids_dir = 'dwi'
         bids_keys['suffix'] = bids_keys['dwi']
         del bids_keys['dwi']
@@ -562,7 +570,6 @@ def auto_translate(info, json_fname=None):
     print(f'  Series Description : {ser_desc}')
     print(f'  BIDS directory     : {bids_dir}')
     print(f'  BIDS stub          : {bids_stub}')
-    print(f'  BIDS IntendedFor   : {bids_intendedfor}')
     print(f'  BIDS IntendedFor   : {bids_intendedfor}')
 
     return [bids_dir, bids_stub, bids_intendedfor]

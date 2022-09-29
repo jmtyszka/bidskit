@@ -239,10 +239,6 @@ def parse_bids_fname_keyvals(fname):
     # Remember full extension
     bids_keys['extension'] = ext2 + ext1
 
-    #
-    # Logic for identifying, saving and trimming sequence type suffix (_bold, _T1w, etc)
-    #
-
     # Check for recon variants keys at end of BIDS stub string
     # These may have a leading '_' or ' ' eg 'acq-mez_T1w RMS' and 'task-rest_bold_SBRef'
 
