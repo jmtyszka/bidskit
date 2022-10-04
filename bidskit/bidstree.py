@@ -44,7 +44,7 @@ class BIDSTree:
         self.sourcedata_dir = os.path.join(dataset_dir, 'sourcedata')
         self.derivatives_dir = os.path.join(dataset_dir, 'derivatives')
         self.code_dir = os.path.join(dataset_dir, 'code')
-        self.work_dir = os.path.join(dataset_dir, 'work')
+        self.work_dir = os.path.join(dataset_dir, 'work', 'bidskit')
 
         # sourcedata should already exist - no need to create
         # Existence check in __main__
