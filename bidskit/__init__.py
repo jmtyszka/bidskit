@@ -10,3 +10,5 @@ from .io import (
     strip_extensions,
     nii_to_json
 )
+
+from .fmaps import BindFieldmaps
