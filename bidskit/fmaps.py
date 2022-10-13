@@ -382,14 +382,18 @@ def build_intendedfor(sid, ses, bids_suffix, nii_ext):
     return ifstr
 
 
-def add_intended_run(prot_dict, info, run_no):
+def add_intended_run(prot_dict, ser_desc, run_no):
     """
-    Add run numbers to files in IntendedFor.
+    Add EPI series run numbers to fieldmap IntendedFor file stubs
 
     :param prot_dict: dict
-    :param info: dict
+        Original protocol dictionary
+    :param ser_desc: str
+        Series description
     :param run_no: int
+        Run number
     :return prot_dict: dict
+        Updated protocol dictionary
     """
 
     prot_dict_update = dict()
@@ -409,11 +413,12 @@ def add_intended_run(prot_dict, info, run_no):
             suffixes = [os.path.basename(x) for x in intended_for]
             types = [os.path.dirname(x) for x in intended_for]
 
-            # determine if this sequence is intended by the fmap
-            if prot_dict[info['SerDesc']] in suffixes:
-                idx = suffixes.index(prot_dict[info['SerDesc']][1])
+            # Determine if this series is the intended target of the fmap
+            if prot_dict[ser_desc] in suffixes:
 
-                # change intendedfor to include run or add a new run
+                idx = suffixes.index(prot_dict[ser_desc][1])
+
+                # Change IntendedFor to include run or add a new run
                 new_suffix = tr.add_run_number(suffixes[idx], run_no)
 
                 if new_suffix != suffixes[idx]:

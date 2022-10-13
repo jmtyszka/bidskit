@@ -24,14 +24,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import json
 import numpy as np
 import datetime as dt
 
 from . import io as bio
 
 
-def get_acq_time(json_file):
+def acqtime_mins(json_file):
     """
     Extract acquisition time from JSON sidecar of Nifti file
     :param json_file: str, JSON sidecar filename
@@ -41,22 +40,12 @@ def get_acq_time(json_file):
     info = bio.read_json(json_file)
 
     if 'AcquisitionTime' in info:
-        acq_time = info['AcquisitionTime']
-    else:
-        print('* AcquisitionTime not found in {}'.format(json_file))
-        acq_time = "00:00:00.00"
-
-    return acq_time
-
-
-def acqtime_mins(json_fname):
-
-    with open(json_fname) as fd:
-
-        info = json.load(fd)
-
         t1 = dt.datetime.strptime(info['AcquisitionTime'], '%H:%M:%S.%f0')
         t0 = dt.datetime(1900, 1, 1)
         t_mins = np.float((t1 - t0).total_seconds() / 60.0)
+    else:
+        print(f'* WARNING: AcquisitionTime not found in {json_file} (deidentified?)')
+        print(f'* WARNING: Automatic fieldmap binding will not work correctly')
+        t_mins = -1
 
     return t_mins

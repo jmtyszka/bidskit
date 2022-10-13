@@ -31,7 +31,7 @@ from glob import glob
 from . import io as bio
 from . import translate as tr
 from . import fmaps
-from .json import (get_acq_time)
+from .json import (acqtime_mins)
 
 
 def ordered_file_list(conv_dir, nii_ext):
@@ -48,14 +48,26 @@ def ordered_file_list(conv_dir, nii_ext):
     json_list = [bio.nii_to_json(nii_file, nii_ext) for nii_file in nii_list]
 
     # Pull acquisition times for each Nifti image from JSON sidecar
-    acq_time = [get_acq_time(json_file) for json_file in json_list]
+    acqtime_list = [acqtime_mins(json_file) for json_file in json_list]
 
-    # Sort Nifti and JSON file lists by acquisition time
-    nii_sorted = [file for _, file in sorted(zip(acq_time, nii_list))]
-    json_sorted = [file for _, file in sorted(zip(acq_time, json_list))]
+    # Check for any negative acqtimes returned by acqtime_mins()
+    if any(t < 0 for t in acqtime_list):
 
-    # Finally sort acquisition times
-    acq_sorted = sorted(acq_time)
+        print('* WARNING: Acquisition times missing from metadata')
+        print('* WARNING: Series cannot be ordered accurately')
+
+        nii_sorted = nii_list
+        json_sorted = json_list
+        acq_sorted = acqtime_list
+
+    else:
+
+        print('  Sorting series by acquisition time')
+
+        # Sort Nifti and JSON file lists by acquisition time
+        nii_sorted = [file for _, file in sorted(zip(acqtime_list, nii_list))]
+        json_sorted = [file for _, file in sorted(zip(acqtime_list, json_list))]
+        acq_sorted = sorted(acqtime_list)
 
     return nii_sorted, json_sorted, acq_sorted
 
@@ -163,7 +175,7 @@ def organize_series(
                         bids_stub = tr.add_run_number(bids_stub, run_no[fc])
 
                         # Assume the IntendedFor field should also have a run-* key added
-                        prot_dict = fmaps.add_intended_run(prot_dict, src_meta, run_no[fc])
+                        prot_dict = fmaps.add_intended_run(prot_dict, ser_desc, run_no[fc])
 
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
