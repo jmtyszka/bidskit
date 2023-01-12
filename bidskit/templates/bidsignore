@@ -2,3 +2,4 @@ exclude/
 derivatives/
 work/
 incoming/
+*.tar

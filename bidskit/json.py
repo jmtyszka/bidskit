@@ -42,7 +42,7 @@ def acqtime_mins(json_file):
     if 'AcquisitionTime' in info:
         t1 = dt.datetime.strptime(info['AcquisitionTime'], '%H:%M:%S.%f0')
         t0 = dt.datetime(1900, 1, 1)
-        t_mins = np.float((t1 - t0).total_seconds() / 60.0)
+        t_mins = float((t1 - t0).total_seconds() / 60.0)
     else:
         print(f'* WARNING: AcquisitionTime not found in {json_file} (deidentified?)')
         print(f'* WARNING: Automatic fieldmap binding will not work correctly')

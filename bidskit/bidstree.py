@@ -61,7 +61,7 @@ class BIDSTree:
         print('Creating file templates required for BIDS compliance')
 
         # Copy BIDS-compliant JSON templates to BIDS directory root
-        self.copy_template('README.md', 'README.md')
+        self.copy_template('README', 'README')
         self.copy_template('CHANGES', 'CHANGES')
         self.copy_template('dataset_description.json', 'dataset_description.json')
         self.copy_template('participants.json', 'participants.json')

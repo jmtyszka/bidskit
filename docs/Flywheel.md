@@ -42,8 +42,8 @@ folder and build the template BIDS files and folders (Phase 1)
 $ bidskit --flywheel <other command line arguments>
 ```
 3. Edit `code/Protocol_Translator.json` manually or use the `--auto` option to autofill the translator file
-4. Run bidskit again (Phase 2) to complete the curation
+4. Run bidskit again (Phase 2) without the `--flywheel` option to complete the curation
 ```
-$ bidskit --flywheel <other command line arguments>
+$ bidskit <other command line arguments>
 ```
 5. Delete the original Flywheel tarball

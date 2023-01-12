@@ -117,7 +117,7 @@ def main():
         'Recon': args.recon
     }
 
-    # Read version from setup.py
+    # Read installed version number
     ver = pkg_resources.get_distribution('bidskit').version
 
     if args.version:

@@ -175,11 +175,11 @@ def parse_dcm2niix_fname(fname):
     # Filename format: <PatientName>--<SeriesDescription>--s<SeriesNo>--e<EchoNo>[_ph].<ext>
     info['SubjName'] = vals[0]
     info['SerDesc'] = vals[1]
-    info['SerNo'] = np.int(vals[2].replace('s', ''))
+    info['SerNo'] = int(vals[2].replace('s', ''))
 
     # Check for phase image suffix after echo number (eg "e2_ph")
     bits = vals[3].split('_', 1)
-    info['EchoNo'] = np.int(bits[0].replace('e', ''))
+    info['EchoNo'] = int(bits[0].replace('e', ''))
 
     # Record any suffix after the echo number key (typically "ph" if anything)
     if len(bits) > 1:
