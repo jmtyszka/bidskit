@@ -74,7 +74,7 @@ def main():
         ndar_root_dir = args.indir + '.ndar'
 
     # Load protocol translation and exclusion info from DICOM directory
-    # If no translator is present, prot_dict is an empty dictionary
+    # If no translator is present, translator is an empty dictionary
     # and a template will be created in the DICOM directory. This template should be
     # completed by the user and the conversion rerun.
     prot_dict_json = os.path.join(dcm_root_dir, 'Protocol_Translator.json')

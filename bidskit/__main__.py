@@ -42,6 +42,7 @@ from . import io as bio
 from . import translate as btr
 from . import dcm2niix as d2n
 from . import fmaps
+from . import flywheel
 from .bidstree import BIDSTree
 
 
@@ -89,6 +90,9 @@ def main():
     parser.add_argument('--auto', action='store_true', default=False,
                         help='Automatically generate protocol translator from series descriptions and sequence parameters')
 
+    parser.add_argument('-fw', '--flywheel', action='store_true', default=False,
+                        help='Curate Flywheel DICOM tarballs in top level of BIDS folder')
+
     parser.add_argument('-V', '--version', action='store_true', default=False,
                         help='Display bidskit version number and exit')
 
@@ -125,8 +129,13 @@ def main():
     print('BIDSKIT {}'.format(ver))
     print('------------------------------------------------------------')
 
+    # Special handling for Flywheel DICOM tarballs
+    if args.flywheel:
+        print(f'Flywheel DICOM tarball processing')
+        flywheel.unpack(dataset_dir)
+
     if not os.path.isdir(os.path.join(dataset_dir, 'sourcedata')):
-        print('* sourcedata folder not found in {}'.format(dataset_dir))
+        print(f'* sourcedata folder not found in {dataset_dir}')
         print('* bidskit expects this folder to exist and contain DICOM series')
         print('* Please see the bidskit documentation at')
         print('* https://github.com/jmtyszka/bidskit/blob/master/docs/QuickStart.md')
@@ -159,7 +168,7 @@ def main():
     print(f"Echo filename key          : {key_flags['Echo']}")
 
     # Load protocol translation and exclusion info from derivatives/conversion directory
-    # If no translator is present, prot_dict is an empty dictionary
+    # If no translator is present, translator is an empty dictionary
     # and a template will be created in the derivatives/conversion directory.
     # This template should be completed by the user and the conversion rerun.
     translator = btree.read_translator()
@@ -203,8 +212,9 @@ def main():
         # Full path to subject directory in sourcedata/
         src_subj_dir = os.path.realpath(os.path.join(btree.sourcedata_dir, sid))
 
-        # BIDS subject ID with prefix
-        subj_prefix = 'sub-{:s}'.format(sid)
+        # BIDS-compliant subject ID with prefix
+        sid_clean = sid.replace('-', '').replace('_', '')
+        subj_prefix = f'sub-{sid_clean:s}'
 
         # Add full path to subject output directory to running list
         out_subj_dir_list.append(os.path.join(dataset_dir, subj_prefix))
@@ -228,10 +238,11 @@ def main():
 
             else:
 
-                ses = os.path.basename(os.path.normpath(dcm_dir))
+                ses = os.path.basename(os.path.realpath(dcm_dir))
+                ses_clean = ses.replace('-', '').replace('_', '')
 
-                ses_prefix = 'ses-{:s}'.format(ses)
-                print('  Processing session ' + ses)
+                ses_prefix = f'ses-{ses_clean:s}'
+                print(f'  Processing session {ses}')
 
             # Working conversion directories
             work_subj_dir = os.path.join(btree.work_dir, subj_prefix)
@@ -283,7 +294,7 @@ def main():
                 dcm_info = bio.dcm_info(dcm_dir)
 
                 # Add line to participants TSV file
-                btr.add_participant_record(dataset_dir, sid, dcm_info['Age'], dcm_info['Sex'])
+                btr.add_participant_record(dataset_dir, sid_clean, dcm_info['Age'], dcm_info['Sex'])
 
             # Organize dcm2niix output into BIDS subject/session directories
             d2n.organize_series(
@@ -291,8 +302,8 @@ def main():
                 first_pass,
                 translator,
                 bids_ses_dir,
-                sid,
-                ses,
+                sid_clean,
+                ses_clean,
                 key_flags,
                 nii_ext,
                 args.clean_conv_dir,

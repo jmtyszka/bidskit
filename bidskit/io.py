@@ -322,8 +322,12 @@ def parse_bids_fname_keyvals(fname):
 
     # Tidy up Siemens recon extensions
     if 'SBRef' in recon_key:
-        # Replace entire double suffix with 'sbref'
+        # Replace entire suffix with 'sbref'
         bids_keys['suffix'] = 'sbref'
+
+        # If ReproIn 'func' key present, replace value with 'sbref'
+        if 'func' in bids_keys.keys():
+            bids_keys['func'] = 'sbref'
 
     if 'RMS' in recon_key:
         # Add 'rms' to acq key

@@ -392,7 +392,7 @@ def add_intended_run(prot_dict, ser_desc, run_no):
         Series description
     :param run_no: int
         Run number
-    :return prot_dict: dict
+    :return translator: dict
         Updated protocol dictionary
     """
 

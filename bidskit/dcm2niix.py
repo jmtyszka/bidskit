@@ -75,7 +75,7 @@ def ordered_file_list(conv_dir, nii_ext):
 def organize_series(
         conv_dir,
         first_pass,
-        prot_dict,
+        translator,
         src_dir,
         sid,
         ses,
@@ -91,7 +91,7 @@ def organize_series(
         Working conversion directory
     :param first_pass: boolean
         Flag for first pass conversion
-    :param prot_dict: dictionary
+    :param translator: dictionary
         Protocol translation dictionary
     :param src_dir: string
         BIDS source output subj or subj/session directory
@@ -123,7 +123,7 @@ def organize_series(
         if first_pass:
             run_no = None
         else:
-            run_no = tr.auto_run_no(nii_list, prot_dict)
+            run_no = tr.auto_run_no(nii_list, translator)
 
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
         for fc, src_nii_fname in enumerate(nii_list):
@@ -145,9 +145,9 @@ def organize_series(
 
                 # Add current protocol to protocol dictionary
                 if auto:
-                    prot_dict[ser_desc] = tr.auto_translate(src_meta, src_json_fname)
+                    translator[ser_desc] = tr.auto_translate(src_meta, src_json_fname)
                 else:
-                    prot_dict[ser_desc] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
+                    translator[ser_desc] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
 
             else:
 
@@ -156,9 +156,9 @@ def organize_series(
                     print('* WARNING: JSON sidecar %s not found' % src_json_fname)
                     continue
 
-                if ser_desc in prot_dict.keys():
+                if ser_desc in translator.keys():
 
-                    if prot_dict[ser_desc][0].startswith('EXCLUDE'):
+                    if translator[ser_desc][0].startswith('EXCLUDE'):
 
                         # Skip excluded protocols
                         print(f'* Excluding protocol {ser_desc}')
@@ -168,14 +168,14 @@ def organize_series(
                         print(f'  Organizing {ser_desc}')
 
                         # Use protocol dictionary to determine purpose folder, BIDS filename suffix and fmap linking
-                        # Note use of deepcopy to prevent corruption of prot_dict (see Issue #36 solution by @bogpetre)
-                        bids_purpose, bids_stub, bids_intendedfor = copy.deepcopy(prot_dict[ser_desc])
+                        # Note use of deepcopy to prevent corruption of translator (see Issue #36 solution by @bogpetre)
+                        bids_purpose, bids_stub, bids_intendedfor = copy.deepcopy(translator[ser_desc])
 
                         # Safely add run-* key to BIDS suffix
                         bids_stub = tr.add_run_number(bids_stub, run_no[fc])
 
                         # Assume the IntendedFor field should also have a run-* key added
-                        prot_dict = fmaps.add_intended_run(prot_dict, ser_desc, run_no[fc])
+                        translator = fmaps.add_intended_run(translator, ser_desc, run_no[fc])
 
                         # Create BIDS purpose directory
                         bids_purpose_dir = os.path.join(src_dir, bids_purpose)
