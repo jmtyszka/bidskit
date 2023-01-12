@@ -9,6 +9,7 @@ The *bidskit* console command takes a directory tree containing imaging series f
 #### [Installation Instructions](docs/Installation.md)
 #### [Quick Start Guide](docs/QuickStart.md)
 #### [Useful Features](docs/Features.md)
+#### [Flywheel Support](docs/Flywheel.md)
 
 ## Bugs and Feature Requests 
 Let us know about bugs and feature requests through this repo's
