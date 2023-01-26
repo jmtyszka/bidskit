@@ -4,7 +4,7 @@ Flywheel allows export of all DICOM data from a project, subject or session from
 The data exports to an uncompressed tar archive (*tarball*) with the following example folder organization:
 
 ```
-flywheel
+flywheel or scitran
 └── odoherty
     └── OLEL
         └── JOD_OLEL_031

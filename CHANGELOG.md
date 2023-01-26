@@ -1,5 +1,11 @@
 # BIDSKIT Changelog
 
+## Version 2023.1.26
+- Fixed folder name handling for Web vs CLI Flywheel DICOM downloads
+
+## Version 2023.1.12
+- Add support for Flywheel DICOM download curation
+
 ## Version 2022.2.1
 - Added support for complex-valued, bias corrected and multiecho image types
 - Added command line control for rec-, echo- and part- keys in BIDS filenames

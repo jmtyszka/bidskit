@@ -36,7 +36,7 @@ def unpack(dataset_dir):
     src_dir = op.join(dataset_dir, 'sourcedata')
     os.makedirs(src_dir, exist_ok=True)
 
-    # Look for one or more flywheel tarballs
+    # Look for one or more flywheel tarballs in the BIDS dataset root folder
     fw_tarball_list = sorted(glob(op.join(dataset_dir, 'flywheel_*.tar')))
 
     if len(fw_tarball_list) < 1:
@@ -50,12 +50,24 @@ def unpack(dataset_dir):
             subprocess.run(['tar', 'xf', tb_fname, '-C', src_dir])
 
             # bidskit uses sourcedata/<SUBJECT>/<SESSION> organization
-            # Flywheel uses sourcedata/flywheel/<GROUP>/<PROJECT>/<SUBJECT>/SESSION>
+            # Flywheel uses sourcedata/<FWDIRNAME>/<GROUP>/<PROJECT>/<SUBJECT>/SESSION>
             # so move <SUBJECT> folder up three levels within sourcedata and
-            # delete sourcedata/flywheel folder tree
+            # delete sourcedata/<FWDIRNAME> folder tree
+            # Currently FWDIRNAME can be either 'flywheel' for web downloads or 'scitran'
+            # for CLI downloads
+
+            # Check for existence of sourcedata/flywheel or sourcedata/scitran folders
+            # following untarring
+            fw_web_dir = op.join(src_dir, 'flywheel')
+            fw_cli_dir = op.join(src_dir, 'scitran')
+            if op.isdir(fw_web_dir):
+                fw_dir = fw_web_dir
+            elif op.isdir(fw_cli_dir):
+                fw_dir = fw_cli_dir
+            else:
+                raise Exception(f'Neither sourcedata/flywheel or sourcedata/scitran exist following tar extraction')
 
             # Assume only one group/project present in sourcedata following tarball unpacking
-            fw_dir = op.join(src_dir, 'flywheel')
             subj_dir_list = sorted(glob(op.join(fw_dir, '*', '*', '*')))
             for subj_dir in subj_dir_list:
                 print(f'  Moving {subj_dir} to {src_dir}')
