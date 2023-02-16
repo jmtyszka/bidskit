@@ -233,7 +233,7 @@ def main():
 
                 # If session subdirs aren't being used, *_ses_dir = *sub_dir
                 # Use an empty ses_prefix with os.path.join to achieve this
-                ses = ''
+                ses_clean = ''
                 ses_prefix = ''
 
             else:
