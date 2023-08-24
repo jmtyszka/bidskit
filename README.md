@@ -1,6 +1,6 @@
 # BIDSKIT
 
-### Version 2023.1.26
+### Version 2023.2.16
 Python utilities for converting from DICOM to BIDS neuroimaging formats.
 
 The *bidskit* console command takes a directory tree containing imaging series from one or more subjects (eg T1w MPRAGE, BOLD EPI, Fieldmaps), converts the imaging data to Nifti-1 format with JSON metadata files (sidecars) and populates a directory tree according to the latest BIDS specification.

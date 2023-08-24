@@ -1,5 +1,8 @@
 # BIDSKIT Changelog
 
+## Version 2023.2.16
+- Fixed ses_clean error with --no-sessions
+
 ## Version 2023.1.26
 - Fixed folder name handling for Web vs CLI Flywheel DICOM downloads
 
