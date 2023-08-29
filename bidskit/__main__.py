@@ -63,12 +63,15 @@ def main():
     parser.add_argument('--no-anon', action='store_true', default=False,
                         help='Do not anonymize BIDS output (eg for phantom data)')
 
+    parser.add_argument('--ignore', action='store_true', default=False,
+                        help='Ignore derived, localizer and 2D images')
+
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Overwrite existing files')
 
     parser.add_argument('--skip-if-pruning', action='store_true', default=False,
                         help='Skip pruning of nonexistent IntendedFor items in json files')
-    
+
     parser.add_argument('--clean-conv-dir', action='store_true', default=False,
                         help='Clean up conversion directory')
 
@@ -102,6 +105,7 @@ def main():
     subject_list = args.subjects
     no_sessions = args.no_sessions
     no_anon = args.no_anon
+    ignore = args.ignore
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
     gzip_type = args.compression.lower()
@@ -275,10 +279,15 @@ def main():
                 # BIDS anonymization flag - default 'y'
                 anon = 'n' if no_anon else 'y'
 
+                # dcm2niix flag for ignoring derived (e.g, dwi FA, TRACEW, etc),
+                # localizer and 2D images
+                do_ignore = 'y' if ignore else 'n'
+
                 # Compose command
                 cmd = ['dcm2niix',
                        '-b', 'y',  # Create BIDS JSON sidecar
                        '-ba', anon,
+                       '-i', do_ignore,
                        '-z', gzip_type,
                        '-w', '1',  # Overwrite existing files in work/
                        '-f', '%n--%d--s%s--e%e',
