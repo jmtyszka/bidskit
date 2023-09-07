@@ -35,7 +35,7 @@ import os
 import sys
 import argparse
 import subprocess
-import pkg_resources
+from importlib.metadata import version
 from glob import glob
 
 from . import io as bio
@@ -51,53 +51,85 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
 
-    parser.add_argument('-d', '--dataset', default='.',
-                        help='BIDS dataset directory containing sourcedata subdirectory')
+    parser.add_argument(
+        '-d', '--dataset', default='.',
+        help='BIDS dataset directory containing sourcedata subdirectory'
+    )
 
-    parser.add_argument('-subj', '--subjects', nargs='+', default=[],
-                        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
+    parser.add_argument(
+        '-subj', '--subjects', nargs='+', default=[],
+        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)'
+    )
 
-    parser.add_argument('-sess', '--sessions', nargs='+', default=[],
-                        help='List of session IDs to convert (eg --sessions pre 1 2)')
+    parser.add_argument(
+        '-sess', '--sessions', nargs='+', default=[],
+        help='List of session IDs to convert (eg --sessions pre 1 2)'
+    )
 
-    parser.add_argument('--no-sessions', action='store_true', default=False,
-                        help='Do not use session sub-directories')
+    parser.add_argument(
+        '--no-sessions', action='store_true', default=False,
+        help='Do not use session sub-directories'
+    )
 
-    parser.add_argument('--no-anon', action='store_true', default=False,
-                        help='Do not anonymize BIDS output (eg for phantom data)')
+    parser.add_argument(
+        '--no-anon', action='store_true', default=False,
+        help='Do not anonymize BIDS output (eg for phantom data)'
+    )
 
-    parser.add_argument('--overwrite', action='store_true', default=False,
-                        help='Overwrite existing files')
+    parser.add_argument(
+        '--overwrite', action='store_true', default=False,
+        help='Overwrite existing files'
+    )
 
-    parser.add_argument('--skip-if-pruning', action='store_true', default=False,
-                        help='Skip pruning of nonexistent IntendedFor items in json files')
+    parser.add_argument(
+        '--skip-if-pruning', action='store_true', default=False,
+        help='Skip pruning of nonexistent IntendedFor items in json files'
+    )
     
-    parser.add_argument('--clean-conv-dir', action='store_true', default=False,
-                        help='Clean up conversion directory')
+    parser.add_argument(
+        '--clean-conv-dir', action='store_true', default=False,
+        help='Clean up conversion directory'
+    )
 
-    parser.add_argument('--bind-fmaps', action='store_true', default=False,
-                        help='Bind fieldmaps to fMRI series using IntendedFor field')
+    parser.add_argument(
+        '--bind-fmaps', action='store_true', default=False,
+        help='Bind fieldmaps to fMRI series using IntendedFor field'
+    )
 
-    parser.add_argument('--compression', required=False, default='o',
-                        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]')
+    parser.add_argument(
+        '--compression', required=False, default='o',
+        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]'
+    )
 
-    parser.add_argument('--recon', action='store_true', default=False,
-                        help='Add recon- key to output filenames for bias- and distortion-corrected images')
+    parser.add_argument(
+        '--recon', action='store_true', default=False,
+        help='Add recon- key to output filenames for bias- and distortion-corrected images'
+    )
 
-    parser.add_argument('--complex', action='store_true', default=False,
-                        help='Add part- key to output filenames for complex-valued images')
+    parser.add_argument(
+        '--complex', action='store_true', default=False,
+        help='Add part- key to output filenames for complex-valued images'
+    )
 
-    parser.add_argument('--multiecho', action='store_true', default=False,
-                        help='Add echo- key to output filenames')
+    parser.add_argument(
+        '--multiecho', action='store_true', default=False,
+        help='Add echo- key to output filenames'
+    )
 
-    parser.add_argument('--auto', action='store_true', default=False,
-                        help='Automatically generate protocol translator from series descriptions and sequence parameters')
+    parser.add_argument(
+        '--auto', action='store_true', default=False,
+        help='Automatically generate protocol translator from series descriptions and sequence parameters'
+    )
 
-    parser.add_argument('-fw', '--flywheel', action='store_true', default=False,
-                        help='Curate Flywheel DICOM zip archives in top level of BIDS folder')
+    parser.add_argument(
+        '-fw', '--flywheel', action='store_true', default=False,
+        help='Curate Flywheel DICOM zip archives in top level of BIDS folder'
+    )
 
-    parser.add_argument('-V', '--version', action='store_true', default=False,
-                        help='Display bidskit version number and exit')
+    parser.add_argument(
+        '-V', '--version', action='store_true', default=False,
+        help='Display bidskit version number and exit'
+    )
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -122,7 +154,7 @@ def main():
     }
 
     # Read installed version number
-    ver = pkg_resources.get_distribution('bidskit').version
+    ver = version('bidskit')
 
     if args.version:
         print('BIDSKIT {}'.format(ver))
@@ -133,9 +165,9 @@ def main():
     print('BIDSKIT {}'.format(ver))
     print('------------------------------------------------------------')
 
-    # Special handling for Flywheel DICOM tarballs
+    # Special handling for Flywheel DICOM zip archives
     if args.flywheel:
-        print(f'Flywheel DICOM tarball processing')
+        print(f'Flywheel DICOM zip archive processing')
         flywheel.unpack(dataset_dir)
 
     if not os.path.isdir(os.path.join(dataset_dir, 'sourcedata')):
@@ -322,8 +354,7 @@ def main():
 
     if not args.skip_if_pruning:
 
-        print('')
-        print('Subject directories to prune:  ' + ', '.join(out_subj_dir_list))
+        print('Subject directories tagged for IntendedFor pruning:  ' + ', '.join(out_subj_dir_list))
 
         for bids_subj_dir in out_subj_dir_list:
             fmaps.prune_intendedfors(bids_subj_dir, True)

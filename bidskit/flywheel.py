@@ -41,7 +41,7 @@ def unpack(dataset_dir):
     fw_zip_list = sorted(glob(op.join(dataset_dir, '*.zip')))
 
     if len(fw_zip_list) < 1:
-        print(f'* No Flywheel DICOM tarballs found in {dataset_dir} - exiting')
+        print(f'* No Flywheel DICOM zip archives found in {dataset_dir} - exiting')
     else:
 
         for zip_fname in fw_zip_list:
@@ -68,7 +68,7 @@ def unpack(dataset_dir):
             else:
                 raise Exception(f'Neither sourcedata/flywheel or sourcedata/scitran exist following tar extraction')
 
-            # Assume only one group/project present in sourcedata following tarball unpacking
+            # Assume only one group/project present in sourcedata following unzipping
             subj_dir_list = sorted(glob(op.join(fw_dir, '*', '*', '*')))
             for subj_dir in subj_dir_list:
                 print(f'  Moving {subj_dir} to {src_dir}')

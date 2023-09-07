@@ -1,5 +1,8 @@
 # BIDSKIT Changelog
 
+## Version 2023.8.25
+- Update Flywheel option to autodetect new .zip download archives
+
 ## Version 2023.2.16
 - Fixed ses_clean error with --no-sessions
 
