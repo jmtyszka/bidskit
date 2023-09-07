@@ -1,7 +1,7 @@
 ## Flywheel Export Support
 
-Flywheel allows export of all DICOM data from a project, subject or session from the web interface.  
-The data exports to an uncompressed tar archive (*tarball*) with the following example folder organization:
+Flywheel allows export of DICOM data from a project, subject or session from the web interface.  
+The most common download format is as a ZIP archive with the following internal structure:
 
 ```
 flywheel or scitran
@@ -33,9 +33,9 @@ flywheel or scitran
 ```
 Single DICOM series are uncompressed, but series containing more than one DICOM image file are ZIP compressed.
 
-## BIDSKIT curation of Flywheel tarballs
+## BIDSKIT curation of Flywheel DICOM zip archives
 
-1. Create a BIDS dataset directory and move or copy all Flywheel DICOM tarballs to this directory
+1. Create a BIDS dataset directory and move or copy all Flywheel DICOM zip archives to this directory
 2. Run bidskit from this directory with the --flywheel command line option to unpack the tarballs into the `sourcedata`
 folder and build the template BIDS files and folders (Phase 1)
 ```
@@ -46,4 +46,4 @@ $ bidskit --flywheel <other command line arguments>
 ```
 $ bidskit <other command line arguments>
 ```
-5. Delete the original Flywheel tarball
+5. Delete or move the original Flywheel zip archives
