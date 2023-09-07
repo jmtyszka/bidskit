@@ -32,10 +32,11 @@ SOFTWARE.
 """
 
 import os
+import os.path as op
 import sys
 import argparse
 import subprocess
-import pkg_resources
+from importlib.metadata import version
 from glob import glob
 
 from . import io as bio
@@ -51,55 +52,91 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
 
-    parser.add_argument('-d', '--dataset', default='.',
-                        help='BIDS dataset directory containing sourcedata subdirectory')
+    parser.add_argument(
+        '-d', '--dataset', default='.',
+        help='BIDS dataset directory containing sourcedata subdirectory'
+    )
 
-    parser.add_argument('-s', '--subjects', nargs='+', default=[],
-                        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
+    parser.add_argument(
+        '-subj', '--subjects', nargs='+', default=[],
+        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)'
+    )
 
-    parser.add_argument('--no-sessions', action='store_true', default=False,
-                        help='Do not use session sub-directories')
+    parser.add_argument(
+        '-sess', '--sessions', nargs='+', default=[],
+        help='List of session IDs to convert (eg --sessions pre 1 2)'
+    )
 
-    parser.add_argument('--no-anon', action='store_true', default=False,
-                        help='Do not anonymize BIDS output (eg for phantom data)')
+    parser.add_argument(
+        '--no-sessions', action='store_true', default=False,
+        help='Do not use session sub-directories'
+    )
 
-    parser.add_argument('--overwrite', action='store_true', default=False,
-                        help='Overwrite existing files')
+    parser.add_argument(
+        '--no-anon', action='store_true', default=False,
+        help='Do not anonymize BIDS output (eg for phantom data)'
+    )
 
-    parser.add_argument('--skip-if-pruning', action='store_true', default=False,
-                        help='Skip pruning of nonexistent IntendedFor items in json files')
+    parser.add_argument(
+        '--overwrite', action='store_true', default=False,
+        help='Overwrite existing files'
+    )
+
+    parser.add_argument(
+        '--skip-if-pruning', action='store_true', default=False,
+        help='Skip pruning of nonexistent IntendedFor items in json files'
+    )
     
-    parser.add_argument('--clean-conv-dir', action='store_true', default=False,
-                        help='Clean up conversion directory')
+    parser.add_argument(
+        '--clean-conv-dir', action='store_true', default=False,
+        help='Clean up conversion directory'
+    )
 
-    parser.add_argument('--bind-fmaps', action='store_true', default=False,
-                        help='Bind fieldmaps to fMRI series using IntendedFor field')
+    parser.add_argument(
+        '--bind-fmaps', action='store_true', default=False,
+        help='Bind fieldmaps to fMRI series using IntendedFor field'
+    )
 
-    parser.add_argument('--compression', required=False, default='o',
-                        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]')
+    parser.add_argument(
+        '--compression', required=False, default='o',
+        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]'
+    )
 
-    parser.add_argument('--recon', action='store_true', default=False,
-                        help='Add recon- key to output filenames for bias- and distortion-corrected images')
+    parser.add_argument(
+        '--recon', action='store_true', default=False,
+        help='Add recon- key to output filenames for bias- and distortion-corrected images'
+    )
 
-    parser.add_argument('--complex', action='store_true', default=False,
-                        help='Add part- key to output filenames for complex-valued images')
+    parser.add_argument(
+        '--complex', action='store_true', default=False,
+        help='Add part- key to output filenames for complex-valued images'
+    )
 
-    parser.add_argument('--multiecho', action='store_true', default=False,
-                        help='Add echo- key to output filenames')
+    parser.add_argument(
+        '--multiecho', action='store_true', default=False,
+        help='Add echo- key to output filenames'
+    )
 
-    parser.add_argument('--auto', action='store_true', default=False,
-                        help='Automatically generate protocol translator from series descriptions and sequence parameters')
+    parser.add_argument(
+        '--auto', action='store_true', default=False,
+        help='Automatically generate protocol translator from series descriptions and sequence parameters'
+    )
 
-    parser.add_argument('-fw', '--flywheel', action='store_true', default=False,
-                        help='Curate Flywheel DICOM tarballs in top level of BIDS folder')
+    parser.add_argument(
+        '-fw', '--flywheel', action='store_true', default=False,
+        help='Curate Flywheel DICOM zip archives in top level of BIDS folder'
+    )
 
-    parser.add_argument('-V', '--version', action='store_true', default=False,
-                        help='Display bidskit version number and exit')
+    parser.add_argument(
+        '-V', '--version', action='store_true', default=False,
+        help='Display bidskit version number and exit'
+    )
 
     # Parse command line arguments
     args = parser.parse_args()
-    dataset_dir = os.path.realpath(args.dataset)
+    dataset_dir = op.realpath(args.dataset)
     subject_list = args.subjects
+    session_list = args.sessions
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
@@ -118,7 +155,7 @@ def main():
     }
 
     # Read installed version number
-    ver = pkg_resources.get_distribution('bidskit').version
+    ver = version('bidskit')
 
     if args.version:
         print('BIDSKIT {}'.format(ver))
@@ -129,12 +166,12 @@ def main():
     print('BIDSKIT {}'.format(ver))
     print('------------------------------------------------------------')
 
-    # Special handling for Flywheel DICOM tarballs
+    # Special handling for Flywheel DICOM zip archives
     if args.flywheel:
-        print(f'Flywheel DICOM tarball processing')
+        print(f'Flywheel DICOM zip archive processing')
         flywheel.unpack(dataset_dir)
 
-    if not os.path.isdir(os.path.join(dataset_dir, 'sourcedata')):
+    if not op.isdir(op.join(dataset_dir, 'sourcedata')):
         print(f'* sourcedata folder not found in {dataset_dir}')
         print('* bidskit expects this folder to exist and contain DICOM series')
         print('* Please see the bidskit documentation at')
@@ -173,7 +210,7 @@ def main():
     # This template should be completed by the user and the conversion rerun.
     translator = btree.read_translator()
 
-    if translator and os.path.isdir(btree.work_dir):
+    if translator and op.isdir(btree.work_dir):
 
         print('')
         print('------------------------------------------------------------')
@@ -210,21 +247,29 @@ def main():
         print('------------------------------------------------------------')
 
         # Full path to subject directory in sourcedata/
-        src_subj_dir = os.path.realpath(os.path.join(btree.sourcedata_dir, sid))
+        src_subj_dir = op.realpath(op.join(btree.sourcedata_dir, sid))
 
         # BIDS-compliant subject ID with prefix
         sid_clean = sid.replace('-', '').replace('_', '')
         subj_prefix = f'sub-{sid_clean:s}'
 
         # Add full path to subject output directory to running list
-        out_subj_dir_list.append(os.path.join(dataset_dir, subj_prefix))
+        out_subj_dir_list.append(op.join(dataset_dir, subj_prefix))
 
         # Create list of DICOM directories to convert
         # This will be either a session or series folder list depending on no-sessions command line flag
         if no_sessions:
+
             dcm_dir_list = [src_subj_dir]
+
         else:
-            dcm_dir_list = sorted(glob(os.path.join(src_subj_dir, '*')))
+
+            # Use list of session IDs in place of DICOM folder list if provided
+            if len(session_list) > 0:
+                dcm_dir_list = [op.join(src_subj_dir, sid) for sid in session_list]
+            else:
+                # Get list of DICOM session-level folders for this subject
+                dcm_dir_list = sorted(glob(op.join(src_subj_dir, '*')))
 
         # Loop over DICOM directories in subject directory
         for dcm_dir in dcm_dir_list:
@@ -232,25 +277,25 @@ def main():
             if no_sessions:
 
                 # If session subdirs aren't being used, *_ses_dir = *sub_dir
-                # Use an empty ses_prefix with os.path.join to achieve this
+                # Use an empty ses_prefix with op.join to achieve this
                 ses_clean = ''
                 ses_prefix = ''
 
             else:
 
-                ses = os.path.basename(os.path.realpath(dcm_dir))
+                ses = op.basename(op.realpath(dcm_dir))
                 ses_clean = ses.replace('-', '').replace('_', '')
 
                 ses_prefix = f'ses-{ses_clean:s}'
-                print(f'  Processing session {ses}')
+                print(f'\n  Processing session {ses}')
 
             # Working conversion directories
-            work_subj_dir = os.path.join(btree.work_dir, subj_prefix)
-            work_conv_dir = os.path.join(work_subj_dir, ses_prefix)
+            work_subj_dir = op.join(btree.work_dir, subj_prefix)
+            work_conv_dir = op.join(work_subj_dir, ses_prefix)
 
             # BIDS source directory directories
-            bids_subj_dir = os.path.join(dataset_dir, subj_prefix)
-            bids_ses_dir = os.path.join(bids_subj_dir, ses_prefix)
+            bids_subj_dir = op.join(dataset_dir, subj_prefix)
+            bids_ses_dir = op.join(bids_subj_dir, ses_prefix)
 
             print('  Working subject directory : %s' % work_subj_dir)
             if not no_sessions:
@@ -261,7 +306,7 @@ def main():
 
             # Safely create working directory for current subject
             # Flag for conversion if no working directory exists
-            if not os.path.isdir(work_conv_dir):
+            if not op.isdir(work_conv_dir):
                 os.makedirs(work_conv_dir)
                 needs_converting = True
             else:
@@ -318,8 +363,7 @@ def main():
 
     if not args.skip_if_pruning:
 
-        print('')
-        print('Subject directories to prune:  ' + ', '.join(out_subj_dir_list))
+        print('Subject directories tagged for IntendedFor pruning:  ' + ', '.join(out_subj_dir_list))
 
         for bids_subj_dir in out_subj_dir_list:
             fmaps.prune_intendedfors(bids_subj_dir, True)
@@ -329,7 +373,7 @@ def main():
         if args.bind_fmaps:
 
             print('')
-            print('Binding nearest fieldmap to each functional series')
+            print('Binding fieldmaps to functional runs using IntendedFor JSON field')
             for bids_subj_dir in out_subj_dir_list:
                 fmaps.bind_fmaps(bids_subj_dir, no_sessions, nii_ext)
 
