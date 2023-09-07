@@ -1,5 +1,5 @@
 """
-Flywheel tarball support functions
+Flywheel zip download support functions
 
 MIT License
 
@@ -33,21 +33,22 @@ import shutil
 
 def unpack(dataset_dir):
 
+    # Create a sourcedata folder at the top level
     src_dir = op.join(dataset_dir, 'sourcedata')
     os.makedirs(src_dir, exist_ok=True)
 
-    # Look for one or more flywheel tarballs in the BIDS dataset root folder
-    fw_tarball_list = sorted(glob(op.join(dataset_dir, 'flywheel_*.tar')))
+    # Look for one or more flywheel zip archives at the top level
+    fw_zip_list = sorted(glob(op.join(dataset_dir, '*.zip')))
 
-    if len(fw_tarball_list) < 1:
+    if len(fw_zip_list) < 1:
         print(f'* No Flywheel DICOM tarballs found in {dataset_dir} - exiting')
     else:
 
-        for tb_fname in fw_tarball_list:
+        for zip_fname in fw_zip_list:
 
-            # Untar tarball silently
-            print(f'  Unpacking {tb_fname} to {src_dir}')
-            subprocess.run(['tar', 'xf', tb_fname, '-C', src_dir])
+            # Compress zip archive silently
+            print(f'  Unpacking {zip_fname} to {src_dir}')
+            subprocess.run(['unzip', zip_fname, '-d', src_dir])
 
             # bidskit uses sourcedata/<SUBJECT>/<SESSION> organization
             # Flywheel uses sourcedata/<FWDIRNAME>/<GROUP>/<PROJECT>/<SUBJECT>/SESSION>

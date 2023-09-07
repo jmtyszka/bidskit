@@ -54,8 +54,11 @@ def main():
     parser.add_argument('-d', '--dataset', default='.',
                         help='BIDS dataset directory containing sourcedata subdirectory')
 
-    parser.add_argument('-s', '--subjects', nargs='+', default=[],
+    parser.add_argument('-subj', '--subjects', nargs='+', default=[],
                         help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
+
+    parser.add_argument('-sess', '--sessions', nargs='+', default=[],
+                        help='List of session IDs to convert (eg --sessions pre 1 2)')
 
     parser.add_argument('--no-sessions', action='store_true', default=False,
                         help='Do not use session sub-directories')
@@ -91,7 +94,7 @@ def main():
                         help='Automatically generate protocol translator from series descriptions and sequence parameters')
 
     parser.add_argument('-fw', '--flywheel', action='store_true', default=False,
-                        help='Curate Flywheel DICOM tarballs in top level of BIDS folder')
+                        help='Curate Flywheel DICOM zip archives in top level of BIDS folder')
 
     parser.add_argument('-V', '--version', action='store_true', default=False,
                         help='Display bidskit version number and exit')
@@ -100,6 +103,7 @@ def main():
     args = parser.parse_args()
     dataset_dir = os.path.realpath(args.dataset)
     subject_list = args.subjects
+    session_list = args.sessions
     no_sessions = args.no_sessions
     no_anon = args.no_anon
     overwrite = args.overwrite
@@ -329,7 +333,7 @@ def main():
         if args.bind_fmaps:
 
             print('')
-            print('Binding nearest fieldmap to each functional series')
+            print('Binding fieldmaps to functional runs using IntendedFor JSON field')
             for bids_subj_dir in out_subj_dir_list:
                 fmaps.bind_fmaps(bids_subj_dir, no_sessions, nii_ext)
 
