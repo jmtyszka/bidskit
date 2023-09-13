@@ -39,9 +39,15 @@ which controls the conversion of your original MRI series into a BIDS-compliant 
 ### First Pass Conversion
 
 If you're using the Docker image, run the following:
-<pre>
+```bash
 docker run -it -v /PATH_TO_YOUR_DATASET_FOLDER/:/dataset jmtyszka/bidskit bidskit -d /dataset
-</pre>
+```
+For Mac M1 user, build your image with argument `--platform linux/amd64`
+```bash
+# cd to root dir which contains Dockerfile
+docker build --platform linux/amd64 -t bidskit:latest .
+docker run -it -v --name bidskit /PATH_TO_YOUR_DATASET_FOLDER/:/dataset bidskit:latest -d /dataset
+```
 
 If you're running *bidskit* from the shell you can either run *bidskit* without arguments from within the dataset root
 <pre>
