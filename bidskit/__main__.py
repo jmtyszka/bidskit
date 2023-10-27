@@ -52,85 +52,53 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Convert DICOM files to BIDS-compliant Nifty structure')
 
-    parser.add_argument(
-        '-d', '--dataset', default='.',
-        help='BIDS dataset directory containing sourcedata subdirectory'
-    )
+    parser.add_argument('-d', '--dataset', default='.',
+                        help='BIDS dataset directory containing sourcedata subdirectory')
 
-    parser.add_argument(
-        '-subj', '--subjects', nargs='+', default=[],
-        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)'
-    )
+    parser.add_argument('-subj', '--subjects', nargs='+', default=[],
+                        help='List of subject IDs to convert (eg --subjects alpha bravo charlie)')
 
-    parser.add_argument(
-        '-sess', '--sessions', nargs='+', default=[],
-        help='List of session IDs to convert (eg --sessions pre 1 2)'
-    )
+    parser.add_argument('--no-sessions', action='store_true', default=False,
+                        help='Do not use session sub-directories')
 
-    parser.add_argument(
-        '--no-sessions', action='store_true', default=False,
-        help='Do not use session sub-directories'
-    )
+    parser.add_argument('--no-anon', action='store_true', default=False,
+                        help='Do not anonymize BIDS output (eg for phantom data)')
 
-    parser.add_argument(
-        '--no-anon', action='store_true', default=False,
-        help='Do not anonymize BIDS output (eg for phantom data)'
-    )
+    parser.add_argument('--ignore', action='store_true', default=False,
+                        help='Ignore derived, localizer and 2D images')
 
-    parser.add_argument(
-        '--overwrite', action='store_true', default=False,
-        help='Overwrite existing files'
-    )
+    parser.add_argument('--overwrite', action='store_true', default=False,
+                        help='Overwrite existing files')
 
-    parser.add_argument(
-        '--skip-if-pruning', action='store_true', default=False,
-        help='Skip pruning of nonexistent IntendedFor items in json files'
-    )
-    
-    parser.add_argument(
-        '--clean-conv-dir', action='store_true', default=False,
-        help='Clean up conversion directory'
-    )
+    parser.add_argument('--skip-if-pruning', action='store_true', default=False,
+                        help='Skip pruning of nonexistent IntendedFor items in json files')
 
-    parser.add_argument(
-        '--bind-fmaps', action='store_true', default=False,
-        help='Bind fieldmaps to fMRI series using IntendedFor field'
-    )
+    parser.add_argument('--clean-conv-dir', action='store_true', default=False,
+                        help='Clean up conversion directory')
 
-    parser.add_argument(
-        '--compression', required=False, default='o',
-        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]'
-    )
+    parser.add_argument('--bind-fmaps', action='store_true', default=False,
+                        help='Bind fieldmaps to fMRI series using IntendedFor field')
 
-    parser.add_argument(
-        '--recon', action='store_true', default=False,
-        help='Add recon- key to output filenames for bias- and distortion-corrected images'
-    )
+    parser.add_argument('--compression', required=False, default='o',
+                        help='gzip compression flag for dcm2niix (y, o, i, n, 3 depending on dcm2niix version) [o]')
 
-    parser.add_argument(
-        '--complex', action='store_true', default=False,
-        help='Add part- key to output filenames for complex-valued images'
-    )
+    parser.add_argument('--recon', action='store_true', default=False,
+                        help='Add recon- key to output filenames for bias- and distortion-corrected images')
 
-    parser.add_argument(
-        '--multiecho', action='store_true', default=False,
-        help='Add echo- key to output filenames'
-    )
+    parser.add_argument('--complex', action='store_true', default=False,
+                        help='Add part- key to output filenames for complex-valued images')
 
-    parser.add_argument(
-        '--auto', action='store_true', default=False,
-        help='Automatically generate protocol translator from series descriptions and sequence parameters'
-    )
+    parser.add_argument('--multiecho', action='store_true', default=False,
+                        help='Add echo- key to output filenames')
 
-    parser.add_argument(
-        '-fw', '--flywheel', action='store_true', default=False,
-        help='Curate Flywheel DICOM zip archives in top level of BIDS folder'
-    )
+    parser.add_argument('--auto', action='store_true', default=False,
+                        help='Automatically generate protocol translator from series descriptions and sequence parameters')
 
-    parser.add_argument(
-        '-V', '--version', action='store_true', default=False,
-        help='Display bidskit version number and exit'
-    )
+    parser.add_argument('-fw', '--flywheel', action='store_true', default=False,
+                        help='Curate Flywheel DICOM tarballs in top level of BIDS folder')
+
+    parser.add_argument('-V', '--version', action='store_true', default=False,
+                        help='Display bidskit version number and exit')
 
     # Parse command line arguments
     args = parser.parse_args()
@@ -139,6 +107,7 @@ def main():
     session_list = args.sessions
     no_sessions = args.no_sessions
     no_anon = args.no_anon
+    ignore = args.ignore
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
     gzip_type = args.compression.lower()
@@ -320,10 +289,15 @@ def main():
                 # BIDS anonymization flag - default 'y'
                 anon = 'n' if no_anon else 'y'
 
+                # dcm2niix flag for ignoring derived (e.g, dwi FA, TRACEW, etc),
+                # localizer and 2D images
+                do_ignore = 'y' if ignore else 'n'
+
                 # Compose command
                 cmd = ['dcm2niix',
                        '-b', 'y',  # Create BIDS JSON sidecar
                        '-ba', anon,
+                       '-i', do_ignore,
                        '-z', gzip_type,
                        '-w', '1',  # Overwrite existing files in work/
                        '-f', '%n--%d--s%s--e%e',
