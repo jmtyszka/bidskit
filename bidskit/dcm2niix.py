@@ -31,7 +31,7 @@ from glob import glob
 from . import io as bio
 from . import translate as tr
 from . import fmaps
-from .json import (acqtime_mins)
+from .bidsjson import (acqtime_mins)
 
 
 def ordered_file_list(conv_dir, nii_ext):

@@ -29,7 +29,7 @@ from glob import glob
 from . import io as bio
 from . import dcm2niix as d2n
 from . import translate as tr
-from .json import (acqtime_mins)
+from .bidsjson import (acqtime_mins)
 
 
 def bind_fmaps(bids_subj_dir, no_sessions, nii_ext):
