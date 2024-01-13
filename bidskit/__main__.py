@@ -57,11 +57,13 @@ def main():
         help='BIDS dataset directory containing sourcedata subdirectory'
     )
 
+    # Add individual subject handling
     parser.add_argument(
         '-subj', '--subjects', nargs='+', default=[],
         help='List of subject IDs to convert (eg --subjects alpha bravo charlie)'
     )
 
+    # Allow individual session processing
     parser.add_argument(
         '-sess', '--sessions', nargs='+', default=[],
         help='List of session IDs to convert (eg --sessions pre 1 2)'
