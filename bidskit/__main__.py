@@ -57,26 +57,24 @@ def main():
         help='BIDS dataset directory containing sourcedata subdirectory'
     )
 
-    # Add individual subject handling
     parser.add_argument(
         '-subj', '--subjects', nargs='+', default=[],
         help='List of subject IDs to convert (eg --subjects alpha bravo charlie)'
     )
 
-    # Allow individual session processing
     parser.add_argument(
         '-sess', '--sessions', nargs='+', default=[],
         help='List of session IDs to convert (eg --sessions pre 1 2)'
     )
 
     parser.add_argument(
-        '--no-sessions', action='store_true', default=False,
-        help='Do not use session sub-directories'
+        '--no-anon', action='store_true', default=False,
+        help='Do not anonymize BIDS output (eg for phantom data)'
     )
 
     parser.add_argument(
-        '--no-anon', action='store_true', default=False,
-        help='Do not anonymize BIDS output (eg for phantom data)'
+        '--ignore', action='store_true', default=False,
+        help='Ignore derived, localizer and 2D images'
     )
 
     parser.add_argument(
@@ -141,6 +139,7 @@ def main():
     session_list = args.sessions
     no_sessions = args.no_sessions
     no_anon = args.no_anon
+    ignore = args.ignore
     overwrite = args.overwrite
     bind_fmaps = args.bind_fmaps
     gzip_type = args.compression.lower()
@@ -322,10 +321,15 @@ def main():
                 # BIDS anonymization flag - default 'y'
                 anon = 'n' if no_anon else 'y'
 
+                # dcm2niix flag for ignoring derived (e.g, dwi FA, TRACEW, etc),
+                # localizer and 2D images
+                do_ignore = 'y' if ignore else 'n'
+
                 # Compose command
                 cmd = ['dcm2niix',
                        '-b', 'y',  # Create BIDS JSON sidecar
                        '-ba', anon,
+                       '-i', do_ignore,
                        '-z', gzip_type,
                        '-w', '1',  # Overwrite existing files in work/
                        '-f', '%n--%d--s%s--e%e',

@@ -39,25 +39,30 @@ which controls the conversion of your original MRI series into a BIDS-compliant 
 ### First Pass Conversion
 
 If you're using the Docker image, run the following:
-<pre>
+```bash
 docker run -it -v /PATH_TO_YOUR_DATASET_FOLDER/:/dataset jmtyszka/bidskit bidskit -d /dataset
-</pre>
+```
+For Mac M1 user, build your image with argument `--platform linux/amd64`
+```bash
+# cd to root dir which contains Dockerfile
+docker build --platform linux/amd64 -t bidskit:latest .
+docker run -it -v --name bidskit /PATH_TO_YOUR_DATASET_FOLDER/:/dataset bidskit:latest -d /dataset
+```
 
-If you're running *bidskit* from the shell you can either run *bidskit* without arguments from within the dataset root
-<pre>
-% cd /PATH_TO_YOUR_DATASET_FOLDER/
-% bidskit
-</pre>
+If you're running *bidskit* from the shell you can either run *bidskit* without arguments from within the `/dataset` root
+```bash
+cd /PATH_TO_YOUR_DATASET_FOLDER/
+bidskit
+```
 
 or from another folder by specifying the BIDS dataset directory
 
-<pre>
-% bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/ 
-</pre>
-
+```bash
+bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/
+```
 
 The first pass conversion constructs a BIDS-compliant directory tree around sourcedata/ with required text files,
-including a translator dictionary (Protocol_Translator.json) in the code/ subdirectory:
+including a translator dictionary (Protocol_Translator.json) in the `code/` subdirectory:
 
 #### BIDS Dataset after First Pass Conversion
 <pre>
@@ -89,9 +94,9 @@ learning_pilot_2019/
 
 #### Conversion without Sessions
 You can omit the use of session subdirectories if you only have one session per subject. Use the --no-sessions command line flag to achieve this (this feature is switched off by default):
-<pre>
-% bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/ --no-sessions
-</pre>
+```bash
+bidskit -d /PATH_TO_YOUR_DATASET_FOLDER/ --no-sessions
+```
 
 ### Editing the Translator Dictionary
 
