@@ -8,8 +8,7 @@ DATES  : 2021-04-07 JMT From scratch
          2021-04-21 JMT Export to single CSV file
 """
 
-import os
-import pandas
+import os.path as op
 import json
 import argparse
 import bids
@@ -20,15 +19,17 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Standardize Conte Core sourcedata series folder names")
-    parser.add_argument('-d', '--bidsdir', required=False, default="/data2/conte",
+    parser.add_argument('-d', '--bidsdir', required=False, default=".",
         help="Conte Core BIDS directory ['/data2/conte']")
-    parser.add_argument('-o', '--outcsv', required=False, default="bids_metadata.csv",
+    parser.add_argument('-o', '--outcsv', required=False, default="bidsmeta.csv",
         help="Output metadata CSV filename ['bids_metadata.csv']")
 
-    args = parser.parse_args() 
+    args = parser.parse_args()
+
+    bids_dir = op.realpath(args.bidsdir)
 
     # Loop over all JSON files in the BIDS tree
-    json_list = sorted(glob(os.path.join(args.bidsdir, 'sub-*', 'ses-*', '*', '*.json')))
+    json_list = sorted(glob(op.join(bids_dir, 'sub-*', 'ses-*', '*', '*.json')))
 
     print('Found {} JSON sidecars in {}'.format(len(json_list), args.bidsdir))
 
@@ -37,7 +38,7 @@ def main():
 
     for json_fpath in json_list:
 
-        print(os.path.basename(json_fpath))
+        print(op.basename(json_fpath))
 
         # Parse JSON filename for keys
         keys = bids.layout.parse_file_entities(json_fpath)

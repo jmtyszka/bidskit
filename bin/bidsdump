@@ -4,15 +4,15 @@
 # AUTHOR : Mike Tyszka
 # PLACE  : Caltech
 # DATES  : 2021-05-06 JMT From scratch
+#          2025-05-03 JMT Fix handling of missing fields
 
-import os
+import os.path as op
 import sys
 import argparse
 import json
 import bids
 
 import pandas as pd
-import numpy as np
 import nibabel as nib
 
 from tabulate import tabulate
@@ -24,18 +24,18 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Create table of key BOLD fMRI parameters for a BIDS dataset')
-    parser.add_argument('-d', '--dataset', default='/data2/conte', help='BIDS dataset directory')
+    parser.add_argument('-d', '--dataset', default='.', help='BIDS dataset directory')
     args = parser.parse_args()
 
-    dataset_dir = os.path.realpath(args.dataset)
+    bids_dir = op.realpath(args.dataset)
 
     print('')
     print('BIDS BOLD Parameter Table')
     print('-------------------------')
-    print('BIDS dataset directory : {}'.format(dataset_dir))
+    print('BIDS dataset directory : {}'.format(bids_dir))
 
     print('Searching for BOLD fMRI images')
-    bold_json_list = sorted(glob(os.path.join(dataset_dir, 'sub-*', 'ses-*', 'func', '*_bold.json')))
+    bold_json_list = sorted(glob(op.join(bids_dir, 'sub-*', 'ses-*', 'func', '*_bold.json')))
 
     if len(bold_json_list) < 1:
         print('* No BOLD fMRI images found - exiting')
@@ -45,10 +45,10 @@ def main():
     
     for bold_json_path in bold_json_list:
 
-        bold_dir = os.path.dirname(bold_json_path)
-        bold_json_fname = os.path.basename(bold_json_path)
+        bold_dir = op.dirname(bold_json_path)
+        bold_json_fname = op.basename(bold_json_path)
         bold_nii_fname = bold_json_fname.replace('.json', '.nii.gz')
-        bold_nii_path = os.path.join(bold_dir, bold_nii_fname)
+        bold_nii_path = op.join(bold_dir, bold_nii_fname)
 
         print('  Processing {}'.format(bold_nii_fname))
 
@@ -78,6 +78,14 @@ def main():
             m = meta['MultibandAccelerationFactor']
         else:
             m = 1
+
+        # Handle commonly absent fields
+        if not 'session' in keys:
+            keys['session'] = '-'
+        if not 'task' in keys:
+            keys['task'] = '-'
+        if not 'run' in keys:
+            keys['run'] = 1
 
         # Add to running list
         bold_info_list.append([
@@ -112,14 +120,14 @@ def main():
         ]
     )
 
-    csv_fname = 'BIDS_BOLD_Info.csv'
+    csv_fname = op.join(bids_dir, 'bidsdump.csv')
     print('')
     print('Saving BIDS BOLD info to {}'.format(csv_fname))
     df.to_csv(csv_fname, index=False)
 
     # Pretty print dataframe as a table to stdout
-    # print('')
-    # print(tabulate(df, headers = 'keys', tablefmt = 'pretty'))
+    print('')
+    print(tabulate(df, headers='keys', tablefmt='pretty'))
 
 
 if "__main__" in __name__:
