@@ -1,5 +1,11 @@
 # BIDSKIT Changelog
 
+## Version 2024.5.4
+- Add bidsdump and bidsmeta utility commands to bin/ folder
+
+## Version 2024.1.12
+- Fix sessions argument handling
+
 ## Version 2023.8.25
 - Update Flywheel option to autodetect new .zip download archives
 

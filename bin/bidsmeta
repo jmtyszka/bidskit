@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+"""
+Compile metadata fields from all JSON sidecars in a BIDS tree into a single metadata CSV file
+
+AUTHOR : Mike Tyszka
+PLACE  : Caltech Brain Imaging Center
+DATES  : 2021-04-07 JMT From scratch
+         2021-04-21 JMT Export to single CSV file
+"""
+
+import os
+import pandas
+import json
+import argparse
+import bids
+import pandas as pd
+from glob import glob
+
+def main():
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Standardize Conte Core sourcedata series folder names")
+    parser.add_argument('-d', '--bidsdir', required=False, default="/data2/conte",
+        help="Conte Core BIDS directory ['/data2/conte']")
+    parser.add_argument('-o', '--outcsv', required=False, default="bids_metadata.csv",
+        help="Output metadata CSV filename ['bids_metadata.csv']")
+
+    args = parser.parse_args() 
+
+    # Loop over all JSON files in the BIDS tree
+    json_list = sorted(glob(os.path.join(args.bidsdir, 'sub-*', 'ses-*', '*', '*.json')))
+
+    print('Found {} JSON sidecars in {}'.format(len(json_list), args.bidsdir))
+
+    # Init list of metadata dictionaries
+    meta_list = []
+
+    for json_fpath in json_list:
+
+        print(os.path.basename(json_fpath))
+
+        # Parse JSON filename for keys
+        keys = bids.layout.parse_file_entities(json_fpath)
+
+        # Load metadata dictionary from sidecar
+        with open(json_fpath) as fd:
+            this_meta = json.load(fd)
+
+        # Merge BIDS keys into metadata
+        this_meta.update(keys)
+
+        # Add to list
+        meta_list.append(this_meta)
+
+    # Convert to dataframe
+    df = pd.DataFrame(meta_list)
+
+    print('')
+    print('Exporting combined metadata to {}'.format(args.outcsv))
+    df.to_csv(args.outcsv, index=False)
+
+
+if "__main__" in __name__:
+
+    main()

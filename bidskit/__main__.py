@@ -68,6 +68,11 @@ def main():
     )
 
     parser.add_argument(
+        '--no-sessions', action='store_true', default=False,
+        help='Do not use session sub-directories'
+    )
+
+    parser.add_argument(
         '--no-anon', action='store_true', default=False,
         help='Do not anonymize BIDS output (eg for phantom data)'
     )
