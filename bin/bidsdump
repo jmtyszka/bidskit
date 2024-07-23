@@ -4,19 +4,17 @@
 # AUTHOR : Mike Tyszka
 # PLACE  : Caltech
 # DATES  : 2021-05-06 JMT From scratch
-#          2025-05-03 JMT Fix handling of missing fields
+#          2024-05-03 JMT Fix handling of missing fields
+#          2024-07-11 JMT Expand from just BOLD series to all series types
 
 import os.path as op
 import sys
 import argparse
 import json
 import bids
-
 import pandas as pd
 import nibabel as nib
-
 from tabulate import tabulate
-
 from glob import glob
 
 
@@ -30,42 +28,46 @@ def main():
     bids_dir = op.realpath(args.dataset)
 
     print('')
-    print('BIDS BOLD Parameter Table')
+    print('BIDS Simple Parameter Table')
     print('-------------------------')
     print('BIDS dataset directory : {}'.format(bids_dir))
 
-    print('Searching for BOLD fMRI images')
-    bold_json_list = sorted(glob(op.join(bids_dir, 'sub-*', 'ses-*', 'func', '*_bold.json')))
+    print('Searching for series metadata (JSON sidecars)')
+    json_list = sorted(glob(op.join(bids_dir, 'sub-*', 'ses-*', '*', '*.json')))
 
-    if len(bold_json_list) < 1:
-        print('* No BOLD fMRI images found - exiting')
+    if len(json_list) < 1:
+        print('* No metadata found - exiting')
         sys.exit(1)
 
-    bold_info_list = []
+    meta_list = []
     
-    for bold_json_path in bold_json_list:
+    for json_path in json_list:
 
-        bold_dir = op.dirname(bold_json_path)
-        bold_json_fname = op.basename(bold_json_path)
-        bold_nii_fname = bold_json_fname.replace('.json', '.nii.gz')
-        bold_nii_path = op.join(bold_dir, bold_nii_fname)
+        json_dir = op.dirname(json_path)
+        json_fname = op.basename(json_path)
+        nii_fname = json_fname.replace('.json', '.nii.gz')
+        nii_path = op.join(json_dir, nii_fname)
 
-        print('  Processing {}'.format(bold_nii_fname))
+        print('  Processing {}'.format(nii_fname))
 
         # Load Nifti header
-        bold_nii = nib.load(bold_nii_path)
-        bold_hdr = bold_nii.header
+        nii = nib.load(nii_path)
+        hdr = nii.header
 
         # Image dimensions
-        dim = bold_hdr['dim']
-        vox = bold_hdr['pixdim']
+        dim = hdr['dim']
+        vox = hdr['pixdim']
 
         # Parse BIDS filename
-        keys = bids.layout.parse_file_entities(bold_json_path)
+        keys = bids.layout.parse_file_entities(json_path)
 
         # Load JSON metadata
-        with open(bold_json_path, 'r') as fd:
+        with open(json_path, 'r') as fd:
             meta = json.load(fd)
+
+        # Original series number and acquisition time
+        ser_no = meta['SeriesNumber']
+        acq_time = meta['AcquisitionTime']
 
         # In-plane GRAPPA factor if present
         if 'ParallelReductionFactorInPlane' in meta:
@@ -88,8 +90,10 @@ def main():
             keys['run'] = 1
 
         # Add to running list
-        bold_info_list.append([
-            bold_nii_fname,
+        meta_list.append([
+            ser_no,
+            acq_time,
+            nii_fname,
             keys['subject'],
             keys['session'],
             keys['task'],
@@ -104,21 +108,26 @@ def main():
                
     # Convert to dataframe and save as CSV
     df = pd.DataFrame(
-        bold_info_list,
+        meta_list,
         columns=[
-           'Filename',
-           'Subject',
-           'Session',
-           'Task',
-           'Run',
-           'TR_secs',
-           'TE_secs',
-           'FlipAngle_degs',
-           'R', 'M',
-           'nx', 'ny', 'nz', 'nt',
-           'vx_mm', 'vy_mm', 'vz_mm'
+            'SeriesNumber',
+            'AcquisitionTime',
+            'Filename',
+            'Subject',
+            'Session',
+            'Task',
+            'Run',
+            'TR_secs',
+            'TE_secs',
+            'FlipAngle_degs',
+            'R', 'M',
+            'nx', 'ny', 'nz', 'nt',
+            'vx_mm', 'vy_mm', 'vz_mm'
         ]
     )
+
+    # Set row index to SeriesNumber
+    df.sort_values(by='SeriesNumber', inplace=True)
 
     csv_fname = op.join(bids_dir, 'bidsdump.csv')
     print('')
@@ -127,7 +136,7 @@ def main():
 
     # Pretty print dataframe as a table to stdout
     print('')
-    print(tabulate(df, headers='keys', tablefmt='pretty'))
+    print(tabulate(df, headers='keys', tablefmt='github', stralign='left', numalign='decimal', showindex=False))
 
 
 if "__main__" in __name__:
