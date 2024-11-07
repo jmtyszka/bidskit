@@ -319,8 +319,9 @@ def bids_keys_to_filename(keys, dname):
             bids_fname += keys['suffix']
 
     # Remove final trailing '_' (no suffix case)
-    if bids_fname[-1] == '_':
-        bids_fname = bids_fname[:-1]
+    if len(bids_fname) > 0:
+        if bids_fname[-1] == '_':
+            bids_fname = bids_fname[:-1]
 
     if 'extension' in keys:
         bids_fname += keys['extension']
@@ -554,8 +555,9 @@ def auto_translate(info, json_fname=None):
         # Infer BIDS type directory
         bids_dir = 'anat'
         for bids_type in bids_types:
-            if bids_keys['suffix'] in bids_types[bids_type]:
-                bids_dir = bids_type
+            if 'suffix' in bids_keys:
+                if bids_keys['suffix'] in bids_types[bids_type]:
+                    bids_dir = bids_type
 
     # Scrub any illegal characters from BIDS key values (eg "-_.")
     bids_keys = bids_legalize_keys(bids_keys)
