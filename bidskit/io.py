@@ -107,7 +107,7 @@ def dcm_info(dcm_dir):
         for file in files:
 
             try:
-                ds = pydicom.read_file(os.path.join(subdir, file))
+                ds = pydicom.dcmread(os.path.join(subdir, file))
             except Exception as err:
                 # Silently skip problem files in DICOM directory
                 continue

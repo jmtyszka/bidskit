@@ -1,5 +1,11 @@
 # BIDSKIT Changelog
 
+## Version 2024.11.22
+- Fixed pydicom handling of extended DICOM. Credit to Hu Cheng @ Indiana University
+
+## Version 2024.11.7
+- Minor bug fixes for --auto with non-ReproIn series descriptions
+
 ## Version 2024.5.4
 - Add bidsdump and bidsmeta utility commands to bin/ folder
 
