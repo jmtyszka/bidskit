@@ -76,17 +76,16 @@ def unpack(dataset_dir):
                     shutil.move(subj_dir, src_dir)
                 except shutil.Error:
                     print(f'* Subject folder already exists - skipping')
+            
             print(f'  Deleting {fw_dir}')
-
             try:
-                shutil.rmtree(fw_dir)
+                subprocess.run(["rm", "-rf", fw_dir], capture_output=False, text=False)
             except Exception as e:
                 print(f'* Problem deleting {fw_dir}')
                 print(f'* Manual cleanup may be required in sourcedata')
 
             # Find all zip files in unpacked sourcedata folder tree
-
-            zip_list = find_zips(src_dir, ".zip")
+            zip_list = find_zips(src_dir)
 
             print(f"Found {len(zip_list)} zip files within {src_dir}")
             
