@@ -37,7 +37,7 @@ def unpack(dataset_dir):
     src_dir = op.join(dataset_dir, 'sourcedata')
     os.makedirs(src_dir, exist_ok=True)
 
-    # Look for one or more flywheel zip archives at the top level
+    # Look for one or more flywheel zip archives in BIDS root folder
     fw_zip_list = sorted(glob(op.join(dataset_dir, '*.zip')))
 
     if len(fw_zip_list) < 1:
@@ -46,9 +46,9 @@ def unpack(dataset_dir):
 
         for zip_fname in fw_zip_list:
 
-            # Compress zip archive silently
+            # Uncompress zip archive silently
             print(f'  Unpacking {zip_fname} to {src_dir}')
-            subprocess.run(['unzip', zip_fname, '-d', src_dir])
+            subprocess.run(['unzip', '-qq', zip_fname, '-d', src_dir])
 
             # bidskit uses sourcedata/<SUBJECT>/<SESSION> organization
             # Flywheel uses sourcedata/<FWDIRNAME>/<GROUP>/<PROJECT>/<SUBJECT>/SESSION>
@@ -66,7 +66,7 @@ def unpack(dataset_dir):
             elif op.isdir(fw_cli_dir):
                 fw_dir = fw_cli_dir
             else:
-                raise Exception(f'Neither sourcedata/flywheel or sourcedata/scitran exist following tar extraction')
+                raise Exception(f'Neither sourcedata/flywheel or sourcedata/scitran exist following unzipping')
 
             # Assume only one group/project present in sourcedata following unzipping
             subj_dir_list = sorted(glob(op.join(fw_dir, '*', '*', '*')))
@@ -77,14 +77,41 @@ def unpack(dataset_dir):
                 except shutil.Error:
                     print(f'* Subject folder already exists - skipping')
             print(f'  Deleting {fw_dir}')
-            shutil.rmtree(fw_dir)
 
-            # Unzip all session .zip files in place
-            zip_list = sorted(glob(op.join(src_dir, '*', '*', '*', '*.zip')))
-            for zip_fname in zip_list:
+            try:
+                shutil.rmtree(fw_dir)
+            except Exception as e:
+                print(f'* Problem deleting {fw_dir}')
+                print(f'* Manual cleanup may be required in sourcedata')
+
+            # Find all zip files in unpacked sourcedata folder tree
+
+            zip_list = find_zips(src_dir, ".zip")
+
+            print(f"Found {len(zip_list)} zip files within {src_dir}")
+            
+            for zip_pname in zip_list:
+
                 # Unzip silently into the containing folder of the zip file
-                print(f'  Unzipping {zip_fname}')
-                subprocess.run(['unzip', '-qq', zip_fname, '-d', op.dirname(zip_fname)])
+                print(f'  Unzipping {zip_pname}')
+                subprocess.run(['unzip', '-qq', zip_pname, '-d', op.dirname(zip_pname)])
+
                 # Delete the zip file
-                print(f'  Deleting {zip_fname}')
-                os.remove(zip_fname)
+                print(f'  Deleting {zip_pname}')
+                try:
+                    os.remove(zip_pname)
+                except Exception as err:
+                    print(f'* Problem deleting {op.basename(zip_pname)}')
+                    print(f'* Manual cleanup may be required in sourcedata')
+
+
+def find_zips(dname):
+
+    found_files = []
+
+    for root, _, files in os.walk(dname):
+        for file in files:
+            if file.endswith(".zip"):
+                found_files.append(os.path.join(root, file))
+
+    return found_files
