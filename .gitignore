@@ -42,8 +42,4 @@ dist/
 .Trashes
 ehthumbs.db
 Thumbs.db
-bidskit/__pycache__/bidstree.cpython-37.pyc
-bidskit/__pycache__/io.cpython-37.pyc
-bidskit/__pycache__/launcher.cpython-37.pyc
-bidskit/__pycache__/organize.cpython-37.pyc
-bidskit/__pycache__/translate.cpython-37.pyc
+bidskit/__pycache__/
