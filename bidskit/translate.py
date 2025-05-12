@@ -189,6 +189,8 @@ def purpose_handling(bids_meta,
 
             print('    Gradient echo detected')
 
+        # Additional anatomic types can be handled here (eg angio)
+
     elif bids_purpose == 'dwi':
 
         # Fill DWI bval and bvec working and source filenames
