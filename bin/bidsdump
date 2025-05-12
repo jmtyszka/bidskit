@@ -21,7 +21,7 @@ from glob import glob
 def main():
 
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Create table of key BOLD fMRI parameters for a BIDS dataset')
+    parser = argparse.ArgumentParser(description='Create table of key imaging parameters for a BIDS dataset')
     parser.add_argument('-d', '--dataset', default='.', help='BIDS dataset directory')
     args = parser.parse_args()
 
@@ -45,68 +45,75 @@ def main():
 
         json_dir = op.dirname(json_path)
         json_fname = op.basename(json_path)
+
+        # Only process Nifti image data
         nii_fname = json_fname.replace('.json', '.nii.gz')
         nii_path = op.join(json_dir, nii_fname)
 
-        print('  Processing {}'.format(nii_fname))
+        if op.exists(nii_path):
 
-        # Load Nifti header
-        nii = nib.load(nii_path)
-        hdr = nii.header
+            print('  Processing {}'.format(nii_fname))
 
-        # Image dimensions
-        dim = hdr['dim']
-        vox = hdr['pixdim']
+            # Load Nifti header
+            nii = nib.load(nii_path)
+            hdr = nii.header
 
-        # Parse BIDS filename
-        keys = bids.layout.parse_file_entities(json_path)
+            # Image dimensions
+            dim = hdr['dim']
+            vox = hdr['pixdim']
 
-        # Load JSON metadata
-        with open(json_path, 'r') as fd:
-            meta = json.load(fd)
+            # Parse BIDS filename
+            keys = bids.layout.parse_file_entities(json_path)
 
-        # Original series number and acquisition time
-        ser_no = meta['SeriesNumber']
-        acq_time = meta['AcquisitionTime']
+            # Load JSON metadata
+            with open(json_path, 'r') as fd:
+                meta = json.load(fd)
 
-        # In-plane GRAPPA factor if present
-        if 'ParallelReductionFactorInPlane' in meta:
-            r = meta['ParallelReductionFactorInPlane']
-        else:
-            r = 1
+            # Original series number and acquisition time
+            ser_no = meta['SeriesNumber']
+            acq_time = meta['AcquisitionTime']
 
-        #  Multiband acceleration factor if present
-        if 'MultibandAccelerationFactor' in meta:
-            m = meta['MultibandAccelerationFactor']
-        else:
-            m = 1
+            # In-plane GRAPPA factor if present
+            if 'ParallelReductionFactorInPlane' in meta:
+                r = meta['ParallelReductionFactorInPlane']
+            else:
+                r = 1
 
-        # Handle commonly absent fields
-        if not 'session' in keys:
-            keys['session'] = '-'
-        if not 'task' in keys:
-            keys['task'] = '-'
-        if not 'run' in keys:
-            keys['run'] = 1
+            #  Multiband acceleration factor if present
+            if 'MultibandAccelerationFactor' in meta:
+                m = meta['MultibandAccelerationFactor']
+            else:
+                m = 1
 
-        # Add to running list
-        meta_list.append([
-            ser_no,
-            acq_time,
-            nii_fname,
-            keys['subject'],
-            keys['session'],
-            keys['task'],
-            keys['run'],
-            meta['RepetitionTime'],
-            meta['EchoTime'],
-            meta['FlipAngle'],
-            r, m,
-            dim[1], dim[2], dim[3], dim[4],
-            vox[1], vox[2], vox[3]
-        ])
+            # Handle commonly absent fields
+            if not 'session' in keys:
+                keys['session'] = '-'
+            if not 'task' in keys:
+                keys['task'] = '-'
+            if not 'run' in keys:
+                keys['run'] = 1
+            if not 'part' in keys:
+                keys['part'] = 'mag'
+
+            # Add to running list
+            meta_list.append([
+                ser_no,
+                acq_time,
+                nii_fname,
+                keys['subject'],
+                keys['session'],
+                keys['task'],
+                keys['run'],
+                keys['part'],
+                meta['RepetitionTime'],
+                meta['EchoTime'],
+                meta['FlipAngle'],
+                r, m,
+                dim[1], dim[2], dim[3], dim[4],
+                vox[1], vox[2], vox[3]
+            ])
                
-    # Convert to dataframe and save as CSV
+    # Convert list to dataframe and save as CSV
     df = pd.DataFrame(
         meta_list,
         columns=[
@@ -117,6 +124,7 @@ def main():
             'Session',
             'Task',
             'Run',
+            'Part',
             'TR_secs',
             'TE_secs',
             'FlipAngle_degs',
