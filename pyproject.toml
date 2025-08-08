@@ -1,0 +1,21 @@
+[project]
+name = "bidskit"
+version = "2025.8.8"
+description = "BIDS curation toolkit"
+authors = [
+    {name = "Mike Tyszka",email = "jmt@caltech.edu"}
+]
+license = {text = "MIT License"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydicom (>=2.3.1,<2.4.0)",
+    "numpy (>=1.26.3,<1.27.0)"
+]
+
+[project.scripts]
+bidskit = "bidskit.__main__:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
