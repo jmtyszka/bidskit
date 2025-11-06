@@ -1,6 +1,6 @@
 [project]
 name = "bidskit"
-version = "2025.10.16"
+version = "2025.11.6"
 description = "BIDS curation toolkit"
 authors = [
     {name = "Mike Tyszka",email = "jmt@caltech.edu"}
