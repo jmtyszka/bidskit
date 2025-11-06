@@ -28,7 +28,7 @@ import os
 import sys
 import json
 import subprocess
-import pkg_resources
+import importlib.resources as ilr
 import shutil
 
 from . import io as bio
@@ -146,10 +146,9 @@ class BIDSTree:
         Copy standard BIDS top-level templates to BIDS root directory
         """
 
-        tpl_pname = pkg_resources.resource_filename(
-            __name__,
-            os.path.join('templates', tpl_fname)
-        )
+        # TODO: Replace with importlib.resources in Python 3.7+
+        # Get template file path within package
+        tpl_pname = str(ilr.files('bidskit').joinpath('templates', tpl_fname))
         out_pname = os.path.join(self.bids_dir, dest_fname)
 
         print(f'Copying {tpl_pname} to {out_pname}')
@@ -157,4 +156,4 @@ class BIDSTree:
         try:
             shutil.copyfile(tpl_pname, out_pname)
         except FileNotFoundError:
-            print('* {tpl_pname} not found - check installation folder permissions')
+            print(f'* {tpl_pname} not found - check installation folder permissions')

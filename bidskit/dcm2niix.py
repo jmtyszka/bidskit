@@ -118,13 +118,6 @@ def organize_series(
         # Get Nifti file list ordered by acquisition time
         nii_list, json_list, acq_times = ordered_file_list(conv_dir, nii_ext)
 
-        # Infer run numbers accounting for duplicates.
-        # Only used if run-* not present in translator BIDS filename stub
-        if first_pass:
-            run_no = None
-        else:
-            run_no = tr.auto_run_no(nii_list, translator)
-
         # Loop over all Nifti files (*.nii, *.nii.gz) for this subject
         for fc, src_nii_fname in enumerate(nii_list):
 
@@ -143,6 +136,9 @@ def organize_series(
 
                 print(f"\n  Adding protocol {ser_desc} to dictionary")
 
+                # No run number on first pass
+                run_no = None
+
                 # Add current protocol to protocol dictionary
                 if auto:
                     translator[ser_desc] = tr.auto_translate(src_meta, src_json_fname)
@@ -150,6 +146,10 @@ def organize_series(
                     translator[ser_desc] = ["EXCLUDE_BIDS_Directory", "EXCLUDE_BIDS_Name", "UNASSIGNED"]
 
             else:
+
+                # Get run number accounting for duplicates
+                # Translator provided run number overrides auto_run_no
+                run_no = tr.auto_run_no(nii_list, translator)
 
                 # Warn if not found and continue
                 if not os.path.isfile(src_json_fname):

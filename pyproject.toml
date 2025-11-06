@@ -1,6 +1,6 @@
 [project]
 name = "bidskit"
-version = "2025.8.8"
+version = "2025.10.16"
 description = "BIDS curation toolkit"
 authors = [
     {name = "Mike Tyszka",email = "jmt@caltech.edu"}
@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "pydicom (>=2.3.1,<2.4.0)",
-    "numpy (>=1.26.3,<1.27.0)"
+    "numpy (>=2.2.4)"
 ]
 
 [project.scripts]

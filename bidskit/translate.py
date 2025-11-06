@@ -165,13 +165,13 @@ def purpose_handling(bids_meta,
 
         if 'GR' in scan_seq and 'IR' in scan_seq:
 
-            print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMPRAGE')
+            print('    IR-prepared GRE detected - likely T1w MPRAGE or MEMP-RAGE')
 
-            # Handle MEMPRAGE. Modify bids fnames as needed
+            # Handle MEMP-RAGE. Modify bids fnames as needed
             bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
                 work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
 
-            # Handle complex-valued MEMPRAGE. Modify bids fnames as needed
+            # Handle complex-valued MEMP-RAGE. Modify bids fnames as needed
             bids_nii_fname, bids_json_fname = d2n.handle_complex(
                 work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
 
@@ -189,7 +189,19 @@ def purpose_handling(bids_meta,
 
             print('    Gradient echo detected')
 
-        # Additional anatomic types can be handled here (eg angio)
+            # Handle MEGRE. Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_multiecho(
+                work_json_fname, bids_json_fname, key_flags['Echo'], nii_ext)
+
+            # Handle complex-valued GRE. Modify bids fnames as needed
+            bids_nii_fname, bids_json_fname = d2n.handle_complex(
+                work_json_fname, bids_json_fname, key_flags['Part'], nii_ext)
+
+            # Handle biased and unbiased (NORM) reconstructions
+            bids_nii_fname, bids_json_fname = d2n.handle_bias_recon(
+                work_json_fname, bids_json_fname, key_flags['Recon'], nii_ext)
+            
+            # Additional anatomic types can be handled here as needed (eg angio)
 
     elif bids_purpose == 'dwi':
 
